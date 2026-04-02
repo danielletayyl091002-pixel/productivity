@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: "/", icon: Sparkles, label: "Today", emoji: "✨" },
   { href: "/upcoming", icon: CalendarDays, label: "Upcoming", emoji: "📅" },
   { href: "/all", icon: Inbox, label: "All", emoji: "📥" },
+  { href: "/notes", icon: Sparkles, label: "Notes", emoji: "📝" },
   { href: "/focus", icon: Clock, label: "Focus", emoji: "🎯" },
   { href: "/metrics", icon: BarChart3, label: "Metrics", emoji: "📊" },
 ];

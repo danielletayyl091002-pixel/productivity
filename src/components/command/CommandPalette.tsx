@@ -38,6 +38,11 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
     { id: "start-focus", emoji: "🎯", label: "Start Focus", shortcut: "Space", action: () => { startSession(query || "Focus"); onClose(); } },
     { id: "nav-today", emoji: "✨", label: "Today", shortcut: "1", action: () => navigate("/") },
     { id: "nav-upcoming", emoji: "📅", label: "Upcoming", shortcut: "2", action: () => navigate("/upcoming") },
+    { id: "new-note", emoji: "📝", label: "New Note", action: async () => {
+      const note = await useItems.getState().addItem({ type: "note", title: query || "Untitled Note", content: "" });
+      navigate(`/notes/${note.id}`);
+    }},
+    { id: "nav-notes", emoji: "📝", label: "Notes", action: () => navigate("/notes") },
     { id: "nav-focus", emoji: "🎯", label: "Focus", shortcut: "4", action: () => navigate("/focus") },
     { id: "nav-metrics", emoji: "📊", label: "Metrics", shortcut: "5", action: () => navigate("/metrics") },
   ];
