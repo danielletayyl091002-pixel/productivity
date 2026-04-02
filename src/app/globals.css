@@ -1,48 +1,65 @@
 @import "tailwindcss";
 
 :root {
-  /* Theming - overridden by ThemeProvider */
-  --color-primary: #3b82f6;
-  --color-primary-light: #3b82f622;
-  --color-primary-medium: #3b82f644;
-  --radius: 12px;
-  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Warm, soft design system inspired by modern productivity apps */
+  --color-primary: #FF8C61;
+  --color-primary-light: #FF8C6118;
+  --color-primary-medium: #FF8C6133;
+  --color-primary-dark: #E67348;
+  --radius: 20px;
+  --radius-sm: 14px;
+  --radius-xs: 10px;
+  --font-family: 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --density-spacing: 1;
   --density-font-size: 14px;
   --density-padding: 0.5rem;
 
-  /* Semantic colors - Light */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8fafc;
-  --bg-tertiary: #f1f5f9;
-  --bg-hover: #f1f5f9;
-  --bg-active: #e2e8f0;
-  --bg-elevated: #ffffff;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-tertiary: #94a3b8;
-  --text-inverse: #ffffff;
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
-  --shadow: 0 1px 3px rgba(0,0,0,0.08);
-  --shadow-lg: 0 10px 40px rgba(0,0,0,0.1);
+  /* Warm light palette */
+  --bg-primary: #FEFCFA;
+  --bg-secondary: #F7F4F0;
+  --bg-tertiary: #EFEBE6;
+  --bg-hover: #F2EDE8;
+  --bg-active: #E8E2DB;
+  --bg-elevated: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --text-primary: #2D2519;
+  --text-secondary: #6B5E52;
+  --text-tertiary: #A89888;
+  --text-inverse: #FFFFFF;
+  --border: #E8E2DB;
+  --border-strong: #D9D0C5;
+  --shadow: 0 2px 8px rgba(45, 37, 25, 0.06);
+  --shadow-md: 0 4px 16px rgba(45, 37, 25, 0.08);
+  --shadow-lg: 0 12px 40px rgba(45, 37, 25, 0.12);
+
+  /* Pastel accent palette */
+  --pastel-peach: #FFD4B8;
+  --pastel-mint: #C5E8D5;
+  --pastel-lavender: #D8D0F0;
+  --pastel-sky: #BDE0F0;
+  --pastel-rose: #F5C6D0;
+  --pastel-lemon: #F5EDB8;
+  --pastel-coral: #F5B8A8;
+  --pastel-sage: #C8D8C0;
 }
 
 .dark {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
-  --bg-hover: #1e293b;
-  --bg-active: #334155;
-  --bg-elevated: #1e293b;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-tertiary: #64748b;
-  --text-inverse: #0f172a;
-  --border: #334155;
-  --border-strong: #475569;
-  --shadow: 0 1px 3px rgba(0,0,0,0.3);
-  --shadow-lg: 0 10px 40px rgba(0,0,0,0.4);
+  --bg-primary: #1A1614;
+  --bg-secondary: #231F1C;
+  --bg-tertiary: #2E2924;
+  --bg-hover: #2E2924;
+  --bg-active: #3A342D;
+  --bg-elevated: #2A2521;
+  --bg-card: #2A2521;
+  --text-primary: #F0EBE5;
+  --text-secondary: #A89888;
+  --text-tertiary: #6B5E52;
+  --text-inverse: #1A1614;
+  --border: #3A342D;
+  --border-strong: #4A433B;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.35);
 }
 
 @theme inline {
@@ -50,46 +67,87 @@
   --color-foreground: var(--text-primary);
 }
 
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   background: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-family);
   font-size: var(--density-font-size);
-  transition: background-color 0.2s, color 0.2s;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+/* Beautiful scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
-/* Selection */
+/* Warm selection */
 ::selection {
   background: var(--color-primary-medium);
   color: var(--text-primary);
 }
 
-/* Focus ring */
+/* Softer focus ring */
 *:focus-visible {
   outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-  border-radius: 4px;
+  outline-offset: 3px;
+  border-radius: var(--radius-xs);
 }
 
-/* Smooth scrolling */
 html { scroll-behavior: smooth; }
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideIn {
-  from { opacity: 0; transform: translateX(8px); }
+  from { opacity: 0; transform: translateX(12px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
-.animate-fade-in { animation: fadeIn 0.15s ease-out; }
-.animate-slide-in { animation: slideIn 0.15s ease-out; }
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-fade-in { animation: fadeIn 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
+.animate-slide-in { animation: slideIn 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
+.animate-scale-in { animation: scaleIn 0.2s cubic-bezier(0.22, 1, 0.36, 1); }
+.animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
+
+/* Card hover lift */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Soft gradient backgrounds for cards */
+.gradient-peach { background: linear-gradient(135deg, #FFF5EE, #FFE8D6); }
+.gradient-mint { background: linear-gradient(135deg, #F0FAF4, #D5F0E0); }
+.gradient-lavender { background: linear-gradient(135deg, #F5F0FF, #E8E0F8); }
+.gradient-sky { background: linear-gradient(135deg, #F0F8FF, #D6ECFA); }
+.gradient-rose { background: linear-gradient(135deg, #FFF5F7, #FDDFDF); }
+.gradient-lemon { background: linear-gradient(135deg, #FFFEF0, #F8F0D0); }
+
+.dark .gradient-peach { background: linear-gradient(135deg, #2A2521, #332A22); }
+.dark .gradient-mint { background: linear-gradient(135deg, #1E2A22, #223028); }
+.dark .gradient-lavender { background: linear-gradient(135deg, #252028, #2A2530); }
+.dark .gradient-sky { background: linear-gradient(135deg, #1E2530, #202A35); }
+.dark .gradient-rose { background: linear-gradient(135deg, #2A2022, #302528); }
+.dark .gradient-lemon { background: linear-gradient(135deg, #2A2820, #302E22); }

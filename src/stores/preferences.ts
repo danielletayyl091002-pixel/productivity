@@ -4,7 +4,7 @@ import { db, type UserPreferences } from "@/db/schema";
 const DEFAULTS: UserPreferences = {
   id: "user",
   theme: "light",
-  primaryColor: "#3b82f6",
+  primaryColor: "#FF8C61",
   fontFamily: "system",
   cornerRadius: 12,
   density: "comfortable",
