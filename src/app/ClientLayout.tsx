@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useItems } from "@/stores/items";
 import { useFocus } from "@/stores/focus";
 import { usePreferences } from "@/stores/preferences";
@@ -14,12 +14,14 @@ import RightPanel from "@/components/layout/RightPanel";
 import BottomBar from "@/components/layout/BottomBar";
 import CommandPalette from "@/components/command/CommandPalette";
 import QuickAdd from "@/components/command/QuickAdd";
+import { useRouter } from "next/navigation";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const router = useRouter();
 
   const loadItems = useItems(s => s.load);
   const loadFocus = useFocus(s => s.load);
@@ -42,51 +44,95 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     init();
   }, [loadItems, loadFocus, loadPrefs, loadTemplates, loadDashboard]);
 
-  // Global keyboard shortcuts
+  // Notion-level keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger in inputs
       const target = e.target as HTMLElement;
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
+      const inInput = target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
+      const mod = e.metaKey || e.ctrlKey;
 
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      // ── Always-active shortcuts (even in inputs) ──
+      if (mod && e.key === "k") { e.preventDefault(); setCommandOpen(true); return; }
+      if (mod && e.key === "n") { e.preventDefault(); setQuickAddOpen(true); return; }
+      if (mod && e.key === "p") { e.preventDefault(); setCommandOpen(true); return; } // Quick search
+      if (mod && e.shiftKey && e.key === "L") { // Toggle dark/light
         e.preventDefault();
-        setCommandOpen(true);
-      } else if (e.key === "n" || e.key === "N" || e.key === "t" || e.key === "T") {
-        e.preventDefault();
-        setQuickAddOpen(true);
-      } else if (e.key === "Delete" || e.key === "Backspace") {
+        const { prefs, update } = usePreferences.getState();
+        update({ theme: prefs.theme === "dark" ? "light" : "dark" });
+        return;
+      }
+      if (mod && e.key === "[") { e.preventDefault(); router.back(); return; }
+      if (mod && e.key === "]") { e.preventDefault(); router.forward(); return; }
+
+      // ── Only outside inputs ──
+      if (inInput) return;
+
+      // Quick nav with number keys
+      if (e.key === "1") { router.push("/"); return; }
+      if (e.key === "2") { router.push("/upcoming"); return; }
+      if (e.key === "3") { router.push("/all"); return; }
+      if (e.key === "4") { router.push("/focus"); return; }
+      if (e.key === "5") { router.push("/metrics"); return; }
+
+      // N / T = quick add
+      if (e.key === "n" || e.key === "N" || e.key === "t" || e.key === "T") {
+        e.preventDefault(); setQuickAddOpen(true); return;
+      }
+
+      // E = edit selected item (open right panel)
+      if (e.key === "e" || e.key === "E") {
+        const { selectedItemId } = useItems.getState();
+        if (selectedItemId) { e.preventDefault(); /* right panel already shows */ }
+        return;
+      }
+
+      // Delete / Backspace = delete selected
+      if (e.key === "Delete" || e.key === "Backspace") {
         const { selectedItemId, deleteItem } = useItems.getState();
         if (selectedItemId) { e.preventDefault(); deleteItem(selectedItemId); }
-      } else if (e.key === " " && !e.metaKey && !e.ctrlKey) {
-        // Space: toggle selected task status, or start focus if nothing selected
+        return;
+      }
+
+      // Space = toggle task / start focus
+      if (e.key === " " && !mod) {
         const { selectedItemId, toggleTaskStatus } = useItems.getState();
         if (selectedItemId) {
           e.preventDefault();
           toggleTaskStatus(selectedItemId);
           return;
         }
-        // Space to start focus - only when no focus active
         const { activeSession, startSession } = useFocus.getState();
         if (!activeSession) {
           e.preventDefault();
           startSession("Quick focus");
         }
-      } else if (e.key === "Escape") {
-        useItems.getState().setSelectedItem(null);
+        return;
       }
+
+      // Escape = deselect
+      if (e.key === "Escape") {
+        useItems.getState().setSelectedItem(null);
+        return;
+      }
+
+      // ? = show shortcuts help (future)
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [router]);
 
   if (!ready) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="h-8 w-8 border-2 border-[var(--border)] border-t-[var(--color-primary)] rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-[var(--text-tertiary)]">Loading...</p>
+      <div className="flex items-center justify-center h-screen bg-[var(--bg-primary)]">
+        <div className="text-center animate-fade-in">
+          <div className="h-10 w-10 rounded-[var(--radius-xs)] bg-[var(--color-primary)] flex items-center justify-center mx-auto mb-4">
+            <span className="text-white text-lg">✨</span>
+          </div>
+          <div className="h-1 w-24 bg-[var(--bg-tertiary)] rounded-full mx-auto overflow-hidden">
+            <div className="h-full w-1/2 bg-[var(--color-primary)] rounded-full animate-[shimmer_1s_ease-in-out_infinite_alternate]"
+              style={{ animation: "shimmer 1s ease-in-out infinite alternate" }} />
+          </div>
         </div>
       </div>
     );
