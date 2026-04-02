@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useCallback } from "react";
+import { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import { useItems } from "@/stores/items";
 import { toDateString, formatDisplayTime } from "@/lib/dates";
 import { cn } from "@/lib/utils";
@@ -55,6 +55,18 @@ function timeToLabel(h: number, m: number): string {
 export default function WeekCalendar({ currentDate, onEventClick, onCreateEvent, draggedTaskId }: WeekCalendarProps) {
   const { items, updateItem } = useItems();
   const gridRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to current time on mount
+  useEffect(() => {
+    if (!scrollRef.current) return;
+    const now = new Date();
+    const hour = now.getHours();
+    if (hour >= START_HOUR && hour < END_HOUR) {
+      const scrollTo = Math.max(0, (hour - START_HOUR - 1) * SLOT_HEIGHT);
+      scrollRef.current.scrollTop = scrollTo;
+    }
+  }, []);
 
   // Click-drag-to-create state
   const [creating, setCreating] = useState<{ dayIndex: number; startY: number; currentY: number } | null>(null);
@@ -202,7 +214,7 @@ export default function WeekCalendar({ currentDate, onEventClick, onCreateEvent,
       </div>
 
       {/* Time grid */}
-      <div className="overflow-y-auto max-h-[560px]" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={() => creating && handleMouseUp()}>
+      <div ref={scrollRef} className="overflow-y-auto max-h-[560px]" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={() => creating && handleMouseUp()}>
         <div ref={gridRef} className="grid grid-cols-[48px_repeat(7,1fr)] relative">
           {HOURS.map(hour => (
             <div key={hour} className="contents">
@@ -222,6 +234,8 @@ export default function WeekCalendar({ currentDate, onEventClick, onCreateEvent,
                     onDragOver={(e) => handleDragOver(e, dateStr, hour)}
                     onDrop={(e) => { handleEventDrop(e, dateStr, hour); handleDrop(e, dateStr, hour); }}
                     onDragLeave={() => setDropTarget(null)}>
+                    {/* Half-hour line */}
+                    <div className="absolute left-0 right-0 border-b border-dashed border-[var(--border)]" style={{ top: `${SLOT_HEIGHT / 2}px`, opacity: 0.4 }} />
 
                     {/* Render events for this column from START_HOUR */}
                     {hour === START_HOUR && (itemsByDay[dateStr] || []).map(item => {
