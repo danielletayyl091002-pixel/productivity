@@ -52,13 +52,20 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         setCommandOpen(true);
-      } else if (e.key === "n" || e.key === "N") {
+      } else if (e.key === "n" || e.key === "N" || e.key === "t" || e.key === "T") {
         e.preventDefault();
         setQuickAddOpen(true);
-      } else if (e.key === "t") {
-        e.preventDefault();
-        setQuickAddOpen(true);
+      } else if (e.key === "Delete" || e.key === "Backspace") {
+        const { selectedItemId, deleteItem } = useItems.getState();
+        if (selectedItemId) { e.preventDefault(); deleteItem(selectedItemId); }
       } else if (e.key === " " && !e.metaKey && !e.ctrlKey) {
+        // Space: toggle selected task status, or start focus if nothing selected
+        const { selectedItemId, toggleTaskStatus } = useItems.getState();
+        if (selectedItemId) {
+          e.preventDefault();
+          toggleTaskStatus(selectedItemId);
+          return;
+        }
         // Space to start focus - only when no focus active
         const { activeSession, startSession } = useFocus.getState();
         if (!activeSession) {
