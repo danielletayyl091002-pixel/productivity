@@ -108,7 +108,7 @@ export class ProductivDB extends Dexie {
   constructor() {
     super("productiv");
     this.version(1).stores({
-      items: "id, type, date, status, archived, templateId, [type+date], [type+archived], *tags",
+      items: "id, type, date, status, templateId, [type+date], *tags",
       focusSessions: "id, date, itemId",
       metricTemplates: "id, name, order",
       dashboardCards: "id, type, order",

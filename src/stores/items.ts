@@ -43,7 +43,7 @@ export const useItems = create<ItemsState>((set, get) => ({
   selectedItemId: null,
 
   load: async () => {
-    const items = await db.items.where("archived").equals(0).toArray();
+    const items = await db.items.filter(i => !i.archived).toArray();
     set({ items, loading: false });
   },
 

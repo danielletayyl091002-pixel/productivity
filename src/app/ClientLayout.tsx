@@ -30,9 +30,14 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     async function init() {
-      await seedDatabase();
-      await Promise.all([loadItems(), loadFocus(), loadPrefs(), loadTemplates(), loadDashboard()]);
-      setReady(true);
+      try {
+        await seedDatabase();
+        await Promise.all([loadItems(), loadFocus(), loadPrefs(), loadTemplates(), loadDashboard()]);
+      } catch (err) {
+        console.error("Failed to initialize:", err);
+      } finally {
+        setReady(true);
+      }
     }
     init();
   }, [loadItems, loadFocus, loadPrefs, loadTemplates, loadDashboard]);
