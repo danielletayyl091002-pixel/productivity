@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  /* Warm, soft design system inspired by modern productivity apps */
-  --color-primary: #FF8C61;
-  --color-primary-light: #FF8C6118;
-  --color-primary-medium: #FF8C6133;
-  --color-primary-dark: #E67348;
+  /* Dreamy pastel design system */
+  --color-primary: #D4839B;
+  --color-primary-light: #D4839B18;
+  --color-primary-medium: #D4839B33;
+  --color-primary-dark: #B86D85;
   --radius: 20px;
   --radius-sm: 14px;
   --radius-xs: 10px;
@@ -14,49 +14,49 @@
   --density-font-size: 14px;
   --density-padding: 0.5rem;
 
-  /* Warm light palette */
-  --bg-primary: #FEFCFA;
-  --bg-secondary: #F7F4F0;
-  --bg-tertiary: #EFEBE6;
-  --bg-hover: #F2EDE8;
-  --bg-active: #E8E2DB;
+  /* Soft pink-tinted light palette */
+  --bg-primary: #FFF5F7;
+  --bg-secondary: #F8EEF0;
+  --bg-tertiary: #F0E5E8;
+  --bg-hover: #F5E8EB;
+  --bg-active: #EBDCE0;
   --bg-elevated: #FFFFFF;
   --bg-card: #FFFFFF;
-  --text-primary: #2D2519;
-  --text-secondary: #6B5E52;
-  --text-tertiary: #A89888;
+  --text-primary: #2A1F25;
+  --text-secondary: #6B5A62;
+  --text-tertiary: #A8949C;
   --text-inverse: #FFFFFF;
-  --border: #E8E2DB;
-  --border-strong: #D9D0C5;
-  --shadow: 0 2px 8px rgba(45, 37, 25, 0.06);
-  --shadow-md: 0 4px 16px rgba(45, 37, 25, 0.08);
-  --shadow-lg: 0 12px 40px rgba(45, 37, 25, 0.12);
+  --border: #EBDCE0;
+  --border-strong: #DCC8CF;
+  --shadow: 0 2px 8px rgba(42, 31, 37, 0.06);
+  --shadow-md: 0 4px 16px rgba(42, 31, 37, 0.08);
+  --shadow-lg: 0 12px 40px rgba(42, 31, 37, 0.10);
 
-  /* Pastel accent palette */
-  --pastel-peach: #FFD4B8;
-  --pastel-mint: #C5E8D5;
-  --pastel-lavender: #D8D0F0;
-  --pastel-sky: #BDE0F0;
-  --pastel-rose: #F5C6D0;
-  --pastel-lemon: #F5EDB8;
-  --pastel-coral: #F5B8A8;
-  --pastel-sage: #C8D8C0;
+  /* Dreamy pastel accents */
+  --pastel-peach: #F5B8A8;
+  --pastel-mint: #B8D8C8;
+  --pastel-lavender: #C8B8E0;
+  --pastel-sky: #A8C8E0;
+  --pastel-rose: #E8B8C8;
+  --pastel-lemon: #E8DDB0;
+  --pastel-coral: #E8A898;
+  --pastel-sage: #B8D0B0;
 }
 
 .dark {
-  --bg-primary: #1A1614;
-  --bg-secondary: #231F1C;
-  --bg-tertiary: #2E2924;
-  --bg-hover: #2E2924;
-  --bg-active: #3A342D;
-  --bg-elevated: #2A2521;
-  --bg-card: #2A2521;
-  --text-primary: #F0EBE5;
-  --text-secondary: #A89888;
-  --text-tertiary: #6B5E52;
-  --text-inverse: #1A1614;
-  --border: #3A342D;
-  --border-strong: #4A433B;
+  --bg-primary: #1A1520;
+  --bg-secondary: #231D28;
+  --bg-tertiary: #2E2533;
+  --bg-hover: #2E2533;
+  --bg-active: #3A303F;
+  --bg-elevated: #2A2230;
+  --bg-card: #2A2230;
+  --text-primary: #F0E8F0;
+  --text-secondary: #A890A0;
+  --text-tertiary: #6B5565;
+  --text-inverse: #1A1520;
+  --border: #3A303F;
+  --border-strong: #4A3B50;
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.25);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.35);
@@ -137,17 +137,17 @@ html { scroll-behavior: smooth; }
   box-shadow: var(--shadow-md);
 }
 
-/* Soft gradient backgrounds for cards */
-.gradient-peach { background: linear-gradient(135deg, #FFF5EE, #FFE8D6); }
-.gradient-mint { background: linear-gradient(135deg, #F0FAF4, #D5F0E0); }
-.gradient-lavender { background: linear-gradient(135deg, #F5F0FF, #E8E0F8); }
-.gradient-sky { background: linear-gradient(135deg, #F0F8FF, #D6ECFA); }
-.gradient-rose { background: linear-gradient(135deg, #FFF5F7, #FDDFDF); }
-.gradient-lemon { background: linear-gradient(135deg, #FFFEF0, #F8F0D0); }
+/* Dreamy gradient backgrounds for cards */
+.gradient-peach { background: linear-gradient(135deg, #FFF0EC, #F8DDD5); }
+.gradient-mint { background: linear-gradient(135deg, #EEF8F2, #D5EDE0); }
+.gradient-lavender { background: linear-gradient(135deg, #F2EEF8, #E0D8F0); }
+.gradient-sky { background: linear-gradient(135deg, #EDF4FA, #D0E2F0); }
+.gradient-rose { background: linear-gradient(135deg, #FAF0F3, #F0D8E0); }
+.gradient-lemon { background: linear-gradient(135deg, #FAF8EE, #F0E8D0); }
 
-.dark .gradient-peach { background: linear-gradient(135deg, #2A2521, #332A22); }
-.dark .gradient-mint { background: linear-gradient(135deg, #1E2A22, #223028); }
-.dark .gradient-lavender { background: linear-gradient(135deg, #252028, #2A2530); }
-.dark .gradient-sky { background: linear-gradient(135deg, #1E2530, #202A35); }
-.dark .gradient-rose { background: linear-gradient(135deg, #2A2022, #302528); }
-.dark .gradient-lemon { background: linear-gradient(135deg, #2A2820, #302E22); }
+.dark .gradient-peach { background: linear-gradient(135deg, #2A2025, #33252A); }
+.dark .gradient-mint { background: linear-gradient(135deg, #1E2822, #222E28); }
+.dark .gradient-lavender { background: linear-gradient(135deg, #22202A, #282530); }
+.dark .gradient-sky { background: linear-gradient(135deg, #1E2230, #202838); }
+.dark .gradient-rose { background: linear-gradient(135deg, #2A1E22, #302228); }
+.dark .gradient-lemon { background: linear-gradient(135deg, #282620, #302C22); }

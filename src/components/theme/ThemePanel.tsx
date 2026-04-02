@@ -5,16 +5,16 @@ import { cn } from "@/lib/utils";
 import { Sun, Moon, Monitor, Check } from "lucide-react";
 
 const PALETTES = [
-  { name: "Sunset", primary: "#FF8C61", bg: "#FEFCFA", dark: "#1C1917", accent: "#EF4444" },
-  { name: "Ocean", primary: "#06B6D4", bg: "#ECFEFF", dark: "#164E63", accent: "#3B82F6" },
-  { name: "Forest", primary: "#10B981", bg: "#ECFDF5", dark: "#064E3B", accent: "#059669" },
-  { name: "Rose", primary: "#F43F5E", bg: "#FFF1F2", dark: "#4C0519", accent: "#D946EF" },
-  { name: "Midnight", primary: "#6366F1", bg: "#F8FAFC", dark: "#0F172A", accent: "#8B5CF6" },
-  { name: "Earth", primary: "#78716C", bg: "#F5F5F4", dark: "#292524", accent: "#D97706" },
-  { name: "Lavender", primary: "#A855F7", bg: "#FAF5FF", dark: "#2E1065", accent: "#C084FC" },
-  { name: "Mint", primary: "#14B8A6", bg: "#F0FDFA", dark: "#042F2E", accent: "#10B981" },
-  { name: "Gold", primary: "#EAB308", bg: "#FEFCE8", dark: "#422006", accent: "#F97316" },
-  { name: "Default", primary: "#3B82F6", bg: "#FFFFFF", dark: "#0F172A", accent: "#8B5CF6" },
+  { name: "Cherry Blossom", primary: "#D4839B", bg: "#FFF5F7", dark: "#2A1520", accent: "#E8A0B8" },
+  { name: "Twilight Cloud", primary: "#8B7FB5", bg: "#F5F0FA", dark: "#1A1525", accent: "#ADA3D0" },
+  { name: "Sage Garden", primary: "#8C9F6B", bg: "#F5F7F0", dark: "#1A1F14", accent: "#CCCBB8" },
+  { name: "Dusty Rose", primary: "#C9A0A0", bg: "#FDF5F5", dark: "#251A1A", accent: "#E0BFBF" },
+  { name: "Ocean Drift", primary: "#7BA7C2", bg: "#F0F5FA", dark: "#0E1A25", accent: "#A3C4D9" },
+  { name: "Warm Sand", primary: "#B8A088", bg: "#FAF7F2", dark: "#201C16", accent: "#D4C4AE" },
+  { name: "Veranda Blue", primary: "#6BA3B5", bg: "#F0F8FA", dark: "#0E2028", accent: "#8EC4D5" },
+  { name: "Juicy Melon", primary: "#E8917A", bg: "#FFF5F0", dark: "#251510", accent: "#F5B8A8" },
+  { name: "Dreamland", primary: "#8897AA", bg: "#F0F3F8", dark: "#141820", accent: "#B0BECF" },
+  { name: "Lotus Pond", primary: "#0A8555", bg: "#F0FAF5", dark: "#0A2318", accent: "#83D9A5" },
 ];
 
 const FONTS = [
