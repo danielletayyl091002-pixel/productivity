@@ -27,6 +27,9 @@ export interface Item {
   metricTarget?: number;
   metricUnit?: string;
   metricEmoji?: string;   // for mood-type metrics
+  // Event-specific
+  color?: string;           // event color (hex)
+  location?: string;
   // Template
   templateId?: string;
   // Meta

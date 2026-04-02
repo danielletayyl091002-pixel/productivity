@@ -55,8 +55,14 @@ export default function NoteEditorPage({ params }: { params: Promise<{ id: strin
     editorRef.current?.focus();
   }, []);
 
+  // Insert HTML helper
+  const insertHTML = useCallback((html: string) => {
+    document.execCommand("insertHTML", false, html);
+    editorRef.current?.focus();
+  }, []);
+
   // Slash commands
-  const slashCommands = DEFAULT_SLASH_COMMANDS(execCmd, async () => {
+  const slashCommands = DEFAULT_SLASH_COMMANDS(execCmd, insertHTML, async () => {
     await quickAddTask("New task from note");
     setSlashOpen(false);
   });
@@ -289,6 +295,23 @@ export default function NoteEditorPage({ params }: { params: Promise<{ id: strin
           "[&_hr]:border-[var(--border)] [&_hr]:my-4",
           "[&_a]:text-[var(--color-primary)] [&_a]:underline",
           "[&_s]:line-through [&_s]:text-[var(--text-tertiary)]",
+          // Image blocks
+          "[&_.image-block]:my-4 [&_.image-block_img]:rounded-[var(--radius-sm)] [&_.image-block_img]:max-w-full",
+          // Callout blocks
+          "[&_.callout-block]:bg-[var(--bg-secondary)] [&_.callout-block]:border [&_.callout-block]:border-[var(--border)] [&_.callout-block]:rounded-[var(--radius-sm)] [&_.callout-block]:p-3 [&_.callout-block]:my-3 [&_.callout-block]:text-sm",
+          // Toggle blocks
+          "[&_details]:my-2 [&_details]:border [&_details]:border-[var(--border)] [&_details]:rounded-[var(--radius-sm)] [&_details]:overflow-hidden",
+          "[&_summary]:px-3 [&_summary]:py-2 [&_summary]:cursor-pointer [&_summary]:font-medium [&_summary]:bg-[var(--bg-secondary)] [&_summary]:select-none",
+          "[&_details>p]:px-3 [&_details>p]:py-2",
+          // Table blocks
+          "[&_.editor-table]:w-full [&_.editor-table]:border-collapse [&_.editor-table]:my-3",
+          "[&_.editor-table_th]:bg-[var(--bg-secondary)] [&_.editor-table_th]:px-3 [&_.editor-table_th]:py-1.5 [&_.editor-table_th]:text-left [&_.editor-table_th]:text-xs [&_.editor-table_th]:font-semibold [&_.editor-table_th]:border [&_.editor-table_th]:border-[var(--border)]",
+          "[&_.editor-table_td]:px-3 [&_.editor-table_td]:py-1.5 [&_.editor-table_td]:text-sm [&_.editor-table_td]:border [&_.editor-table_td]:border-[var(--border)]",
+          // Todo items
+          "[&_.todo-item]:flex [&_.todo-item]:items-center [&_.todo-item]:gap-2 [&_.todo-item]:my-1",
+          // Link embeds
+          "[&_.link-embed]:inline-flex [&_.link-embed]:items-center [&_.link-embed]:gap-1 [&_.link-embed]:bg-[var(--bg-secondary)] [&_.link-embed]:rounded [&_.link-embed]:px-2 [&_.link-embed]:py-0.5 [&_.link-embed]:text-xs [&_.link-embed]:text-[var(--color-primary)] [&_.link-embed]:no-underline [&_.link-embed]:border [&_.link-embed]:border-[var(--border)]",
+          // Empty placeholder
           "[&:empty]:before:content-['Type_/_for_commands...'] [&:empty]:before:text-[var(--text-tertiary)]",
         )}
       />
