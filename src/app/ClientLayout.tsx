@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSettings } from "@/stores/settings";
+import { useTimer } from "@/stores/timer";
 import { seedDatabase } from "@/db/seed";
 import TopBar from "@/components/layout/TopBar";
 import SettingsPanel from "@/components/layout/SettingsPanel";
@@ -10,13 +11,14 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const [ready, setReady] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const loadSettings = useSettings(s => s.load);
+  const loadTimer = useTimer(s => s.load);
   const theme = useSettings(s => s.get("theme"));
 
   useEffect(() => {
     async function init() {
       try {
         await seedDatabase();
-        await loadSettings();
+        await Promise.all([loadSettings(), loadTimer()]);
       } catch (err) {
         console.error("Init error:", err);
       } finally {
@@ -24,7 +26,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       }
     }
     init();
-  }, [loadSettings]);
+  }, [loadSettings, loadTimer]);
 
   // Apply theme to DOM
   useEffect(() => {
