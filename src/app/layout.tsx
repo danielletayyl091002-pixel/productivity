@@ -3,18 +3,14 @@ import "./globals.css";
 import ClientLayout from "./ClientLayout";
 
 export const metadata: Metadata = {
-  title: "Productiv - Your All-in-One Productivity App",
-  description: "Track habits, sleep, expenses, mood, fitness, goals, and more. With built-in calendar and dashboard.",
+  title: "Fluent — Your Productivity System",
+  description: "Tasks, calendar, notes, trackers, and focus timer in one place. Offline-first.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="h-full font-sans">
+    <html lang="en" className="h-full">
+      <body className="h-full">
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

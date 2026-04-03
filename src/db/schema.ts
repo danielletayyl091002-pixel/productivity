@@ -1,132 +1,130 @@
 import Dexie, { type EntityTable } from "dexie";
 
-// ─── The Unified Item ───────────────────────────────────────────────
-export type ItemType = "note" | "task" | "event" | "habit" | "metric" | "journal";
-export type ItemStatus = "todo" | "doing" | "done" | "cancelled";
+// ─── Tasks ──────────────────────────────────────────────────────────
+export type TaskStatus = "todo" | "doing" | "done" | "cancelled";
 export type Priority = 1 | 2 | 3 | 4 | 5;
 
-export interface Item {
+export interface Task {
   id: string;
-  type: ItemType;
   title: string;
-  content?: string;
-  date?: string;          // YYYY-MM-DD for timeline placement
-  startTime?: string;     // HH:mm
-  endTime?: string;       // HH:mm
-  duration?: number;      // minutes
-  status?: ItemStatus;
-  priority?: Priority;
+  status: TaskStatus;
+  columnId: string;
+  dueDate?: string;
+  priority: Priority;
+  estimatedDuration?: number; // minutes
   tags: string[];
-  relations: string[];    // bidirectional linked item IDs
-  properties: Record<string, unknown>;
-  // Recurrence
-  recurrence?: RecurrenceRule;
-  parentRecurrenceId?: string;
-  // Habit/metric specific
-  metricValue?: number;
-  metricTarget?: number;
-  metricUnit?: string;
-  metricEmoji?: string;   // for mood-type metrics
-  // Event-specific
-  color?: string;           // event color (hex)
-  location?: string;
-  // Subtasks
-  parentId?: string;        // parent task ID for subtasks
-  // Template
-  templateId?: string;
-  // Meta
+  recurrenceRule?: string;
+  description?: string;
+  parentId?: string; // subtasks
   createdAt: string;
   updatedAt: string;
-  archived: boolean;
-  completedAt?: string;
 }
 
-export interface RecurrenceRule {
-  frequency: "daily" | "weekday" | "weekly" | "monthly" | "yearly" | "custom";
-  interval: number;
-  customDays?: number[];  // 0=Sun..6=Sat
-  endDate?: string;
-}
-
-// ─── Focus Sessions ─────────────────────────────────────────────────
-export interface FocusSession {
-  id: string;
-  itemId?: string;        // linked task/event
-  label: string;
-  startedAt: string;
-  endedAt?: string;
-  durationMinutes: number;
-  focusScore?: 1 | 2 | 3 | 4 | 5;
-  distractions?: number;
-  date: string;           // YYYY-MM-DD
-}
-
-// ─── Metric Templates ───────────────────────────────────────────────
-export interface MetricTemplate {
+// ─── Columns (Kanban) ───────────────────────────────────────────────
+export interface Column {
   id: string;
   name: string;
-  icon: string;
+  order: number;
+}
+
+// ─── Events ─────────────────────────────────────────────────────────
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  startTime: string; // ISO datetime
+  endTime: string;
+  date: string; // YYYY-MM-DD
+  taskId?: string;
+  description?: string;
+  color?: string;
+  location?: string;
+  recurrence?: string;
+}
+
+// ─── Notes ──────────────────────────────────────────────────────────
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  tags: string[];
+  isPinned: boolean;
+}
+
+// ─── Trackers ───────────────────────────────────────────────────────
+export interface TrackerDefinition {
+  id: string;
+  name: string;
   unit: string;
   target?: number;
+  icon: string;
   color: string;
+  order: number;
   type: "number" | "duration" | "select";
-  selectOptions?: string[]; // for mood-type selects (emoji array)
-  order: number;
+  selectOptions?: string[];
 }
 
-// ─── Dashboard Cards ────────────────────────────────────────────────
-export interface DashboardCard {
+export interface TrackerLog {
   id: string;
-  type: "metric-chart" | "priority-task" | "focus-score" | "habit-streak" |
-        "upcoming-events" | "progress-ring" | "weekly-summary" | "mood-trend" |
-        "water-progress" | "sleep-chart" | "custom-metric";
-  title: string;
-  config: Record<string, unknown>; // templateId, dateRange, etc.
-  order: number;
-  size: "sm" | "md" | "lg";
+  trackerId: string;
+  value: number;
+  timestamp: string;
+  note?: string;
 }
 
-// ─── User Preferences ───────────────────────────────────────────────
-export interface UserPreferences {
-  id: string; // always "user"
-  theme: "light" | "dark" | "auto";
-  primaryColor: string;
-  secondaryColor?: string;
-  fontFamily: string;       // any font name
-  fontSize?: number;        // 12-20
-  lineHeight?: number;      // 1.2-2.0
-  letterSpacing?: number;   // -0.5 to 2
-  cornerRadius: number;     // 0-32
-  density: "compact" | "comfortable" | "cozy";
-  sidebarCollapsed: boolean;
-  maxContentWidth?: string; // "640px" | "1024px" | "1200px" | "full"
-  gridColumns?: number;     // 2 | 3 | 4
-  animationSpeed?: string;  // "off" | "slow" | "normal" | "fast"
-  // Behavioral
-  hiddenFeatures: string[]; // collapsed section IDs
-  morningStart: string;     // HH:mm
-  eveningStart: string;     // HH:mm
-  focusPeakHours: string[];
+// ─── Timer / Pomodoro ───────────────────────────────────────────────
+export interface TimerSession {
+  id: string;
+  taskId?: string;
+  duration: number; // seconds
+  completed: boolean;
+  interrupted: boolean;
+  startedAt: string;
+  endedAt?: string;
 }
 
-// ─── Dexie Database ─────────────────────────────────────────────────
-export class ProductivDB extends Dexie {
-  items!: EntityTable<Item, "id">;
-  focusSessions!: EntityTable<FocusSession, "id">;
-  metricTemplates!: EntityTable<MetricTemplate, "id">;
-  dashboardCards!: EntityTable<DashboardCard, "id">;
-  preferences!: EntityTable<UserPreferences, "id">;
+export interface Pomodoro {
+  id: string;
+  taskId?: string;
+  planned: number;
+  completed: number;
+  date: string;
+}
+
+// ─── Settings ───────────────────────────────────────────────────────
+export interface Setting {
+  id: string;
+  key: string;
+  value: string;
+}
+
+// ─── Database ───────────────────────────────────────────────────────
+export class FluentDB extends Dexie {
+  tasks!: EntityTable<Task, "id">;
+  columns!: EntityTable<Column, "id">;
+  events!: EntityTable<CalendarEvent, "id">;
+  notes!: EntityTable<Note, "id">;
+  trackerDefinitions!: EntityTable<TrackerDefinition, "id">;
+  trackerLogs!: EntityTable<TrackerLog, "id">;
+  timerSessions!: EntityTable<TimerSession, "id">;
+  pomodoros!: EntityTable<Pomodoro, "id">;
+  settings!: EntityTable<Setting, "id">;
 
   constructor() {
-    super("productiv");
+    super("fluent");
     this.version(1).stores({
-      items: "id, type, date, status, templateId, [type+date], *tags",
-      focusSessions: "id, date, itemId",
-      metricTemplates: "id, name, order",
-      dashboardCards: "id, type, order",
-      preferences: "id",
+      tasks: "id, title, status, columnId, dueDate, priority, createdAt, updatedAt, parentId, *tags",
+      columns: "id, name, order",
+      events: "id, title, startTime, endTime, date, taskId",
+      notes: "id, title, createdAt, updatedAt, isPinned, *tags",
+      trackerDefinitions: "id, name, order, type",
+      trackerLogs: "id, trackerId, timestamp",
+      timerSessions: "id, taskId, startedAt",
+      pomodoros: "id, taskId, date",
+      settings: "id, key",
     });
   }
 }
 
-export const db = new ProductivDB();
+export const db = new FluentDB();

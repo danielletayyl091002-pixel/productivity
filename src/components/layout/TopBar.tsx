@@ -1,40 +1,42 @@
 "use client";
 
-import { format } from "date-fns";
-import { Menu, Search, Plus } from "lucide-react";
+import { useSettings } from "@/stores/settings";
+import { Sun, Moon, Settings } from "lucide-react";
 
 interface TopBarProps {
-  onMenuClick: () => void;
-  onCommandPalette: () => void;
-  onQuickAdd: () => void;
+  onSettingsClick: () => void;
 }
 
-export default function TopBar({ onMenuClick, onCommandPalette, onQuickAdd }: TopBarProps) {
-  return (
-    <header className="sticky top-0 z-20 flex items-center gap-3 bg-[var(--bg-card)] border-b border-[var(--border)] px-5 h-14">
-      <button onClick={onMenuClick} className="md:hidden p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-[var(--radius-xs)] hover:bg-[var(--bg-hover)]">
-        <Menu className="h-5 w-5" />
-      </button>
+export default function TopBar({ onSettingsClick }: TopBarProps) {
+  const { get, set: setSetting } = useSettings();
+  const isDark = get("theme") === "dark";
 
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-[var(--text-primary)]">{format(new Date(), "EEEE, MMMM d")}</p>
+  const toggleTheme = () => {
+    const next = isDark ? "light" : "dark";
+    setSetting("theme", next);
+  };
+
+  return (
+    <header className="flex items-center justify-between px-6 h-14 bg-[var(--bg-card)] border-b border-[var(--border)]">
+      <div className="flex items-center gap-2.5">
+        <div className="h-8 w-8 rounded-lg flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: "var(--color-primary)" }}>
+          F
+        </div>
+        <h1 className="text-base font-bold text-[var(--text-primary)]">Fluent</h1>
       </div>
 
-      {/* Search */}
-      <button onClick={onCommandPalette}
-        className="flex items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-1.5 text-[12px] text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-all w-[200px]">
-        <Search className="h-3.5 w-3.5 shrink-0" />
-        <span className="flex-1 text-left truncate">Search...</span>
-        <kbd className="text-[9px] bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded font-mono shrink-0">⌘K</kbd>
-      </button>
-
-      {/* Quick add */}
-      <button onClick={onQuickAdd}
-        className="h-8 w-8 flex items-center justify-center rounded-[var(--radius-xs)] text-white shadow-[var(--shadow)] hover:shadow-[var(--shadow-md)] transition-all active:scale-95"
-        style={{ backgroundColor: "var(--color-primary)" }}
-        title="Quick add (N)">
-        <Plus className="h-4 w-4" />
-      </button>
+      <div className="flex items-center gap-1">
+        <button onClick={toggleTheme}
+          className="h-9 w-9 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
+          title={isDark ? "Switch to light mode" : "Switch to dark mode"}>
+          {isDark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+        </button>
+        <button onClick={onSettingsClick}
+          className="h-9 w-9 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
+          title="Settings">
+          <Settings className="h-[18px] w-[18px]" />
+        </button>
+      </div>
     </header>
   );
 }
