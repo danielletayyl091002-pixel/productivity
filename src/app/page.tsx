@@ -91,84 +91,47 @@ export default function UnifiedCanvas() {
   const goNext = () => setCurrentDate(d => view === "week" ? addWeeks(d, 1) : addMonths(d, 1));
   const goPrev = () => setCurrentDate(d => view === "week" ? subWeeks(d, 1) : subMonths(d, 1));
 
-  // Stats for overview cards
-  const totalTasksCount = items.filter(i => i.type === "task" && !i.archived).length;
-  const completedToday = items.filter(i => i.type === "task" && i.status === "done" && i.date === today && !i.archived).length;
   const pendingCount = activeTasks.length;
-  const todayEvents = items.filter(i => (i.type === "event") && i.date === today && !i.archived).length;
+  const completedToday = items.filter(i => i.type === "task" && i.status === "done" && i.date === today && !i.archived).length;
+  const todayEvents = items.filter(i => i.type === "event" && i.date === today && !i.archived).length;
 
   return (
-    <div className="space-y-5 pb-20" style={{ maxWidth: "var(--max-content-width)", margin: "0 auto" }}>
+    <div className="space-y-4 pb-20" style={{ maxWidth: "var(--max-content-width)", margin: "0 auto" }}>
 
-      {/* ═══ STAT CARDS ROW ═══ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-medium text-[var(--text-tertiary)]">Pending Tasks</span>
-            <div className="h-8 w-8 rounded-[var(--radius-xs)] bg-[var(--color-primary-light)] flex items-center justify-center">
-              <span className="text-sm">📋</span>
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-[var(--text-primary)] tabular-nums">{pendingCount}</p>
-          <p className="text-[10px] text-[var(--text-muted)] mt-1">{completedToday} completed today</p>
-        </div>
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-medium text-[var(--text-tertiary)]">Today&apos;s Events</span>
-            <div className="h-8 w-8 rounded-[var(--radius-xs)] bg-[var(--color-primary-light)] flex items-center justify-center">
-              <span className="text-sm">📅</span>
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-[var(--text-primary)] tabular-nums">{todayEvents}</p>
-          <p className="text-[10px] text-[var(--text-muted)] mt-1">{format(new Date(), "EEEE, MMM d")}</p>
-        </div>
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-medium text-[var(--text-tertiary)]">Focus Today</span>
-            <div className="h-8 w-8 rounded-[var(--radius-xs)] bg-[var(--color-primary-light)] flex items-center justify-center">
-              <span className="text-sm">🎯</span>
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-[var(--text-primary)] tabular-nums">
-            {activeSession ? `${Math.floor(activeSession.elapsed / 60)}m` : "0m"}
-          </p>
-          {currentTask ? (
-            <button onClick={() => !activeSession ? startSession(currentTask.title, currentTask.id) : stopSession()}
-              className="text-[10px] font-semibold mt-1" style={{ color: "var(--color-primary)" }}>
-              {activeSession ? "Stop" : "Start focus →"}
-            </button>
-          ) : (
-            <p className="text-[10px] text-[var(--text-muted)] mt-1">No active task</p>
-          )}
-        </div>
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-medium text-[var(--text-tertiary)]">Total Items</span>
-            <div className="h-8 w-8 rounded-[var(--radius-xs)] bg-[var(--color-primary-light)] flex items-center justify-center">
-              <span className="text-sm">📊</span>
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-[var(--text-primary)] tabular-nums">{totalItems}</p>
-          <p className="text-[10px] text-[var(--text-muted)] mt-1">{totalTasksCount} tasks total</p>
-        </div>
-      </div>
-
-      {/* ═══ QUICK ADD ═══ */}
+      {/* ═══ QUICK ADD (most important action, always first) ═══ */}
       <form onSubmit={handleQuickAdd}>
         <input value={quickInput} onChange={(e) => setQuickInput(e.target.value)}
           placeholder='+ Add task or event... (try "meeting tomorrow at 3pm")'
-          className="w-full px-4 py-3 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--color-primary)] focus:shadow-[var(--shadow-md)] transition-all shadow-[var(--shadow)]" />
+          className="w-full px-4 py-3.5 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--color-primary)] focus:shadow-[var(--shadow-md)] transition-all shadow-[var(--shadow)]" />
       </form>
+
+      {/* ═══ COMPACT STATUS BAR ═══ */}
+      {!isFirstUse && (
+        <div className="flex items-center gap-4 px-1 text-[12px] text-[var(--text-tertiary)]">
+          <span className="flex items-center gap-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-primary)]" />
+            {pendingCount} tasks
+          </span>
+          <span>{todayEvents} events</span>
+          <span>{completedToday} done today</span>
+          {activeSession && (
+            <span className="flex items-center gap-1 ml-auto font-medium" style={{ color: "var(--color-primary)" }}>
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-primary)] animate-pulse-soft" />
+              Focusing · {Math.floor(activeSession.elapsed / 60)}:{(activeSession.elapsed % 60).toString().padStart(2, "0")}
+            </span>
+          )}
+          <span className="ml-auto text-[var(--text-muted)]">Press <kbd className="bg-[var(--bg-secondary)] px-1 py-0.5 rounded text-[10px] font-mono">?</kbd> for shortcuts</span>
+        </div>
+      )}
 
       {/* ═══ ONBOARDING ═══ */}
       {isFirstUse && (
-        <div className="stat-card border-[var(--color-primary-medium)]" style={{ background: "var(--color-primary-light)" }}>
-          <p className="text-base font-bold text-[var(--text-primary)] mb-2">Welcome to Productiv ✨</p>
-          <div className="grid grid-cols-2 gap-3 text-[12px] text-[var(--text-secondary)]">
-            <p>📝 Type above to add your first task</p>
-            <p>📅 Click and drag on the calendar</p>
-            <p>⌨️ Press <kbd className="bg-[var(--bg-card)] border border-[var(--border)] px-1 py-0.5 rounded text-[10px] font-mono">N</kbd> for quick add</p>
-            <p>🎨 Click Settings to customize</p>
+        <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[var(--shadow)]">
+          <p className="text-sm font-bold text-[var(--text-primary)] mb-3">Get started</p>
+          <div className="space-y-2.5 text-[13px] text-[var(--text-secondary)]">
+            <p>📝 <strong>Type above</strong> to add your first task</p>
+            <p>📅 <strong>Click and drag</strong> on the calendar to schedule</p>
+            <p>⌨️ Press <kbd className="bg-[var(--bg-secondary)] border border-[var(--border)] px-1.5 py-0.5 rounded text-[10px] font-mono">N</kbd> for quick add · <kbd className="bg-[var(--bg-secondary)] border border-[var(--border)] px-1.5 py-0.5 rounded text-[10px] font-mono">?</kbd> for all shortcuts</p>
           </div>
         </div>
       )}

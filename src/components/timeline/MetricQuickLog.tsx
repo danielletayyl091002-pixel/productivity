@@ -119,11 +119,14 @@ export default function MetricQuickLog({ date, existingMetrics }: MetricQuickLog
                 {template.target && <span className="text-[10px] font-normal text-[var(--text-tertiary)]">/{template.target}</span>}
               </p>
               {!editMode && (
-                <div className="flex items-center gap-2 mt-1.5">
-                  <span className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-0.5"><Plus className="h-2.5 w-2.5" /> tap</span>
+                <div className="flex items-center gap-1 mt-2">
                   <button onClick={(e) => { e.stopPropagation(); quickLogMetric(template.id, -1, date); }}
-                    className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Minus className="h-2.5 w-2.5" />
+                    className="h-6 w-6 rounded-[var(--radius-xs)] bg-[var(--bg-primary)] border border-[var(--border)] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all active:scale-90">
+                    <Minus className="h-3 w-3" />
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); quickLogMetric(template.id, 1, date); }}
+                    className="h-6 flex-1 rounded-[var(--radius-xs)] bg-[var(--color-primary-light)] border border-[var(--color-primary-medium)] flex items-center justify-center text-[var(--color-primary)] text-[10px] font-semibold hover:bg-[var(--color-primary-medium)] transition-all active:scale-95">
+                    <Plus className="h-3 w-3 mr-0.5" /> 1
                   </button>
                 </div>
               )}
