@@ -12,6 +12,21 @@ export async function seedDatabase() {
     ]);
   }
 
+  // ─── Example Tasks ────
+  const taskCount = await db.tasks.count();
+  if (taskCount === 0) {
+    const columns = await db.columns.orderBy("order").toArray();
+    const now = new Date().toISOString();
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    await db.tasks.bulkAdd([
+      { id: generateId(), title: "Review design", status: "todo", columnId: columns[0].id, priority: 1, tags: ["design"], dueDate: tomorrow.toISOString().slice(0, 10), createdAt: now, updatedAt: now },
+      { id: generateId(), title: "Write documentation", status: "doing", columnId: columns[1].id, priority: 3, tags: ["docs"], createdAt: now, updatedAt: now },
+      { id: generateId(), title: "Deploy app", status: "done", columnId: columns[2].id, priority: 5, tags: ["devops"], createdAt: now, updatedAt: now },
+    ]);
+  }
+
   // ─── Tracker Definitions ────
   const trackerCount = await db.trackerDefinitions.count();
   if (trackerCount === 0) {
