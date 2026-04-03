@@ -113,7 +113,14 @@ export default function UnifiedCanvas() {
             {pendingCount} tasks
           </span>
           <span>{todayEvents} events</span>
-          <span>{completedToday} done today</span>
+          <span>{completedToday} done</span>
+          <button onClick={async () => {
+            const note = await useItems.getState().addItem({ type: "note", title: "Untitled Note", content: "" });
+            window.location.href = `/notes/${note.id}`;
+          }}
+            className="ml-auto text-[var(--color-primary)] font-medium hover:underline">
+            + New Note
+          </button>
           {activeSession && (
             <span className="flex items-center gap-1 ml-auto font-medium" style={{ color: "var(--color-primary)" }}>
               <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-primary)] animate-pulse-soft" />

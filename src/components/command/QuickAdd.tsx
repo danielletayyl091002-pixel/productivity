@@ -63,7 +63,7 @@ export default function QuickAdd({ isOpen, onClose }: QuickAddProps) {
       if (type === "task") setType("event"); // auto-morph
     }
 
-    await addItem({
+    const item = await addItem({
       type,
       title: parsedTitle,
       date,
@@ -72,7 +72,14 @@ export default function QuickAdd({ isOpen, onClose }: QuickAddProps) {
       status: type === "task" ? "todo" : undefined,
       priority: type === "task" ? 3 : undefined,
     });
-    onClose();
+
+    // Notes and Journals → open the editor so user can add blocks
+    if (type === "note" || type === "journal") {
+      onClose();
+      window.location.href = `/notes/${item.id}`;
+    } else {
+      onClose();
+    }
   };
 
   if (!isOpen) return null;
