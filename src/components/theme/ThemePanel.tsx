@@ -186,7 +186,51 @@ export default function ThemePanel() {
           ))}
         </div>
       </div>
+
+      {/* ─── Data ─── */}
+      <div className="space-y-1.5">
+        <Label>Export Data</Label>
+        <div className="flex gap-1">
+          <ExportBtn label="JSON" onClick={async () => { const { exportJSON } = await import("@/lib/export"); exportJSON(); }} />
+          <ExportBtn label="CSV" onClick={async () => { const { exportCSV } = await import("@/lib/export"); exportCSV(); }} />
+          <ExportBtn label="MD" onClick={async () => { const { exportMarkdown } = await import("@/lib/export"); exportMarkdown(); }} />
+        </div>
+      </div>
+
+      {/* ─── Import ─── */}
+      <div className="space-y-1.5">
+        <Label>Import</Label>
+        <label className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-[var(--radius-xs)] text-[11px] font-medium border border-[var(--border)] text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] cursor-pointer transition-all">
+          Import JSON
+          <input type="file" accept=".json" className="hidden" onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (file) { const { importJSON } = await import("@/lib/export"); await importJSON(file); window.location.reload(); }
+          }} />
+        </label>
+      </div>
+
+      {/* ─── Accessibility ─── */}
+      <div className="space-y-1.5">
+        <Label>Accessibility</Label>
+        <div className="space-y-1">
+          <label className="flex items-center justify-between text-[11px] text-[var(--text-secondary)]">
+            <span>Reduce motion</span>
+            <input type="checkbox" checked={prefs.animationSpeed === "off"}
+              onChange={(e) => update({ animationSpeed: e.target.checked ? "off" : "normal" })}
+              className="accent-[var(--color-primary)]" />
+          </label>
+        </div>
+      </div>
     </div>
+  );
+}
+
+function ExportBtn({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick}
+      className="flex-1 px-2 py-1.5 rounded-[var(--radius-xs)] text-[11px] font-medium border border-[var(--border)] text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] transition-all">
+      {label}
+    </button>
   );
 }
 

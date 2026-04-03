@@ -30,6 +30,8 @@ export interface Item {
   // Event-specific
   color?: string;           // event color (hex)
   location?: string;
+  // Subtasks
+  parentId?: string;        // parent task ID for subtasks
   // Template
   templateId?: string;
   // Meta
