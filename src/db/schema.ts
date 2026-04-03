@@ -92,6 +92,15 @@ export interface Pomodoro {
   date: string;
 }
 
+// ─── Daily Priorities ────────────────────────────────────────────────
+export interface DailyPriority {
+  id: string;
+  text: string;
+  completed: boolean;
+  date: string; // YYYY-MM-DD
+  slot: number; // 0, 1, or 2
+}
+
 // ─── Settings ───────────────────────────────────────────────────────
 export interface Setting {
   id: string;
@@ -109,11 +118,12 @@ export class FluentDB extends Dexie {
   trackerLogs!: EntityTable<TrackerLog, "id">;
   timerSessions!: EntityTable<TimerSession, "id">;
   pomodoros!: EntityTable<Pomodoro, "id">;
+  dailyPriorities!: EntityTable<DailyPriority, "id">;
   settings!: EntityTable<Setting, "id">;
 
   constructor() {
     super("fluent");
-    this.version(1).stores({
+    this.version(2).stores({
       tasks: "id, title, status, columnId, dueDate, priority, createdAt, updatedAt, parentId, *tags",
       columns: "id, name, order",
       events: "id, title, startTime, endTime, date, taskId",
@@ -122,6 +132,7 @@ export class FluentDB extends Dexie {
       trackerLogs: "id, trackerId, timestamp",
       timerSessions: "id, taskId, startedAt",
       pomodoros: "id, taskId, date",
+      dailyPriorities: "id, date, slot, completed",
       settings: "id, key",
     });
   }
