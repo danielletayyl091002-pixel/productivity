@@ -130,7 +130,15 @@ export default function TodayPage() {
               )}
             </div>
           ) : (
-            <p className="text-xs text-[var(--text-tertiary)]">No tasks right now — enjoy the moment</p>
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-[var(--radius-xs)] bg-[var(--bg-tertiary)] flex items-center justify-center shrink-0">
+                <span className="text-sm">🌤️</span>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-[var(--text-primary)]">Ready to start your day</p>
+                <p className="text-[11px] text-[var(--text-tertiary)]">Add a task below or drag one onto the calendar</p>
+              </div>
+            </div>
           )}
         </div>
         {nextTask && (

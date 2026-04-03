@@ -90,6 +90,8 @@ export const useItems = create<ItemsState>((set, get) => ({
       metricUnit: partial.metricUnit,
       metricEmoji: partial.metricEmoji,
       templateId: partial.templateId,
+      color: partial.color,
+      location: partial.location,
       createdAt: now,
       updatedAt: now,
       archived: false,

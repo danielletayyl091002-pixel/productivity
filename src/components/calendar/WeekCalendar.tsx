@@ -14,26 +14,28 @@ interface WeekCalendarProps {
   draggedTaskId: string | null;
 }
 
-const START_HOUR = 6;
-const END_HOUR = 22;
+// ─── Full 24-hour range ───
+const START_HOUR = 0;
+const END_HOUR = 24;
 const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
-const SLOT_HEIGHT = 60; // px per hour
+const SLOT_HEIGHT = 48; // px per hour (48 * 24 = 1152px total, scrollable)
 const QUARTER = SLOT_HEIGHT / 4; // 15-min snap
 
 const EVENT_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  "#D4839B": { bg: "rgba(212,131,155,0.18)", border: "rgba(212,131,155,0.5)", text: "#9E5070" },
-  "#7BA7C2": { bg: "rgba(123,167,194,0.18)", border: "rgba(123,167,194,0.5)", text: "#4A7A9A" },
-  "#8C9F6B": { bg: "rgba(140,159,107,0.18)", border: "rgba(140,159,107,0.5)", text: "#5A6D40" },
-  "#E8917A": { bg: "rgba(232,145,122,0.18)", border: "rgba(232,145,122,0.5)", text: "#B55A40" },
-  "#8B7FB5": { bg: "rgba(139,127,181,0.18)", border: "rgba(139,127,181,0.5)", text: "#5A4E80" },
-  "#6BA3B5": { bg: "rgba(107,163,181,0.18)", border: "rgba(107,163,181,0.5)", text: "#3A7080" },
-  "#B8A088": { bg: "rgba(184,160,136,0.18)", border: "rgba(184,160,136,0.5)", text: "#806850" },
-  "#C9A0A0": { bg: "rgba(201,160,160,0.18)", border: "rgba(201,160,160,0.5)", text: "#8A5555" },
+  "#5B7FE8": { bg: "rgba(91,127,232,0.15)", border: "rgba(91,127,232,0.45)", text: "#3A5BBF" },
+  "#D4839B": { bg: "rgba(212,131,155,0.15)", border: "rgba(212,131,155,0.45)", text: "#9E5070" },
+  "#7BA7C2": { bg: "rgba(123,167,194,0.15)", border: "rgba(123,167,194,0.45)", text: "#4A7A9A" },
+  "#8C9F6B": { bg: "rgba(140,159,107,0.15)", border: "rgba(140,159,107,0.45)", text: "#5A6D40" },
+  "#E8917A": { bg: "rgba(232,145,122,0.15)", border: "rgba(232,145,122,0.45)", text: "#B55A40" },
+  "#8B7FB5": { bg: "rgba(139,127,181,0.15)", border: "rgba(139,127,181,0.45)", text: "#5A4E80" },
+  "#6BA3B5": { bg: "rgba(107,163,181,0.15)", border: "rgba(107,163,181,0.45)", text: "#3A7080" },
+  "#B8A088": { bg: "rgba(184,160,136,0.15)", border: "rgba(184,160,136,0.45)", text: "#806850" },
+  "#C9A0A0": { bg: "rgba(201,160,160,0.15)", border: "rgba(201,160,160,0.45)", text: "#8A5555" },
 };
 
 function getEventColors(color?: string) {
   if (color && EVENT_COLORS[color]) return EVENT_COLORS[color];
-  return { bg: "var(--color-primary-light)", border: "var(--color-primary-medium)", text: "var(--text-primary)" };
+  return EVENT_COLORS["#5B7FE8"];
 }
 
 function snapToQuarter(y: number, gridTop: number): number {
@@ -43,7 +45,9 @@ function snapToQuarter(y: number, gridTop: number): number {
 
 function yToTime(y: number): { hour: number; minute: number } {
   const totalMinutes = Math.round((y / SLOT_HEIGHT) * 60) + START_HOUR * 60;
-  return { hour: Math.floor(totalMinutes / 60), minute: Math.round((totalMinutes % 60) / 15) * 15 };
+  const hour = Math.min(Math.max(Math.floor(totalMinutes / 60), 0), 23);
+  const minute = Math.round((totalMinutes % 60) / 15) * 15;
+  return { hour, minute: minute >= 60 ? 0 : minute };
 }
 
 function timeToLabel(h: number, m: number): string {
@@ -56,21 +60,17 @@ export default function WeekCalendar({ currentDate, onEventClick, onCreateEvent,
   const { items, updateItem } = useItems();
   const gridRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const nowHour = new Date().getHours();
 
   // Auto-scroll to current time on mount
   useEffect(() => {
     if (!scrollRef.current) return;
-    const now = new Date();
-    const hour = now.getHours();
-    if (hour >= START_HOUR && hour < END_HOUR) {
-      const scrollTo = Math.max(0, (hour - START_HOUR - 1) * SLOT_HEIGHT);
-      scrollRef.current.scrollTop = scrollTo;
-    }
+    const scrollTo = Math.max(0, (nowHour - 2) * SLOT_HEIGHT);
+    scrollRef.current.scrollTop = scrollTo;
   }, []);
 
   // Click-drag-to-create state
   const [creating, setCreating] = useState<{ dayIndex: number; startY: number; currentY: number } | null>(null);
-  // Drop target for tasks
   const [dropTarget, setDropTarget] = useState<{ date: string; hour: number } | null>(null);
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -85,7 +85,6 @@ export default function WeekCalendar({ currentDate, onEventClick, onCreateEvent,
     );
   }, [items, days]);
 
-  // Group items by day for overlap handling
   const itemsByDay = useMemo(() => {
     const map: Record<string, Item[]> = {};
     weekItems.forEach(item => {
@@ -100,17 +99,14 @@ export default function WeekCalendar({ currentDate, onEventClick, onCreateEvent,
     if (!item.startTime) return null;
     const [sh, sm] = item.startTime.split(":").map(Number);
     const [eh, em] = item.endTime ? item.endTime.split(":").map(Number) : [sh + 1, 0];
-    const top = ((sh - START_HOUR) * 60 + sm) * (SLOT_HEIGHT / 60);
-    const height = Math.max(((eh * 60 + em) - (sh * 60 + sm)) * (SLOT_HEIGHT / 60), 24);
+    const top = (sh * 60 + sm) * (SLOT_HEIGHT / 60);
+    const height = Math.max(((eh * 60 + em) - (sh * 60 + sm)) * (SLOT_HEIGHT / 60), 20);
 
-    // Overlap positioning
     const overlapping = siblings.filter(s => {
       if (s.id === item.id || !s.startTime) return false;
       const [sH, sM] = s.startTime.split(":").map(Number);
       const [eH, eM] = s.endTime ? s.endTime.split(":").map(Number) : [sH + 1, 0];
-      const aStart = sh * 60 + sm, aEnd = eh * 60 + em;
-      const bStart = sH * 60 + sM, bEnd = eH * 60 + eM;
-      return aStart < bEnd && aEnd > bStart;
+      return sh * 60 + sm < eH * 60 + eM && eh * 60 + em > sH * 60 + sM;
     });
     const totalOverlap = overlapping.length + 1;
     const myIndex = overlapping.filter(s => s.id < item.id).length;
@@ -162,7 +158,7 @@ export default function WeekCalendar({ currentDate, onEventClick, onCreateEvent,
       updateItem(taskId, {
         date,
         startTime: `${hour.toString().padStart(2, "0")}:00`,
-        endTime: `${(hour + 1).toString().padStart(2, "0")}:00`,
+        endTime: `${Math.min(hour + 1, 23).toString().padStart(2, "0")}:${hour + 1 >= 24 ? "00" : "00"}`,
       });
     }
     setDropTarget(null);
@@ -179,7 +175,7 @@ export default function WeekCalendar({ currentDate, onEventClick, onCreateEvent,
     const [eh, em] = item.endTime ? item.endTime.split(":").map(Number) : [sh + 1, 0];
     const duration = (eh * 60 + em) - (sh * 60 + sm);
     const newStart = hour * 60;
-    const newEnd = newStart + duration;
+    const newEnd = Math.min(newStart + duration, 24 * 60);
 
     updateItem(itemId, {
       date,
@@ -203,41 +199,50 @@ export default function WeekCalendar({ currentDate, onEventClick, onCreateEvent,
       {/* Day headers */}
       <div className="grid grid-cols-[48px_repeat(7,1fr)] border-b border-[var(--border)] bg-[var(--bg-secondary)]">
         <div className="p-2" />
-        {days.map(day => (
-          <div key={day.toISOString()} className="py-2 text-center border-l border-[var(--border)]">
-            <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase">{format(day, "EEE")}</p>
-            <p className={cn("text-sm font-bold mt-0.5", isToday(day) ? "text-[var(--color-primary)]" : "text-[var(--text-primary)]")}>
-              {format(day, "d")}
-            </p>
-          </div>
-        ))}
+        {days.map(day => {
+          const today = isToday(day);
+          return (
+            <div key={day.toISOString()} className={cn("py-2 text-center border-l border-[var(--border)]", today && "bg-[var(--color-primary-light)]")}>
+              <p className={cn("text-[10px] font-medium uppercase", today ? "text-[var(--color-primary)]" : "text-[var(--text-tertiary)]")}>{format(day, "EEE")}</p>
+              <p className={cn("text-sm font-bold mt-0.5", today ? "text-[var(--color-primary)]" : "text-[var(--text-primary)]")}>{format(day, "d")}</p>
+            </div>
+          );
+        })}
       </div>
 
       {/* Time grid */}
-      <div ref={scrollRef} className="overflow-y-auto max-h-[560px]" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={() => creating && handleMouseUp()}>
+      <div ref={scrollRef} className="overflow-y-auto max-h-[600px]" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={() => creating && handleMouseUp()}>
         <div ref={gridRef} className="grid grid-cols-[48px_repeat(7,1fr)] relative">
           {HOURS.map(hour => (
             <div key={hour} className="contents">
-              <div className="border-b border-[var(--border)] px-1 py-0.5 text-right" style={{ height: `${SLOT_HEIGHT}px` }}>
-                <span className="text-[10px] text-[var(--text-tertiary)] tabular-nums">
-                  {hour === 0 ? "12a" : hour < 12 ? `${hour}a` : hour === 12 ? "12p" : `${hour - 12}p`}
+              <div className="border-b border-[var(--border)] px-1 flex items-start justify-end" style={{ height: `${SLOT_HEIGHT}px` }}>
+                <span className="text-[10px] text-[var(--text-tertiary)] tabular-nums -mt-[5px]">
+                  {hour === 0 ? "12 AM" : hour < 12 ? `${hour} AM` : hour === 12 ? "12 PM" : `${hour - 12} PM`}
                 </span>
               </div>
               {days.map((day, dayIdx) => {
                 const dateStr = toDateString(day);
+                const today = isToday(day);
                 const isDropHere = dropTarget?.date === dateStr && dropTarget?.hour === hour;
+                const isPast = today && hour < nowHour;
+
                 return (
                   <div key={`${dateStr}-${hour}`}
-                    className={cn("border-b border-l border-[var(--border)] relative cursor-crosshair", isDropHere && "bg-[var(--color-primary-light)]")}
+                    className={cn(
+                      "border-b border-l border-[var(--border)] relative cursor-crosshair transition-colors",
+                      today && "bg-[var(--color-primary-light)]",
+                      isPast && "opacity-40",
+                      isDropHere && "!bg-[var(--color-primary-medium)]",
+                    )}
                     style={{ height: `${SLOT_HEIGHT}px` }}
                     onMouseDown={(e) => { if (!(e.target as HTMLElement).closest("[data-event]")) handleMouseDown(e, dayIdx); }}
                     onDragOver={(e) => handleDragOver(e, dateStr, hour)}
                     onDrop={(e) => { handleEventDrop(e, dateStr, hour); handleDrop(e, dateStr, hour); }}
                     onDragLeave={() => setDropTarget(null)}>
                     {/* Half-hour line */}
-                    <div className="absolute left-0 right-0 border-b border-dashed border-[var(--border)]" style={{ top: `${SLOT_HEIGHT / 2}px`, opacity: 0.4 }} />
+                    <div className="absolute left-0 right-0 border-b border-dashed border-[var(--border)]" style={{ top: `${SLOT_HEIGHT / 2}px`, opacity: 0.3 }} />
 
-                    {/* Render events for this column from START_HOUR */}
+                    {/* Render events for this column */}
                     {hour === START_HOUR && (itemsByDay[dateStr] || []).map(item => {
                       const siblings = itemsByDay[dateStr] || [];
                       const style = getEventStyle(item, siblings);
@@ -251,13 +256,21 @@ export default function WeekCalendar({ currentDate, onEventClick, onCreateEvent,
                           onDragStart={(e) => { e.dataTransfer.setData("text/plain", item.id); e.dataTransfer.effectAllowed = "move"; }}
                           onClick={(e) => { e.stopPropagation(); onEventClick(item); }}
                           className={cn(
-                            "absolute rounded-[var(--radius-xs)] px-2 py-1 text-[11px] font-medium overflow-hidden cursor-pointer z-10 border transition-shadow hover:shadow-[var(--shadow-md)]",
+                            "absolute rounded-[var(--radius-xs)] px-1.5 py-0.5 text-[11px] font-medium overflow-hidden cursor-pointer z-10 border transition-shadow hover:shadow-[var(--shadow-md)]",
                             isDone && "opacity-40 line-through"
                           )}
                           style={{ ...style, backgroundColor: colors.bg, borderColor: colors.border, color: colors.text }}>
                           <p className="truncate leading-tight">{item.title}</p>
-                          {parseInt(style.height) > 30 && item.startTime && (
-                            <p className="text-[9px] opacity-70 mt-0.5">{formatDisplayTime(item.startTime)}{item.endTime && ` – ${formatDisplayTime(item.endTime)}`}</p>
+                          {parseInt(style.height) > 28 && item.startTime && (
+                            <p className="text-[9px] opacity-70">{formatDisplayTime(item.startTime)}{item.endTime && ` – ${formatDisplayTime(item.endTime)}`}</p>
+                          )}
+                          {/* Tags on event */}
+                          {parseInt(style.height) > 40 && item.tags.length > 0 && (
+                            <div className="flex gap-0.5 mt-0.5">
+                              {item.tags.slice(0, 2).map(t => (
+                                <span key={t} className="text-[8px] px-1 rounded bg-white/30">{t}</span>
+                              ))}
+                            </div>
                           )}
                           {/* Resize handle */}
                           <div className="absolute bottom-0 left-0 right-0 h-2 cursor-s-resize opacity-0 hover:opacity-100"
@@ -298,11 +311,10 @@ export default function WeekCalendar({ currentDate, onEventClick, onCreateEvent,
                 backgroundColor: "var(--color-primary-light)",
                 borderColor: "var(--color-primary)",
               }}>
-              <div className="px-2 py-1">
+              <div className="px-1.5 py-0.5">
                 <p className="text-[10px] font-semibold" style={{ color: "var(--color-primary)" }}>
                   {createPreview.startLabel} – {createPreview.endLabel}
                 </p>
-                <p className="text-[9px]" style={{ color: "var(--color-primary)" }}>New event</p>
               </div>
             </div>
           )}
@@ -321,8 +333,7 @@ function CurrentTimeIndicator({ days }: { days: Date[] }) {
   if (todayIndex === -1) return null;
   const hour = now.getHours();
   const minute = now.getMinutes();
-  if (hour < START_HOUR || hour >= END_HOUR) return null;
-  const top = ((hour - START_HOUR) * 60 + minute) * (SLOT_HEIGHT / 60);
+  const top = (hour * 60 + minute) * (SLOT_HEIGHT / 60);
 
   return (
     <div className="absolute pointer-events-none z-20"

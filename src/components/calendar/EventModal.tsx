@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useItems } from "@/stores/items";
 import { cn } from "@/lib/utils";
-import { X, Clock, Calendar, Flag, Trash2, MapPin, Repeat, Palette } from "lucide-react";
+import { X, Clock, Calendar, Flag, Trash2, MapPin, Repeat, Palette, Tag } from "lucide-react";
 import type { Item, ItemType, Priority, RecurrenceRule } from "@/db/schema";
 
 interface EventModalProps {
@@ -24,6 +24,7 @@ const PRIORITIES: { value: Priority; label: string; color: string }[] = [
 ];
 
 const EVENT_COLORS = [
+  { color: "#5B7FE8", label: "Blue" },
   { color: "#D4839B", label: "Rose" },
   { color: "#7BA7C2", label: "Sky" },
   { color: "#8C9F6B", label: "Sage" },
@@ -51,8 +52,10 @@ export default function EventModal({ isOpen, onClose, editingItem, defaultDate, 
   const [endTime, setEndTime] = useState("");
   const [priority, setPriority] = useState<Priority>(3);
   const [notes, setNotes] = useState("");
-  const [color, setColor] = useState("#D4839B");
+  const [color, setColor] = useState("#5B7FE8");
   const [location, setLocation] = useState("");
+  const [tagInput, setTagInput] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [recurrenceIdx, setRecurrenceIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -66,8 +69,10 @@ export default function EventModal({ isOpen, onClose, editingItem, defaultDate, 
       setEndTime(editingItem.endTime || "");
       setPriority((editingItem.priority as Priority) || 3);
       setNotes(editingItem.content || "");
-      setColor(editingItem.color || "#D4839B");
+      setColor(editingItem.color || "#5B7FE8");
       setLocation(editingItem.location || "");
+      setTags(editingItem.tags || []);
+      setTagInput("");
       setRecurrenceIdx(editingItem.recurrence ? RECURRENCE_OPTIONS.findIndex(r => r.value?.frequency === editingItem.recurrence?.frequency) : 0);
     } else {
       setTitle("");
@@ -77,16 +82,30 @@ export default function EventModal({ isOpen, onClose, editingItem, defaultDate, 
       setEndTime(defaultEndTime || "");
       setPriority(3);
       setNotes("");
-      setColor("#D4839B");
+      setColor("#5B7FE8");
       setLocation("");
+      setTags([]);
+      setTagInput("");
       setRecurrenceIdx(0);
     }
     setTimeout(() => inputRef.current?.focus(), 100);
   }, [isOpen, editingItem, defaultDate, defaultStartTime, defaultEndTime, defaultType]);
 
+  const addTag = (value: string) => {
+    const t = value.trim();
+    if (t && !tags.includes(t)) setTags(prev => [...prev, t]);
+    setTagInput("");
+  };
+
+  const removeTag = (tag: string) => setTags(prev => prev.filter(t => t !== tag));
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
+    // Add any pending tag
+    if (tagInput.trim()) addTag(tagInput);
+    const finalTags = tagInput.trim() && !tags.includes(tagInput.trim()) ? [...tags, tagInput.trim()] : tags;
+
     const recurrence = RECURRENCE_OPTIONS[recurrenceIdx].value ? { ...RECURRENCE_OPTIONS[recurrenceIdx].value! } as RecurrenceRule : undefined;
 
     const data: Partial<Item> & { type: ItemType; title: string } = {
@@ -94,8 +113,11 @@ export default function EventModal({ isOpen, onClose, editingItem, defaultDate, 
       startTime: startTime || undefined, endTime: endTime || undefined,
       priority: type === "task" ? priority : undefined,
       status: type === "task" ? "todo" as const : undefined,
-      content: notes || undefined, color: type === "event" ? color : undefined,
-      location: location || undefined, recurrence,
+      content: notes || undefined,
+      color,
+      location: location || undefined,
+      tags: finalTags,
+      recurrence,
     };
 
     if (editingItem) await updateItem(editingItem.id, data);
@@ -110,7 +132,7 @@ export default function EventModal({ isOpen, onClose, editingItem, defaultDate, 
       <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-full max-w-md bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius)] shadow-[var(--shadow-lg)] overflow-hidden animate-scale-in">
         <form onSubmit={handleSubmit}>
-          {/* Header: type + close */}
+          {/* Header */}
           <div className="flex items-center justify-between px-4 pt-4 pb-2">
             <div className="flex gap-1.5">
               {(["event", "task"] as const).map(t => (
@@ -136,12 +158,14 @@ export default function EventModal({ isOpen, onClose, editingItem, defaultDate, 
 
           {/* Fields */}
           <div className="px-4 space-y-3 pb-3">
+            {/* Date */}
             <div className="flex items-center gap-2">
               <Calendar className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
               <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
                 className="text-xs bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-[var(--radius-xs)] px-2.5 py-1.5 border border-[var(--border)]" />
             </div>
 
+            {/* Time */}
             <div className="flex items-center gap-2">
               <Clock className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
               <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)}
@@ -158,6 +182,27 @@ export default function EventModal({ isOpen, onClose, editingItem, defaultDate, 
                 className="flex-1 text-xs bg-transparent text-[var(--text-secondary)] outline-none placeholder:text-[var(--text-tertiary)]" />
             </div>
 
+            {/* Tags */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <Tag className="h-3.5 w-3.5 text-[var(--text-tertiary)] shrink-0" />
+              {tags.map(t => (
+                <span key={t} className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
+                  {t}
+                  <button type="button" onClick={() => removeTag(t)} className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                </span>
+              ))}
+              <input value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag(tagInput); }
+                  if (e.key === "Backspace" && !tagInput && tags.length > 0) removeTag(tags[tags.length - 1]);
+                }}
+                placeholder={tags.length === 0 ? "Add tags..." : ""}
+                className="flex-1 min-w-[60px] text-xs bg-transparent text-[var(--text-secondary)] outline-none placeholder:text-[var(--text-tertiary)]" />
+            </div>
+
             {/* Recurrence */}
             <div className="flex items-center gap-2">
               <Repeat className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
@@ -172,21 +217,19 @@ export default function EventModal({ isOpen, onClose, editingItem, defaultDate, 
               </div>
             </div>
 
-            {/* Event color */}
-            {type === "event" && (
-              <div className="flex items-center gap-2">
-                <Palette className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
-                <div className="flex gap-1.5">
-                  {EVENT_COLORS.map(c => (
-                    <button key={c.color} type="button" onClick={() => setColor(c.color)}
-                      className={cn("h-5 w-5 rounded-full transition-all", color === c.color && "ring-2 ring-offset-1 ring-[var(--color-primary)] scale-110")}
-                      style={{ backgroundColor: c.color }} title={c.label} />
-                  ))}
-                </div>
+            {/* Color */}
+            <div className="flex items-center gap-2">
+              <Palette className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+              <div className="flex gap-1.5">
+                {EVENT_COLORS.map(c => (
+                  <button key={c.color} type="button" onClick={() => setColor(c.color)}
+                    className={cn("h-5 w-5 rounded-full transition-all", color === c.color && "ring-2 ring-offset-1 ring-[var(--color-primary)] scale-110")}
+                    style={{ backgroundColor: c.color }} title={c.label} />
+                ))}
               </div>
-            )}
+            </div>
 
-            {/* Priority */}
+            {/* Priority (tasks only) */}
             {type === "task" && (
               <div className="flex items-center gap-2">
                 <Flag className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
