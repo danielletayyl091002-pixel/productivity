@@ -89,14 +89,21 @@ export interface UserPreferences {
   id: string; // always "user"
   theme: "light" | "dark" | "auto";
   primaryColor: string;
-  fontFamily: "system" | "serif" | "mono" | "rounded";
-  cornerRadius: number;   // 0-32
+  secondaryColor?: string;
+  fontFamily: string;       // any font name
+  fontSize?: number;        // 12-20
+  lineHeight?: number;      // 1.2-2.0
+  letterSpacing?: number;   // -0.5 to 2
+  cornerRadius: number;     // 0-32
   density: "compact" | "comfortable" | "cozy";
   sidebarCollapsed: boolean;
+  maxContentWidth?: string; // "640px" | "1024px" | "1200px" | "full"
+  gridColumns?: number;     // 2 | 3 | 4
+  animationSpeed?: string;  // "off" | "slow" | "normal" | "fast"
   // Behavioral
-  hiddenFeatures: string[];
-  morningStart: string;   // HH:mm
-  eveningStart: string;   // HH:mm
+  hiddenFeatures: string[]; // collapsed section IDs
+  morningStart: string;     // HH:mm
+  eveningStart: string;     // HH:mm
   focusPeakHours: string[];
 }
 

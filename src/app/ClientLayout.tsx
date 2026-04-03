@@ -14,15 +14,12 @@ import RightPanel from "@/components/layout/RightPanel";
 import BottomBar from "@/components/layout/BottomBar";
 import CommandPalette from "@/components/command/CommandPalette";
 import QuickAdd from "@/components/command/QuickAdd";
-import { useRouter } from "next/navigation";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const router = useRouter();
-
   const loadItems = useItems(s => s.load);
   const loadFocus = useFocus(s => s.load);
   const loadPrefs = usePreferences(s => s.load);
@@ -61,18 +58,16 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         update({ theme: prefs.theme === "dark" ? "light" : "dark" });
         return;
       }
-      if (mod && e.key === "[") { e.preventDefault(); router.back(); return; }
-      if (mod && e.key === "]") { e.preventDefault(); router.forward(); return; }
+      // Toggle right panel
+      if (mod && e.shiftKey && e.key === "R") {
+        e.preventDefault();
+        const { selectedItemId, setSelectedItem } = useItems.getState();
+        if (selectedItemId) setSelectedItem(null);
+        return;
+      }
 
       // ── Only outside inputs ──
       if (inInput) return;
-
-      // Quick nav with number keys
-      if (e.key === "1") { router.push("/"); return; }
-      if (e.key === "2") { router.push("/upcoming"); return; }
-      if (e.key === "3") { router.push("/all"); return; }
-      if (e.key === "4") { router.push("/focus"); return; }
-      if (e.key === "5") { router.push("/metrics"); return; }
 
       // N / T = quick add
       if (e.key === "n" || e.key === "N" || e.key === "t" || e.key === "T") {
@@ -120,7 +115,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [router]);
+  }, []);
 
   if (!ready) {
     return (
