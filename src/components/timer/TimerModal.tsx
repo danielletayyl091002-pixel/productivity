@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default function TimerModal({ isOpen, onClose }: Props) {
-  const { start } = useTimer();
+  const { startWork } = useTimer();
   const { tasks } = useKanban();
   const { get: getSetting } = useSettings();
 
@@ -24,7 +24,7 @@ export default function TimerModal({ isOpen, onClose }: Props) {
 
   const handleStart = () => {
     const task = activeTasks.find(t => t.id === selectedTaskId);
-    start(duration * 60, selectedTaskId || undefined, task?.title);
+    startWork(duration * 60, selectedTaskId || undefined, task?.title);
     onClose();
   };
 

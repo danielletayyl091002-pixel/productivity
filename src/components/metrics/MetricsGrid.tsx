@@ -3,27 +3,30 @@
 import { useTimer } from "@/stores/timer";
 import { useKanban } from "@/stores/kanban";
 import { useCalendarStore } from "@/stores/calendar";
+import { useSettings } from "@/stores/settings";
 import { cn } from "@/lib/utils";
 import { format, subDays } from "date-fns";
 import { Target, CheckCircle, Clock, AlertTriangle } from "lucide-react";
 
 export default function MetricsGrid() {
-  const { sessions, pomodoros, todaySessions, todayPomodoros, weekSessions } = useTimer();
+  const { sessions, pomodoros, todaySessions, weekSessions } = useTimer();
   const { tasks } = useKanban();
   const { events } = useCalendarStore();
 
   const today = format(new Date(), "yyyy-MM-dd");
   const yesterday = format(subDays(new Date(), 1), "yyyy-MM-dd");
 
+  const { get: getSetting } = useSettings();
+  const dailyGoal = parseInt(getSetting("dailyGoal", "8"));
+
   // ─── Metric 1: Focus Score ───
   const todayPoms = pomodoros.filter(p => p.date === today);
   const completedPoms = todayPoms.reduce((s, p) => s + p.completed, 0);
-  const plannedPoms = todayPoms.length > 0 ? todayPoms.reduce((s, p) => s + p.planned, 0) : 4;
-  const focusScore = plannedPoms > 0 ? Math.round((completedPoms / plannedPoms) * 100) : 0;
+  const focusScore = dailyGoal > 0 ? Math.round((completedPoms / dailyGoal) * 100) : 0;
   // Yesterday for trend
   const yesterdayPoms = pomodoros.filter(p => p.date === yesterday);
-  const yesterdayScore = yesterdayPoms.length > 0
-    ? Math.round((yesterdayPoms.reduce((s, p) => s + p.completed, 0) / yesterdayPoms.reduce((s, p) => s + p.planned, 0)) * 100) : 0;
+  const yesterdayCompleted = yesterdayPoms.reduce((s, p) => s + p.completed, 0);
+  const yesterdayScore = dailyGoal > 0 ? Math.round((yesterdayCompleted / dailyGoal) * 100) : 0;
   const focusTrend = focusScore > yesterdayScore ? "up" : focusScore < yesterdayScore ? "down" : "flat";
 
   // ─── Metric 2: Task Completion Rate ───
@@ -52,7 +55,7 @@ export default function MetricsGrid() {
         icon={<Target className="h-4 w-4" />}
         label="Focus Score"
         value={`${focusScore}%`}
-        sub={`${completedPoms}/${plannedPoms} pomodoros`}
+        sub={`${completedPoms}/${dailyGoal} pomodoros`}
         trend={focusTrend}
         color="#3B82F6"
       />
