@@ -14,10 +14,12 @@ import RightPanel from "@/components/layout/RightPanel";
 import BottomBar from "@/components/layout/BottomBar";
 import CommandPalette from "@/components/command/CommandPalette";
 import QuickAdd from "@/components/command/QuickAdd";
+import ShortcutHelp from "@/components/command/ShortcutHelp";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
+  const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const loadItems = useItems(s => s.load);
@@ -110,6 +112,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         return;
       }
 
+      // ? = shortcut help
+      if (e.key === "?") {
+        e.preventDefault();
+        setShortcutHelpOpen(prev => !prev);
+        return;
+      }
+
       // ? = show shortcuts help (future)
     };
 
@@ -155,6 +164,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       <BottomBar />
       <CommandPalette isOpen={commandOpen} onClose={() => setCommandOpen(false)} />
       <QuickAdd isOpen={quickAddOpen} onClose={() => setQuickAddOpen(false)} />
+      <ShortcutHelp isOpen={shortcutHelpOpen} onClose={() => setShortcutHelpOpen(false)} />
     </ThemeProvider>
   );
 }

@@ -34,6 +34,8 @@ export default function UnifiedCanvas() {
   const today = toDateString(new Date());
   const todayMetrics = items.filter(i => i.type === "metric" && i.date === today && !i.archived);
   const hiddenSections = prefs.hiddenFeatures || [];
+  const totalItems = items.filter(i => !i.archived).length;
+  const isFirstUse = totalItems === 0;
 
   const toggleSection = (id: string) => {
     const current = prefs.hiddenFeatures || [];
@@ -131,6 +133,20 @@ export default function UnifiedCanvas() {
           placeholder='Add task or event... (try "meeting tomorrow at 3pm")'
           className="w-full px-3 py-2.5 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--color-primary)] transition-colors" />
       </form>
+
+      {/* ═══ ONBOARDING (first use only) ═══ */}
+      {isFirstUse && (
+        <div className="rounded-[var(--radius)] border border-[var(--color-primary-medium)] bg-[var(--color-primary-light)] p-5 animate-fade-in">
+          <p className="text-base font-bold text-[var(--text-primary)] mb-1">Welcome to Productiv ✨</p>
+          <p className="text-xs text-[var(--text-secondary)] mb-3">Your unified productivity system. Here&apos;s how to get started:</p>
+          <div className="space-y-2 text-[12px] text-[var(--text-secondary)]">
+            <p>📝 <strong>Type above</strong> to add your first task — try &quot;Buy groceries&quot;</p>
+            <p>📅 <strong>Click and drag</strong> on the calendar below to schedule an event</p>
+            <p>⌨️ Press <kbd className="bg-[var(--bg-card)] border border-[var(--border)] px-1.5 py-0.5 rounded text-[10px] font-mono">N</kbd> for quick add, <kbd className="bg-[var(--bg-card)] border border-[var(--border)] px-1.5 py-0.5 rounded text-[10px] font-mono">⌘K</kbd> to search, <kbd className="bg-[var(--bg-card)] border border-[var(--border)] px-1.5 py-0.5 rounded text-[10px] font-mono">?</kbd> for all shortcuts</p>
+            <p>🎨 Click <strong>Settings</strong> in the sidebar to customize colors, fonts, and layout</p>
+          </div>
+        </div>
+      )}
 
       {/* ═══ CALENDAR SECTION ═══ */}
       <Section id="calendar" title="Calendar" hidden={isHidden("calendar")} onToggle={() => toggleSection("calendar")}>

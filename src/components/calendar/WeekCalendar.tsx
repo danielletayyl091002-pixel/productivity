@@ -323,6 +323,17 @@ export default function WeekCalendar({ currentDate, onEventClick, onCreateEvent,
           {days.some(d => isToday(d)) && <CurrentTimeIndicator days={days} />}
         </div>
       </div>
+      {/* Create event button (mobile + discoverability) */}
+      <button
+        onClick={() => {
+          const now = new Date();
+          const h = now.getHours();
+          onCreateEvent(toDateString(now), h, h + 1);
+        }}
+        className="absolute bottom-3 right-3 h-10 w-10 rounded-full bg-[var(--color-primary)] text-white shadow-[var(--shadow-md)] flex items-center justify-center hover:shadow-[var(--shadow-lg)] active:scale-95 transition-all z-20"
+        title="Create event (or click and drag on the grid)">
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M12 5v14m-7-7h14" /></svg>
+      </button>
     </div>
   );
 }

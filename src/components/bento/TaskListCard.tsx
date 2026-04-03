@@ -186,9 +186,11 @@ function TaskRow({ task, subtasks, priorityDot, onToggle, onDelete, addingSubtas
         draggable={!isDone}
         onDragStart={(e) => { e.dataTransfer.setData("text/plain", task.id); e.dataTransfer.effectAllowed = "move"; }}>
         {/* Expand toggle */}
-        <button onClick={() => setExpanded(!expanded)} className="w-3 shrink-0">
-          {hasSubtasks && (expanded ? <ChevronDown className="h-3 w-3 text-[var(--text-muted)]" /> : <ChevronRight className="h-3 w-3 text-[var(--text-muted)]" />)}
-        </button>
+        {hasSubtasks ? (
+          <button onClick={() => setExpanded(!expanded)} className="w-3 shrink-0">
+            {expanded ? <ChevronDown className="h-3 w-3 text-[var(--text-muted)]" /> : <ChevronRight className="h-3 w-3 text-[var(--text-muted)]" />}
+          </button>
+        ) : <div className="w-3 shrink-0" />}
         {/* Checkbox */}
         <button onClick={() => onToggle(task.id)}
           className={cn("h-3.5 w-3.5 rounded-full border flex items-center justify-center shrink-0 transition-all",

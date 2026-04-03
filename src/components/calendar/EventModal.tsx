@@ -57,7 +57,20 @@ export default function EventModal({ isOpen, onClose, editingItem, defaultDate, 
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [recurrenceIdx, setRecurrenceIdx] = useState(0);
+  const [showMore, setShowMore] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Smart defaults: next full hour, today
+  const getSmartDefaults = () => {
+    const now = new Date();
+    const nextHour = now.getHours() + 1;
+    const sh = Math.min(nextHour, 23);
+    return {
+      date: defaultDate || new Date().toISOString().slice(0, 10),
+      startTime: defaultStartTime || `${sh.toString().padStart(2, "0")}:00`,
+      endTime: defaultEndTime || `${Math.min(sh + 1, 23).toString().padStart(2, "0")}:00`,
+    };
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -74,12 +87,14 @@ export default function EventModal({ isOpen, onClose, editingItem, defaultDate, 
       setTags(editingItem.tags || []);
       setTagInput("");
       setRecurrenceIdx(editingItem.recurrence ? RECURRENCE_OPTIONS.findIndex(r => r.value?.frequency === editingItem.recurrence?.frequency) : 0);
+      setShowMore(!!(editingItem.location || editingItem.tags?.length || editingItem.recurrence || editingItem.content));
     } else {
+      const defaults = getSmartDefaults();
       setTitle("");
       setType(defaultType || "event");
-      setDate(defaultDate || "");
-      setStartTime(defaultStartTime || "");
-      setEndTime(defaultEndTime || "");
+      setDate(defaults.date);
+      setStartTime(defaults.startTime);
+      setEndTime(defaults.endTime);
       setPriority(3);
       setNotes("");
       setColor("#5B7FE8");
@@ -87,6 +102,7 @@ export default function EventModal({ isOpen, onClose, editingItem, defaultDate, 
       setTags([]);
       setTagInput("");
       setRecurrenceIdx(0);
+      setShowMore(false);
     }
     setTimeout(() => inputRef.current?.focus(), 100);
   }, [isOpen, editingItem, defaultDate, defaultStartTime, defaultEndTime, defaultType]);
@@ -175,6 +191,31 @@ export default function EventModal({ isOpen, onClose, editingItem, defaultDate, 
                 className="text-xs bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-[var(--radius-xs)] px-2.5 py-1.5 border border-[var(--border)]" />
             </div>
 
+            {/* Priority (tasks only — always visible) */}
+            {type === "task" && (
+              <div className="flex items-center gap-2">
+                <Flag className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+                <div className="flex gap-1">
+                  {PRIORITIES.map(p => (
+                    <button key={p.value} type="button" onClick={() => setPriority(p.value)}
+                      className={cn("px-2 py-1 rounded-full text-[10px] font-medium transition-all",
+                        priority === p.value ? "text-white" : "text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)]")}
+                      style={priority === p.value ? { backgroundColor: p.color } : undefined}>
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* More options toggle */}
+            <button type="button" onClick={() => setShowMore(!showMore)}
+              className="text-[11px] text-[var(--color-primary)] hover:underline w-fit">
+              {showMore ? "Less options" : "More options..."}
+            </button>
+
+            {/* ─── Advanced fields (collapsed by default) ─── */}
+            {showMore && <>
             {/* Location */}
             <div className="flex items-center gap-2">
               <MapPin className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
@@ -229,27 +270,11 @@ export default function EventModal({ isOpen, onClose, editingItem, defaultDate, 
               </div>
             </div>
 
-            {/* Priority (tasks only) */}
-            {type === "task" && (
-              <div className="flex items-center gap-2">
-                <Flag className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
-                <div className="flex gap-1">
-                  {PRIORITIES.map(p => (
-                    <button key={p.value} type="button" onClick={() => setPriority(p.value)}
-                      className={cn("px-2 py-1 rounded-full text-[10px] font-medium transition-all",
-                        priority === p.value ? "text-white" : "text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)]")}
-                      style={priority === p.value ? { backgroundColor: p.color } : undefined}>
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Notes */}
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
               className="w-full text-xs bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-[var(--radius-xs)] px-2.5 py-2 border border-[var(--border)] outline-none resize-none placeholder:text-[var(--text-tertiary)]"
               placeholder="Add notes..." />
+            </>}
           </div>
 
           {/* Footer */}
