@@ -28,10 +28,45 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     init();
   }, [loadSettings, loadTimer]);
 
-  // Apply theme to DOM
+  const allSettings = useSettings(s => s.settings);
+
+  // Apply all visual settings to DOM
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-  }, [theme]);
+    const root = document.documentElement;
+    root.classList.toggle("dark", theme === "dark");
+
+    const FONT_MAP: Record<string, string> = {
+      system: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      inter: '"Inter", system-ui, sans-serif', georgia: '"Georgia", serif',
+      merriweather: '"Merriweather", serif', roboto: '"Roboto", sans-serif',
+      montserrat: '"Montserrat", sans-serif', nunito: '"Nunito", sans-serif',
+      "fira-code": '"Fira Code", monospace',
+    };
+
+    if (allSettings.primaryColor) {
+      root.style.setProperty("--color-primary", allSettings.primaryColor);
+      root.style.setProperty("--color-primary-light", allSettings.primaryColor + "12");
+      root.style.setProperty("--color-primary-medium", allSettings.primaryColor + "25");
+    }
+    if (allSettings.fontFamily) {
+      const font = FONT_MAP[allSettings.fontFamily] || FONT_MAP.system;
+      root.style.setProperty("--font-family", font);
+      document.body.style.fontFamily = font;
+    }
+    if (allSettings.fontSize) {
+      root.style.setProperty("--density-font-size", `${allSettings.fontSize}px`);
+      document.body.style.fontSize = `${allSettings.fontSize}px`;
+    }
+    if (allSettings.borderRadius) {
+      const r = parseInt(allSettings.borderRadius);
+      root.style.setProperty("--radius", `${r}px`);
+      root.style.setProperty("--radius-sm", `${Math.max(r - 4, 0)}px`);
+      root.style.setProperty("--radius-xs", `${Math.max(r - 6, 0)}px`);
+    }
+    if (allSettings.lineHeight) {
+      document.body.style.lineHeight = allSettings.lineHeight;
+    }
+  }, [theme, allSettings]);
 
   if (!ready) {
     return (
