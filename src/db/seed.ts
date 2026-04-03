@@ -62,4 +62,14 @@ export async function seedDatabase() {
       Object.entries(defaults).map(([key, value]) => ({ id: generateId(), key, value }))
     );
   }
+
+  // ─── Seed note templates via settings ────
+  const hasTemplates = await db.settings.where("key").equals("noteTemplates").first();
+  if (!hasTemplates) {
+    const templates = JSON.stringify([
+      { name: "Daily Journal", content: "# Daily Journal — {{date}}\n\n## Today's Tasks\n\n- [ ] \n\n## Mood\n\n\n## Notes\n\n" },
+      { name: "Meeting Notes", content: "# Meeting: \n\n**Date:** {{date}}\n\n## Agenda\n\n1. \n\n## Notes\n\n\n## Action Items\n\n- [ ] \n" },
+    ]);
+    await db.settings.add({ id: generateId(), key: "noteTemplates", value: templates });
+  }
 }

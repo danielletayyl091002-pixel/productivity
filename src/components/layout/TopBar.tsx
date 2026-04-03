@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { useSettings } from "@/stores/settings";
 import { useTimer } from "@/stores/timer";
-import { Sun, Moon, Settings, Timer, Square } from "lucide-react";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { Sun, Moon, Settings, Timer, Square, FileText, LayoutDashboard } from "lucide-react";
+import { cn } from "@/lib/utils";
 import TimerModal from "@/components/timer/TimerModal";
 import InterruptionPopup from "@/components/timer/InterruptionPopup";
 import { format } from "date-fns";
@@ -15,6 +18,7 @@ interface TopBarProps {
 export default function TopBar({ onSettingsClick }: TopBarProps) {
   const { get, set: setSetting } = useSettings();
   const { active, stop } = useTimer();
+  const pathname = usePathname();
   const isDark = get("theme") === "dark";
   const [timerModalOpen, setTimerModalOpen] = useState(false);
   const [interruptionOpen, setInterruptionOpen] = useState(false);
@@ -47,7 +51,18 @@ export default function TopBar({ onSettingsClick }: TopBarProps) {
         <div className="flex items-center gap-2.5">
           <div className="h-8 w-8 rounded-lg flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: "var(--color-primary)" }}>F</div>
           <h1 className="text-base font-bold text-[var(--text-primary)]">Fluent</h1>
-          <span className="text-[11px] text-[var(--text-muted)] hidden sm:block">{format(new Date(), "EEEE, MMM d")}</span>
+          {/* Nav links */}
+          <div className="flex items-center gap-1 ml-4">
+            <Link href="/" className={cn("flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] font-medium transition-colors",
+              pathname === "/" ? "bg-[var(--color-primary-light)] text-[var(--color-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]")}>
+              <LayoutDashboard className="h-3.5 w-3.5" /> Dashboard
+            </Link>
+            <Link href="/notes" className={cn("flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] font-medium transition-colors",
+              pathname === "/notes" ? "bg-[var(--color-primary-light)] text-[var(--color-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]")}>
+              <FileText className="h-3.5 w-3.5" /> Notes
+            </Link>
+          </div>
+          <span className="text-[11px] text-[var(--text-muted)] hidden sm:block ml-2">{format(new Date(), "EEEE, MMM d")}</span>
         </div>
 
         <div className="flex items-center gap-1.5">
