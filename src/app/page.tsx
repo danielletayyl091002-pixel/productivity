@@ -91,59 +91,84 @@ export default function UnifiedCanvas() {
   const goNext = () => setCurrentDate(d => view === "week" ? addWeeks(d, 1) : addMonths(d, 1));
   const goPrev = () => setCurrentDate(d => view === "week" ? subWeeks(d, 1) : subMonths(d, 1));
 
-  return (
-    <div className="space-y-4 pb-20" style={{ maxWidth: "var(--max-content-width)", margin: "0 auto" }}>
+  // Stats for overview cards
+  const totalTasksCount = items.filter(i => i.type === "task" && !i.archived).length;
+  const completedToday = items.filter(i => i.type === "task" && i.status === "done" && i.date === today && !i.archived).length;
+  const pendingCount = activeTasks.length;
+  const todayEvents = items.filter(i => (i.type === "event") && i.date === today && !i.archived).length;
 
-      {/* ═══ NOW PANEL ═══ */}
-      <div className="flex items-center gap-3 rounded-[var(--radius)] bg-[var(--bg-card)] border border-[var(--border)] px-4 py-3">
-        {currentTask ? (
-          <>
-            <div className="h-2 w-2 rounded-full shrink-0 animate-pulse-soft" style={{ backgroundColor: "var(--color-primary)" }} />
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] text-[var(--text-muted)]">Now</p>
-              <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{currentTask.title}</p>
-            </div>
-            {!activeSession ? (
-              <button onClick={() => startSession(currentTask.title, currentTask.id)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold text-white shrink-0"
-                style={{ backgroundColor: "var(--color-primary)" }}>
-                <Play className="h-3 w-3" /> Focus
-              </button>
-            ) : (
-              <button onClick={() => stopSession()}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[var(--bg-tertiary)] text-[var(--text-secondary)] shrink-0 tabular-nums font-mono">
-                <Square className="h-3 w-3" /> {Math.floor(activeSession.elapsed / 60)}:{(activeSession.elapsed % 60).toString().padStart(2, "0")}
-              </button>
-            )}
-          </>
-        ) : (
-          <div className="flex items-center gap-2.5 w-full">
-            <span className="text-base">🌤️</span>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-[var(--text-primary)]">Ready to start</p>
-              <p className="text-[10px] text-[var(--text-muted)]">Add a task below or drag one onto the calendar</p>
+  return (
+    <div className="space-y-5 pb-20" style={{ maxWidth: "var(--max-content-width)", margin: "0 auto" }}>
+
+      {/* ═══ STAT CARDS ROW ═══ */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="stat-card">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-medium text-[var(--text-tertiary)]">Pending Tasks</span>
+            <div className="h-8 w-8 rounded-[var(--radius-xs)] bg-[var(--color-primary-light)] flex items-center justify-center">
+              <span className="text-sm">📋</span>
             </div>
           </div>
-        )}
+          <p className="text-2xl font-bold text-[var(--text-primary)] tabular-nums">{pendingCount}</p>
+          <p className="text-[10px] text-[var(--text-muted)] mt-1">{completedToday} completed today</p>
+        </div>
+        <div className="stat-card">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-medium text-[var(--text-tertiary)]">Today&apos;s Events</span>
+            <div className="h-8 w-8 rounded-[var(--radius-xs)] bg-[var(--color-primary-light)] flex items-center justify-center">
+              <span className="text-sm">📅</span>
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-[var(--text-primary)] tabular-nums">{todayEvents}</p>
+          <p className="text-[10px] text-[var(--text-muted)] mt-1">{format(new Date(), "EEEE, MMM d")}</p>
+        </div>
+        <div className="stat-card">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-medium text-[var(--text-tertiary)]">Focus Today</span>
+            <div className="h-8 w-8 rounded-[var(--radius-xs)] bg-[var(--color-primary-light)] flex items-center justify-center">
+              <span className="text-sm">🎯</span>
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-[var(--text-primary)] tabular-nums">
+            {activeSession ? `${Math.floor(activeSession.elapsed / 60)}m` : "0m"}
+          </p>
+          {currentTask ? (
+            <button onClick={() => !activeSession ? startSession(currentTask.title, currentTask.id) : stopSession()}
+              className="text-[10px] font-semibold mt-1" style={{ color: "var(--color-primary)" }}>
+              {activeSession ? "Stop" : "Start focus →"}
+            </button>
+          ) : (
+            <p className="text-[10px] text-[var(--text-muted)] mt-1">No active task</p>
+          )}
+        </div>
+        <div className="stat-card">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-medium text-[var(--text-tertiary)]">Total Items</span>
+            <div className="h-8 w-8 rounded-[var(--radius-xs)] bg-[var(--color-primary-light)] flex items-center justify-center">
+              <span className="text-sm">📊</span>
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-[var(--text-primary)] tabular-nums">{totalItems}</p>
+          <p className="text-[10px] text-[var(--text-muted)] mt-1">{totalTasksCount} tasks total</p>
+        </div>
       </div>
 
       {/* ═══ QUICK ADD ═══ */}
       <form onSubmit={handleQuickAdd}>
         <input value={quickInput} onChange={(e) => setQuickInput(e.target.value)}
-          placeholder='Add task or event... (try "meeting tomorrow at 3pm")'
-          className="w-full px-3 py-2.5 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--color-primary)] transition-colors" />
+          placeholder='+ Add task or event... (try "meeting tomorrow at 3pm")'
+          className="w-full px-4 py-3 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--color-primary)] focus:shadow-[var(--shadow-md)] transition-all shadow-[var(--shadow)]" />
       </form>
 
-      {/* ═══ ONBOARDING (first use only) ═══ */}
+      {/* ═══ ONBOARDING ═══ */}
       {isFirstUse && (
-        <div className="rounded-[var(--radius)] border border-[var(--color-primary-medium)] bg-[var(--color-primary-light)] p-5 animate-fade-in">
-          <p className="text-base font-bold text-[var(--text-primary)] mb-1">Welcome to Productiv ✨</p>
-          <p className="text-xs text-[var(--text-secondary)] mb-3">Your unified productivity system. Here&apos;s how to get started:</p>
-          <div className="space-y-2 text-[12px] text-[var(--text-secondary)]">
-            <p>📝 <strong>Type above</strong> to add your first task — try &quot;Buy groceries&quot;</p>
-            <p>📅 <strong>Click and drag</strong> on the calendar below to schedule an event</p>
-            <p>⌨️ Press <kbd className="bg-[var(--bg-card)] border border-[var(--border)] px-1.5 py-0.5 rounded text-[10px] font-mono">N</kbd> for quick add, <kbd className="bg-[var(--bg-card)] border border-[var(--border)] px-1.5 py-0.5 rounded text-[10px] font-mono">⌘K</kbd> to search, <kbd className="bg-[var(--bg-card)] border border-[var(--border)] px-1.5 py-0.5 rounded text-[10px] font-mono">?</kbd> for all shortcuts</p>
-            <p>🎨 Click <strong>Settings</strong> in the sidebar to customize colors, fonts, and layout</p>
+        <div className="stat-card border-[var(--color-primary-medium)]" style={{ background: "var(--color-primary-light)" }}>
+          <p className="text-base font-bold text-[var(--text-primary)] mb-2">Welcome to Productiv ✨</p>
+          <div className="grid grid-cols-2 gap-3 text-[12px] text-[var(--text-secondary)]">
+            <p>📝 Type above to add your first task</p>
+            <p>📅 Click and drag on the calendar</p>
+            <p>⌨️ Press <kbd className="bg-[var(--bg-card)] border border-[var(--border)] px-1 py-0.5 rounded text-[10px] font-mono">N</kbd> for quick add</p>
+            <p>🎨 Click Settings to customize</p>
           </div>
         </div>
       )}

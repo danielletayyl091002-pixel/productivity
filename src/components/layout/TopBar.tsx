@@ -1,8 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { format } from "date-fns";
-import { Menu, Search, Plus } from "lucide-react";
+import { Menu, Search, Plus, Bell } from "lucide-react";
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -10,50 +9,27 @@ interface TopBarProps {
   onQuickAdd: () => void;
 }
 
-const TITLES: Record<string, string> = {
-  "/": "Today",
-  "/upcoming": "Upcoming",
-  "/all": "All Items",
-  "/focus": "Focus",
-  "/metrics": "Metrics",
-};
-
-const GREETINGS = () => {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  return "Good evening";
-};
-
 export default function TopBar({ onMenuClick, onCommandPalette, onQuickAdd }: TopBarProps) {
-  const pathname = usePathname();
-  const isHome = pathname === "/";
+  const now = new Date();
+  const greeting = now.getHours() < 12 ? "Good morning" : now.getHours() < 17 ? "Good afternoon" : "Good evening";
 
   return (
-    <header className="sticky top-0 z-20 flex items-center gap-3 bg-[var(--bg-primary)] px-5 py-4">
+    <header className="sticky top-0 z-20 flex items-center gap-3 bg-[var(--bg-card)] border-b border-[var(--border)] px-5 py-3">
       <button onClick={onMenuClick} className="md:hidden p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-[var(--radius-xs)] hover:bg-[var(--bg-hover)]">
         <Menu className="h-5 w-5" />
       </button>
 
-      <div className="flex-1">
-        {isHome ? (
-          <div>
-            <h1 className="text-xl font-bold text-[var(--text-primary)]">
-              {GREETINGS()} <span className="inline-block animate-[wave_1.5s_ease-in-out_infinite]">👋</span>
-            </h1>
-            <p className="text-xs text-[var(--text-tertiary)] mt-0.5">{format(new Date(), "EEEE, MMMM d")}</p>
-          </div>
-        ) : (
-          <h1 className="text-lg font-bold text-[var(--text-primary)]">{TITLES[pathname] || "Productiv"}</h1>
-        )}
+      <div className="flex-1 min-w-0">
+        <h1 className="text-lg font-bold text-[var(--text-primary)]">{greeting} 👋</h1>
+        <p className="text-[11px] text-[var(--text-tertiary)]">{format(now, "EEEE, MMMM d, yyyy")}</p>
       </div>
 
       {/* Search */}
       <button onClick={onCommandPalette}
-        className="flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] px-3 py-2 text-xs text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] transition-all">
+        className="flex items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2 text-xs text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-all min-w-[160px]">
         <Search className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline">Search</span>
-        <kbd className="hidden sm:inline text-[10px] bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded-md font-mono">⌘K</kbd>
+        <span className="flex-1 text-left">Search...</span>
+        <kbd className="text-[9px] bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
       </button>
 
       {/* Quick add */}
