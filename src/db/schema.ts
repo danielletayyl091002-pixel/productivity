@@ -16,6 +16,8 @@ export interface Task {
   recurrenceRule?: string;
   description?: string;
   parentId?: string; // subtasks
+  scheduledStart?: string; // ISO datetime for calendar
+  scheduledEnd?: string;   // ISO datetime for calendar
   createdAt: string;
   updatedAt: string;
 }
@@ -123,8 +125,8 @@ export class FluentDB extends Dexie {
 
   constructor() {
     super("fluent");
-    this.version(2).stores({
-      tasks: "id, title, status, columnId, dueDate, priority, createdAt, updatedAt, parentId, *tags",
+    this.version(3).stores({
+      tasks: "id, title, status, columnId, dueDate, priority, scheduledStart, createdAt, updatedAt, parentId, *tags",
       columns: "id, name, order",
       events: "id, title, startTime, endTime, date, taskId",
       notes: "id, title, createdAt, updatedAt, isPinned, *tags",
