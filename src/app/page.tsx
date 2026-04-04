@@ -3,6 +3,7 @@
 import DailyTop3 from "@/components/kanban/DailyTop3";
 import CalendarSection from "@/components/calendar/CalendarSection";
 import MetricsGrid from "@/components/metrics/MetricsGrid";
+import TrackerGrid from "@/components/trackers/TrackerGrid";
 import KanbanBoard from "@/components/kanban/KanbanBoard";
 
 export default function HomePage() {
@@ -11,6 +12,7 @@ export default function HomePage() {
       <DailyTop3 />
       <CalendarSection />
       <MetricsGrid />
+      <TrackerGrid />
       <KanbanBoard />
     </div>
   );

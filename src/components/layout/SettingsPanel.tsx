@@ -9,25 +9,48 @@ import { db } from "@/db/schema";
 interface Props { isOpen: boolean; onClose: () => void; }
 
 const PALETTES = [
-  { name: "Default", primary: "#3B82F6", bg: "#F8FAFC", dark: "#0F172A", text: "#0F172A", border: "#E2E8F0" },
-  { name: "Ocean", primary: "#0891B2", bg: "#F0F9FF", dark: "#0C1929", text: "#0C4A6E", border: "#BAE6FD" },
-  { name: "Forest", primary: "#16A34A", bg: "#F0FDF4", dark: "#0A1F0D", text: "#14532D", border: "#BBF7D0" },
-  { name: "Sunset", primary: "#EA580C", bg: "#FFF7ED", dark: "#1C1210", text: "#7C2D12", border: "#FED7AA" },
-  { name: "Lavender", primary: "#7C3AED", bg: "#F5F3FF", dark: "#1A0F2E", text: "#4C1D95", border: "#DDD6FE" },
-  { name: "Rose", primary: "#E11D48", bg: "#FFF1F2", dark: "#1F0A10", text: "#881337", border: "#FECDD3" },
-  { name: "Slate", primary: "#475569", bg: "#F8FAFC", dark: "#0F172A", text: "#1E293B", border: "#CBD5E1" },
-  { name: "Midnight", primary: "#6366F1", bg: "#F1F5F9", dark: "#0C0E1A", text: "#1E1B4B", border: "#C7D2FE" },
-  { name: "Clay", primary: "#B45309", bg: "#FFFBEB", dark: "#1A150A", text: "#78350F", border: "#FDE68A" },
-  { name: "Sage", primary: "#4D7C0F", bg: "#F7FEE7", dark: "#0F1A05", text: "#365314", border: "#D9F99D" },
-  { name: "Coffee", primary: "#78350F", bg: "#FDF8F0", dark: "#1A140A", text: "#451A03", border: "#E8D5B5" },
-  { name: "Mint", primary: "#0D9488", bg: "#F0FDFA", dark: "#0A1A18", text: "#134E4A", border: "#99F6E4" },
+  // Standard
+  { name: "Default", colors: ["#3B82F6", "#60A5FA", "#93C5FD"] },
+  { name: "Ocean", colors: ["#0891B2", "#22D3EE", "#67E8F9"] },
+  { name: "Forest", colors: ["#16A34A", "#4ADE80", "#86EFAC"] },
+  { name: "Sunset", colors: ["#EA580C", "#FB923C", "#FDBA74"] },
+  { name: "Lavender", colors: ["#7C3AED", "#A78BFA", "#C4B5FD"] },
+  { name: "Rose", colors: ["#E11D48", "#FB7185", "#FDA4AF"] },
+  { name: "Slate", colors: ["#475569", "#64748B", "#94A3B8"] },
+  { name: "Midnight", colors: ["#6366F1", "#818CF8", "#A5B4FC"] },
+  { name: "Clay", colors: ["#B45309", "#D97706", "#FBBF24"] },
+  { name: "Sage", colors: ["#4D7C0F", "#65A30D", "#A3E635"] },
+  { name: "Coffee", colors: ["#78350F", "#92400E", "#B45309"] },
+  { name: "Mint", colors: ["#0D9488", "#2DD4BF", "#5EEAD4"] },
+  // Pastels
+  { name: "Pastel Pink", colors: ["#F9A8D4", "#FBCFE8", "#FCE7F3"] },
+  { name: "Pastel Blue", colors: ["#93C5FD", "#BFDBFE", "#DBEAFE"] },
+  { name: "Pastel Green", colors: ["#86EFAC", "#BBF7D0", "#DCFCE7"] },
+  { name: "Pastel Lilac", colors: ["#C4B5FD", "#DDD6FE", "#EDE9FE"] },
 ];
 
 const FONTS = [
-  { id: "system", label: "System Default" }, { id: "inter", label: "Inter" },
-  { id: "georgia", label: "Georgia" }, { id: "merriweather", label: "Merriweather" },
-  { id: "roboto", label: "Roboto" }, { id: "montserrat", label: "Montserrat" },
-  { id: "nunito", label: "Nunito" }, { id: "fira-code", label: "Fira Code" },
+  // Sans-serif
+  { id: "system", label: "System Default", group: "Sans" },
+  { id: "inter", label: "Inter", group: "Sans" },
+  { id: "roboto", label: "Roboto", group: "Sans" },
+  { id: "montserrat", label: "Montserrat", group: "Sans" },
+  { id: "nunito", label: "Nunito", group: "Sans" },
+  { id: "poppins", label: "Poppins", group: "Sans" },
+  { id: "dm-sans", label: "DM Sans", group: "Sans" },
+  { id: "lato", label: "Lato", group: "Sans" },
+  { id: "lexend", label: "Lexend", group: "Sans" },
+  { id: "raleway", label: "Raleway", group: "Sans" },
+  { id: "outfit", label: "Outfit", group: "Sans" },
+  { id: "space-grotesk", label: "Space Grotesk", group: "Sans" },
+  { id: "source-sans", label: "Source Sans", group: "Sans" },
+  // Serif
+  { id: "georgia", label: "Georgia", group: "Serif" },
+  { id: "merriweather", label: "Merriweather", group: "Serif" },
+  { id: "playfair", label: "Playfair Display", group: "Serif" },
+  // Monospace
+  { id: "fira-code", label: "Fira Code", group: "Mono" },
+  { id: "jetbrains", label: "JetBrains Mono", group: "Mono" },
 ];
 
 const FONT_MAP: Record<string, string> = {
@@ -35,7 +58,12 @@ const FONT_MAP: Record<string, string> = {
   inter: '"Inter", system-ui, sans-serif', georgia: '"Georgia", serif',
   merriweather: '"Merriweather", serif', roboto: '"Roboto", sans-serif',
   montserrat: '"Montserrat", sans-serif', nunito: '"Nunito", sans-serif',
-  "fira-code": '"Fira Code", monospace',
+  poppins: '"Poppins", sans-serif', "dm-sans": '"DM Sans", sans-serif',
+  lato: '"Lato", sans-serif', lexend: '"Lexend", sans-serif',
+  raleway: '"Raleway", sans-serif', outfit: '"Outfit", sans-serif',
+  "space-grotesk": '"Space Grotesk", sans-serif', "source-sans": '"Source Sans 3", sans-serif',
+  playfair: '"Playfair Display", serif',
+  "fira-code": '"Fira Code", monospace', jetbrains: '"JetBrains Mono", monospace',
 };
 
 export default function SettingsPanel({ isOpen, onClose }: Props) {
@@ -45,10 +73,11 @@ export default function SettingsPanel({ isOpen, onClose }: Props) {
   if (!isOpen) return null;
 
   const applyPalette = (p: typeof PALETTES[0]) => {
-    s("primaryColor", p.primary);
-    applyCSS("--color-primary", p.primary);
-    applyCSS("--color-primary-light", p.primary + "12");
-    applyCSS("--color-primary-medium", p.primary + "25");
+    const primary = p.colors[0];
+    s("primaryColor", primary);
+    applyCSS("--color-primary", primary);
+    applyCSS("--color-primary-light", primary + "12");
+    applyCSS("--color-primary-medium", primary + "25");
   };
 
   const applyCSS = (prop: string, val: string) => document.documentElement.style.setProperty(prop, val);
@@ -131,7 +160,15 @@ export default function SettingsPanel({ isOpen, onClose }: Props) {
             <Row label="Font">
               <select value={fontFamily} onChange={e => setFont(e.target.value)}
                 className="w-full text-[11px] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text-primary)] outline-none">
-                {FONTS.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+                <optgroup label="Sans-serif">
+                  {FONTS.filter(f => f.group === "Sans").map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+                </optgroup>
+                <optgroup label="Serif">
+                  {FONTS.filter(f => f.group === "Serif").map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+                </optgroup>
+                <optgroup label="Monospace">
+                  {FONTS.filter(f => f.group === "Mono").map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+                </optgroup>
               </select>
             </Row>
 
@@ -165,12 +202,14 @@ export default function SettingsPanel({ isOpen, onClose }: Props) {
 
             {/* Palettes */}
             <Row label="Color palettes">
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-2 gap-1.5">
                 {PALETTES.map(p => (
                   <button key={p.name} onClick={() => applyPalette(p)}
-                    className={cn("flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-[10px] font-medium transition-all text-left",
-                      get("primaryColor") === p.primary ? "border-[var(--color-primary)] bg-[var(--color-primary-light)]" : "border-[var(--border)] hover:bg-[var(--bg-hover)]")}>
-                    <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: p.primary }} />
+                    className={cn("flex items-center gap-2 px-2.5 py-2 rounded-lg border text-[10px] font-medium transition-all text-left",
+                      get("primaryColor") === p.colors[0] ? "border-[var(--color-primary)] bg-[var(--color-primary-light)]" : "border-[var(--border)] hover:bg-[var(--bg-hover)]")}>
+                    <div className="flex gap-0.5 shrink-0">
+                      {p.colors.map((c, i) => <div key={i} className="h-3.5 w-3.5 rounded-full" style={{ backgroundColor: c }} />)}
+                    </div>
                     <span className="text-[var(--text-primary)] truncate">{p.name}</span>
                   </button>
                 ))}

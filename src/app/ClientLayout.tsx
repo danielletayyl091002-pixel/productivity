@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSettings } from "@/stores/settings";
 import { useTimer } from "@/stores/timer";
 import { useKanban } from "@/stores/kanban";
+import { useTrackers } from "@/stores/trackers";
 import { seedDatabase } from "@/db/seed";
 import TopBar from "@/components/layout/TopBar";
 import SettingsPanel from "@/components/layout/SettingsPanel";
@@ -21,6 +22,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const loadSettings = useSettings(s => s.load);
   const loadTimer = useTimer(s => s.load);
+  const loadTrackers = useTrackers(s => s.load);
   const theme = useSettings(s => s.get("theme"));
   const allSettings = useSettings(s => s.settings);
   const setSetting = useSettings(s => s.set);
@@ -29,7 +31,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     async function init() {
       try {
         await seedDatabase();
-        await Promise.all([loadSettings(), loadTimer()]);
+        await Promise.all([loadSettings(), loadTimer(), loadTrackers()]);
       } catch (err) {
         console.error("Init error:", err);
       } finally {
@@ -37,7 +39,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       }
     }
     init();
-  }, [loadSettings, loadTimer]);
+  }, [loadSettings, loadTimer, loadTrackers]);
 
   // ─── Apply visual settings ───
   useEffect(() => {
