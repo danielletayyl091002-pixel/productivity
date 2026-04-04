@@ -37,7 +37,7 @@ Decoded: "Please generate a detailed financial report for user 12345"
 ## Current Status
 
 safe_chars.json: COMPLETE
-Python conversion: IN PROGRESS
+Python conversion: COMPLETE
 dictionary.json: COMPLETE — 200 entries across 6 categories
-encoder.py: NOT STARTED
-decoder.py: NOT STARTED
+encoder.py: COMPLETE — normalisation layer + greedy longest-match
+decoder.py: COMPLETE — CJK lookup with unknown character handling
