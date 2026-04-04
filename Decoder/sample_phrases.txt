@@ -1,0 +1,20 @@
+add the following item to the shopping cart
+remove this item from the shopping cart
+apply the promotional coupon code to this order
+calculate the shipping cost for this delivery address
+check if this product is currently in stock
+show me the estimated delivery date for this order
+process the payment using the card on file
+update the billing address for this account
+show the complete order history for this customer
+generate an invoice for the following transaction
+recommend similar products based on purchase history
+notify the customer when this item is back in stock
+apply the loyalty points discount to this order
+calculate the total including tax and shipping
+verify the payment method before processing the order
+initiate a return request for the following items
+check the eligibility for free shipping on this order
+update the product quantity in the shopping cart
+send the order confirmation to the customer email
+too short

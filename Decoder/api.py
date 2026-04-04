@@ -111,13 +111,31 @@ def authenticate(api_key: Optional[str]) -> str:
 
 
 def get_dictionary(dictionary_id: str):
-    """Load dictionary by ID. Currently only 'default' is supported."""
-    if dictionary_id != "default":
-        raise HTTPException(
-            status_code=400,
-            detail=f"Dictionary '{dictionary_id}' not found. Use 'default' or a valid custom dictionary ID.",
-        )
-    return default_encode_map, default_decode_map, default_phrase_lengths
+    """Load dictionary by ID from dictionaries.json registry."""
+    if dictionary_id == "default":
+        return default_encode_map, default_decode_map, default_phrase_lengths
+
+    # Check registry for custom dictionaries
+    registry_path = os.path.join(SCRIPT_DIR, "dictionaries.json")
+    if os.path.exists(registry_path):
+        with open(registry_path, "r", encoding="utf-8") as f:
+            registry = json.load(f)
+        if dictionary_id in registry:
+            dict_file = os.path.join(SCRIPT_DIR, registry[dictionary_id])
+            if os.path.exists(dict_file):
+                with open(dict_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                custom_encode = {p.lower(): c for p, c in data["encode"].items()}
+                custom_decode = data["decode"]
+                custom_lengths = sorted(
+                    set(len(p.split()) for p in custom_encode), reverse=True
+                )
+                return custom_encode, custom_decode, custom_lengths
+
+    raise HTTPException(
+        status_code=400,
+        detail=f"Dictionary '{dictionary_id}' not found. Use 'default' or a valid custom dictionary ID.",
+    )
 
 
 def validate_text_length(text: str):

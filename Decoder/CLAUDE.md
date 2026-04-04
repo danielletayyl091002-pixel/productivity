@@ -45,5 +45,6 @@ prompt_generator.py: COMPLETE — 3579 token system prompt with 300 mappings
 efficiency_calculator.py: COMPLETE — break-even analysis with recommendation engine
 pipeline.py: COMPLETE — end-to-end compression pipeline with API placeholder
 Prompt caching: IMPLEMENTED — cache_control ephemeral on system prompt, 10% effective cost
-api.py: COMPLETE — FastAPI REST API with /encode, /decode, /compress endpoints, API key auth, dictionary_id parameter ready for custom dictionaries
+api.py: COMPLETE — FastAPI REST API with /encode, /decode, /compress endpoints, API key auth, dictionary_id loads from dictionaries.json registry
+dictionary_builder.py: COMPLETE — custom per-company dictionary builder, multi-tenant dictionaries enabled
 Overall status: MVP COMPLETE

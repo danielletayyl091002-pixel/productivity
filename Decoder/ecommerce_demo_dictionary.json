@@ -1,0 +1,49 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "company": "ecommerce_demo",
+    "totalEntries": 19
+  },
+  "encode": {
+    "add the following item to the shopping cart": "束",
+    "remove this item from the shopping cart": "条",
+    "apply the promotional coupon code to this order": "来",
+    "calculate the shipping cost for this delivery address": "板",
+    "check if this product is currently in stock": "构",
+    "show me the estimated delivery date for this order": "析",
+    "process the payment using the card on file": "果",
+    "update the billing address for this account": "查",
+    "show the complete order history for this customer": "标",
+    "generate an invoice for the following transaction": "样",
+    "recommend similar products based on purchase history": "核",
+    "notify the customer when this item is back in stock": "格",
+    "apply the loyalty points discount to this order": "案",
+    "calculate the total including tax and shipping": "检",
+    "verify the payment method before processing the order": "模",
+    "initiate a return request for the following items": "次",
+    "check the eligibility for free shipping on this order": "款",
+    "update the product quantity in the shopping cart": "止",
+    "send the order confirmation to the customer email": "正"
+  },
+  "decode": {
+    "束": "add the following item to the shopping cart",
+    "条": "remove this item from the shopping cart",
+    "来": "apply the promotional coupon code to this order",
+    "板": "calculate the shipping cost for this delivery address",
+    "构": "check if this product is currently in stock",
+    "析": "show me the estimated delivery date for this order",
+    "果": "process the payment using the card on file",
+    "查": "update the billing address for this account",
+    "标": "show the complete order history for this customer",
+    "样": "generate an invoice for the following transaction",
+    "核": "recommend similar products based on purchase history",
+    "格": "notify the customer when this item is back in stock",
+    "案": "apply the loyalty points discount to this order",
+    "检": "calculate the total including tax and shipping",
+    "模": "verify the payment method before processing the order",
+    "次": "initiate a return request for the following items",
+    "款": "check the eligibility for free shipping on this order",
+    "止": "update the product quantity in the shopping cart",
+    "正": "send the order confirmation to the customer email"
+  }
+}
