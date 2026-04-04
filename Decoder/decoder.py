@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import tiktoken
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -62,6 +63,9 @@ def decode(text: str, decode_map: dict) -> tuple:
     # Clean up any double spaces
     while "  " in decoded:
         decoded = decoded.replace("  ", " ")
+
+    # Capitalise standalone "i" to "I"
+    decoded = re.sub(r'\bi\b', 'I', decoded)
 
     return decoded, unknown_count
 
