@@ -4,6 +4,8 @@ import math
 import tiktoken
 from encoder import load_encoder, build_phrase_lengths, encode
 
+CACHE_COST_MULTIPLIER = 0.1  # Cached reads are 10% of full token price
+
 
 def calculate_efficiency(
     input_text: str,
@@ -12,8 +14,13 @@ def calculate_efficiency(
     encode_map: dict,
     phrase_lengths: list,
     enc: tiktoken.Encoding,
+    use_caching: bool = True,
 ) -> dict:
     """Calculate compression efficiency for a given scenario.
+
+    When use_caching=True, system prompt cost is 10% of full token count
+    (Anthropic prompt caching — cached reads after first call).
+    When use_caching=False, system prompt cost is the full token count.
 
     Returns a dict with all metrics and a recommendation.
     """
@@ -24,14 +31,19 @@ def calculate_efficiency(
     encoded_tokens = len(enc.encode(encoded_text))
     tokens_saved_per_message = original_tokens - encoded_tokens
 
+    # System prompt effective cost
+    if use_caching:
+        effective_prompt_cost = math.ceil(system_prompt_tokens * CACHE_COST_MULTIPLIER)
+    else:
+        effective_prompt_cost = system_prompt_tokens
+
     # Calculate totals
     total_savings = tokens_saved_per_message * conversation_length
-    total_cost = system_prompt_tokens  # paid once, cached after first use
-    net_saving = total_savings - total_cost
+    net_saving = total_savings - effective_prompt_cost
 
     # Break-even calculation
     if tokens_saved_per_message > 0:
-        break_even_messages = math.ceil(total_cost / tokens_saved_per_message)
+        break_even_messages = math.ceil(effective_prompt_cost / tokens_saved_per_message)
     else:
         break_even_messages = float("inf")
 
@@ -48,6 +60,8 @@ def calculate_efficiency(
         "conversation_length": conversation_length,
         "total_savings": total_savings,
         "system_prompt_tokens": system_prompt_tokens,
+        "effective_prompt_cost": effective_prompt_cost,
+        "use_caching": use_caching,
         "net_saving": net_saving,
         "break_even_messages": break_even_messages,
         "recommendation": recommendation,
@@ -62,10 +76,14 @@ def print_report(label: str, result: dict):
     print(f"  Tokens per message:     {result['original_tokens_per_msg']} → {result['encoded_tokens_per_msg']} (saving {result['tokens_saved_per_msg']})")
     print(f"  Conversation length:    {result['conversation_length']} messages")
     print(f"  Total token savings:    {result['total_savings']}")
-    print(f"  System prompt cost:     {result['system_prompt_tokens']} (paid once, cached)")
+    caching_label = "cached at 10%" if result["use_caching"] else "full cost"
+    print(f"  System prompt:          {result['system_prompt_tokens']} tokens ({caching_label} = {result['effective_prompt_cost']} effective)")
     print(f"  Net saving:             {result['net_saving']}")
     be = result["break_even_messages"]
-    print(f"  Break-even at:          {be} messages" if be != float("inf") else "  Break-even at:          never (no tokens saved per message)")
+    if be == float("inf"):
+        print("  Break-even at:          never (no tokens saved per message)")
+    else:
+        print(f"  Break-even at:          {be} messages")
     print(f"  ➤ Recommendation:       {result['recommendation']}")
     print()
 
@@ -75,7 +93,6 @@ def main():
     encode_map = load_encoder()
     phrase_lengths = build_phrase_lengths(encode_map)
 
-    # System prompt token count from prompt_generator
     system_prompt_tokens = 3579
 
     scenarios = [
@@ -96,15 +113,22 @@ def main():
         ),
     ]
 
-    print("=== CJK Compression Efficiency Calculator ===\n")
-    print(f"System prompt tokens: {system_prompt_tokens} (cached after first use)\n")
+    for use_caching in [False, True]:
+        mode = "WITH PROMPT CACHING" if use_caching else "WITHOUT CACHING"
+        print(f"=== {mode} ===")
+        print(f"System prompt: {system_prompt_tokens} tokens", end="")
+        if use_caching:
+            print(f" (effective cost: {math.ceil(system_prompt_tokens * CACHE_COST_MULTIPLIER)} tokens at 10%)\n")
+        else:
+            print(f" (full cost: {system_prompt_tokens} tokens)\n")
 
-    for label, input_text, conv_length in scenarios:
-        result = calculate_efficiency(
-            input_text, conv_length, system_prompt_tokens,
-            encode_map, phrase_lengths, enc,
-        )
-        print_report(label, result)
+        for label, input_text, conv_length in scenarios:
+            result = calculate_efficiency(
+                input_text, conv_length, system_prompt_tokens,
+                encode_map, phrase_lengths, enc,
+                use_caching=use_caching,
+            )
+            print_report(label, result)
 
 
 if __name__ == "__main__":

@@ -82,15 +82,19 @@ def run_pipeline(
     # import anthropic
     #
     # client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from env
-    # message = client.messages.create(
+    # response = client.messages.create(
     #     model="claude-sonnet-4-6",
     #     max_tokens=1024,
-    #     system=system_prompt,
-    #     messages=[
-    #         {"role": "user", "content": encoded_text}
+    #     system=[
+    #         {
+    #             "type": "text",
+    #             "text": system_prompt,
+    #             "cache_control": {"type": "ephemeral"}
+    #         }
     #     ],
+    #     messages=[{"role": "user", "content": encoded_text}],
     # )
-    # ai_response = message.content[0].text
+    # ai_response = response.content[0].text
     # ──────────────────────────────────────────────────────────────────────
 
     # For testing: use mock_response instead of real API call
