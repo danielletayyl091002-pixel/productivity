@@ -41,3 +41,6 @@ Python conversion: COMPLETE
 dictionary.json: COMPLETE — 200 entries across 6 categories
 encoder.py: COMPLETE — normalisation layer + greedy longest-match
 decoder.py: COMPLETE — CJK lookup with unknown character handling
+prompt_generator.py: COMPLETE — 2314 token system prompt with 200 mappings
+efficiency_calculator.py: COMPLETE — break-even analysis with recommendation engine
+Overall status: MVP COMPLETE
