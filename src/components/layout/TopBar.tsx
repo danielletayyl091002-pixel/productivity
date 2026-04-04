@@ -13,14 +13,16 @@ import { format } from "date-fns";
 
 interface TopBarProps {
   onSettingsClick: () => void;
+  onTimerClick: () => void;
+  timerModalOpen: boolean;
+  onTimerModalClose: () => void;
 }
 
-export default function TopBar({ onSettingsClick }: TopBarProps) {
+export default function TopBar({ onSettingsClick, onTimerClick, timerModalOpen, onTimerModalClose }: TopBarProps) {
   const { get, set: setSetting } = useSettings();
   const { active, phase, stop, startBreak, startWork, pendingNotification, dismissNotification, sessionsInCycle, todayCompletedPomodoros } = useTimer();
   const pathname = usePathname();
   const isDark = get("theme") === "dark";
-  const [timerModalOpen, setTimerModalOpen] = useState(false);
   const [interruptionOpen, setInterruptionOpen] = useState(false);
 
   const toggleTheme = () => setSetting("theme", isDark ? "light" : "dark");
@@ -113,7 +115,7 @@ export default function TopBar({ onSettingsClick }: TopBarProps) {
               </button>
             </div>
           ) : (
-            <button onClick={() => setTimerModalOpen(true)}
+            <button onClick={() => onTimerClick()}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors">
               <Timer className="h-4 w-4" /> Focus
             </button>
@@ -130,7 +132,7 @@ export default function TopBar({ onSettingsClick }: TopBarProps) {
         </div>
       </header>
 
-      <TimerModal isOpen={timerModalOpen} onClose={() => setTimerModalOpen(false)} />
+      <TimerModal isOpen={timerModalOpen} onClose={onTimerModalClose} />
       <InterruptionPopup isOpen={interruptionOpen} onYes={() => handleInterruption(true)} onNo={() => handleInterruption(false)} />
 
       {/* Phase completion notification */}
@@ -167,7 +169,7 @@ export default function TopBar({ onSettingsClick }: TopBarProps) {
             <h3 className="text-sm font-bold text-[var(--text-primary)] mb-1">Break over!</h3>
             <p className="text-[12px] text-[var(--text-secondary)] mb-4">Ready for the next focus session?</p>
             <div className="flex gap-2">
-              <button onClick={() => { handleBreakDone(); setTimerModalOpen(true); }}
+              <button onClick={() => { handleBreakDone(); onTimerClick(); }}
                 className="flex-1 py-2 rounded-lg text-[12px] font-semibold text-white" style={{ backgroundColor: "var(--color-primary)" }}>
                 Start Focus
               </button>

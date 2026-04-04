@@ -21,7 +21,8 @@ const PRIORITY_CONFIG: Record<number, { label: string; color: string; bg: string
 };
 
 export default function TaskCard({ task, isDragOverlay }: TaskCardProps) {
-  const { updateTask, deleteTask, moveTask, columns } = useKanban();
+  const { updateTask, deleteTask, moveTask, columns, selectedTaskId, selectTask } = useKanban();
+  const isSelected = selectedTaskId === task.id;
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -76,11 +77,13 @@ export default function TaskCard({ task, isDragOverlay }: TaskCardProps) {
   return (
     <div
       ref={isDragOverlay ? undefined : setNodeRef}
+      onClick={() => !isDragOverlay && selectTask(task.id)}
       className={cn(
-        "group rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3 shadow-[var(--shadow)] transition-all",
+        "group rounded-lg border bg-[var(--bg-card)] p-3 shadow-[var(--shadow)] transition-all",
         isDragging && "opacity-30",
         isDragOverlay && "shadow-[var(--shadow-lg)] rotate-[2deg] scale-105",
-        !isDragOverlay && "hover:shadow-[var(--shadow-md)] hover:border-[var(--border-strong)]"
+        isSelected && !isDragOverlay ? "border-[var(--color-primary)] ring-2 ring-[var(--color-primary-medium)]" : "border-[var(--border)]",
+        !isDragOverlay && !isSelected && "hover:shadow-[var(--shadow-md)] hover:border-[var(--border-strong)]"
       )}
     >
       {/* Top row: drag handle + checkbox + title */}

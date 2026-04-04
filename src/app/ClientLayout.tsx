@@ -1,18 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSettings } from "@/stores/settings";
 import { useTimer } from "@/stores/timer";
+import { useKanban } from "@/stores/kanban";
 import { seedDatabase } from "@/db/seed";
 import TopBar from "@/components/layout/TopBar";
 import SettingsPanel from "@/components/layout/SettingsPanel";
+import CommandPalette from "@/components/command/CommandPalette";
+import QuickAddModal from "@/components/command/QuickAddModal";
+import ShortcutHelp from "@/components/command/ShortcutHelp";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false);
+  const [timerModalOpen, setTimerModalOpen] = useState(false);
+
   const loadSettings = useSettings(s => s.load);
   const loadTimer = useTimer(s => s.load);
   const theme = useSettings(s => s.get("theme"));
+  const allSettings = useSettings(s => s.settings);
+  const setSetting = useSettings(s => s.set);
 
   useEffect(() => {
     async function init() {
@@ -28,9 +39,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     init();
   }, [loadSettings, loadTimer]);
 
-  const allSettings = useSettings(s => s.settings);
-
-  // Apply all visual settings to DOM
+  // ─── Apply visual settings ───
   useEffect(() => {
     const root = document.documentElement;
     root.classList.toggle("dark", theme === "dark");
@@ -63,10 +72,84 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       root.style.setProperty("--radius-sm", `${Math.max(r - 4, 0)}px`);
       root.style.setProperty("--radius-xs", `${Math.max(r - 6, 0)}px`);
     }
-    if (allSettings.lineHeight) {
-      document.body.style.lineHeight = allSettings.lineHeight;
-    }
+    if (allSettings.lineHeight) document.body.style.lineHeight = allSettings.lineHeight;
   }, [theme, allSettings]);
+
+  // ─── Global Keyboard Shortcuts ───
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const inInput = target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
+      const mod = e.metaKey || e.ctrlKey;
+
+      // ── Always active (even in inputs) ──
+      if (mod && e.key === "k") {
+        e.preventDefault();
+        setCommandOpen(prev => !prev);
+        return;
+      }
+      if (mod && e.key === "n") {
+        e.preventDefault();
+        setQuickAddOpen(true);
+        return;
+      }
+      if (mod && e.key === "/") {
+        e.preventDefault();
+        setShortcutHelpOpen(prev => !prev);
+        return;
+      }
+      if (mod && e.shiftKey && (e.key === "L" || e.key === "l")) {
+        e.preventDefault();
+        const current = useSettings.getState().get("theme");
+        setSetting("theme", current === "dark" ? "light" : "dark");
+        return;
+      }
+
+      // Escape: close topmost modal or deselect
+      if (e.key === "Escape") {
+        if (commandOpen) { setCommandOpen(false); return; }
+        if (quickAddOpen) { setQuickAddOpen(false); return; }
+        if (shortcutHelpOpen) { setShortcutHelpOpen(false); return; }
+        if (settingsOpen) { setSettingsOpen(false); return; }
+        useKanban.getState().selectTask(null);
+        return;
+      }
+
+      // ── Only outside inputs ──
+      if (inInput) return;
+
+      const kanban = useKanban.getState();
+
+      // Space: complete selected task
+      if (e.key === " " && kanban.selectedTaskId) {
+        e.preventDefault();
+        kanban.completeSelectedTask();
+        return;
+      }
+
+      // Delete: delete selected task
+      if ((e.key === "Delete" || e.key === "Backspace") && kanban.selectedTaskId) {
+        e.preventDefault();
+        kanban.deleteTask(kanban.selectedTaskId);
+        return;
+      }
+
+      // Tab / Shift+Tab: move between columns
+      if (e.key === "Tab" && kanban.selectedTaskId) {
+        e.preventDefault();
+        if (e.shiftKey) kanban.moveSelectedToPrevColumn();
+        else kanban.moveSelectedToNextColumn();
+        return;
+      }
+
+      // Arrow keys: navigate tasks
+      if (e.key === "ArrowDown") { e.preventDefault(); kanban.selectNextTask(); return; }
+      if (e.key === "ArrowUp") { e.preventDefault(); kanban.selectPrevTask(); return; }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [commandOpen, quickAddOpen, shortcutHelpOpen, settingsOpen, setSetting]);
 
   if (!ready) {
     return (
@@ -81,11 +164,22 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   return (
     <div className="flex flex-col h-screen">
-      <TopBar onSettingsClick={() => setSettingsOpen(true)} />
+      <TopBar
+        onSettingsClick={() => setSettingsOpen(true)}
+        onTimerClick={() => setTimerModalOpen(true)}
+        timerModalOpen={timerModalOpen}
+        onTimerModalClose={() => setTimerModalOpen(false)}
+      />
       <main className="flex-1 overflow-y-auto p-6">
         {children}
       </main>
+
       <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <CommandPalette isOpen={commandOpen} onClose={() => setCommandOpen(false)}
+        onOpenQuickAdd={() => { setCommandOpen(false); setQuickAddOpen(true); }}
+        onOpenTimer={() => { setCommandOpen(false); setTimerModalOpen(true); }} />
+      <QuickAddModal isOpen={quickAddOpen} onClose={() => setQuickAddOpen(false)} />
+      <ShortcutHelp isOpen={shortcutHelpOpen} onClose={() => setShortcutHelpOpen(false)} />
     </div>
   );
 }
