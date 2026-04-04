@@ -1,0 +1,16 @@
+{
+  "name": "decoder",
+  "version": "1.0.0",
+  "description": "CJK token compression system for AI token reduction",
+  "private": true,
+  "scripts": {
+    "verify-chars": "tsx scripts/verify-chars.ts"
+  },
+  "dependencies": {
+    "tiktoken": "^1.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
