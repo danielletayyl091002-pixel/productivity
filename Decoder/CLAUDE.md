@@ -38,10 +38,10 @@ Decoded: "Please generate a detailed financial report for user 12345"
 
 safe_chars.json: COMPLETE
 Python conversion: COMPLETE
-dictionary.json: COMPLETE — 200 entries across 6 categories
+dictionary.json: COMPLETE — 300 entries across 10 categories (customer support domain added)
 encoder.py: COMPLETE — normalisation layer + greedy longest-match
 decoder.py: COMPLETE — CJK lookup with unknown character handling
-prompt_generator.py: COMPLETE — 2314 token system prompt with 200 mappings
+prompt_generator.py: COMPLETE — 3579 token system prompt with 300 mappings
 efficiency_calculator.py: COMPLETE — break-even analysis with recommendation engine
 pipeline.py: COMPLETE — end-to-end compression pipeline with API placeholder
 Overall status: MVP COMPLETE

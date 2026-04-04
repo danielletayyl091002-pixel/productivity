@@ -76,7 +76,7 @@ def main():
     phrase_lengths = build_phrase_lengths(encode_map)
 
     # System prompt token count from prompt_generator
-    system_prompt_tokens = 2314
+    system_prompt_tokens = 3579
 
     scenarios = [
         (

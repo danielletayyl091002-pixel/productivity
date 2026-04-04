@@ -239,6 +239,127 @@ QUESTION_PATTERNS = [
 ]
 
 
+# ── Category 7: Customer support commands (30 entries) ────────────────────
+
+SUPPORT_COMMANDS = [
+    "check the current order status for this customer",
+    "look up the tracking information for this shipment",
+    "process a full refund for this order",
+    "process a partial refund for the following items",
+    "escalate this ticket to a senior support agent",
+    "escalate this issue to the technical support team",
+    "update the customer record with the following information",
+    "send a confirmation email to the customer",
+    "send a follow-up email regarding this issue",
+    "verify the customer identity before proceeding",
+    "check if this customer has an active subscription",
+    "cancel the subscription effective immediately for this account",
+    "apply a promotional discount to this customer account",
+    "transfer this conversation to the billing department",
+    "create a new support ticket for the following issue",
+    "merge this ticket with the existing open ticket",
+    "add an internal note to this customer ticket",
+    "check the warranty status for this product",
+    "initiate a product replacement request for this order",
+    "schedule a callback for the customer at their preferred time",
+    "check the payment history for this customer account",
+    "update the shipping address on this pending order",
+    "flag this account for review by the fraud prevention team",
+    "provide the customer with a return shipping label",
+    "check the available inventory for the requested item",
+    "apply a courtesy credit to the customer account",
+    "reset the customer password and send a recovery link",
+    "document this interaction in the customer relationship system",
+    "check if there are any known service outages affecting",
+    "close this support ticket as resolved with the following notes",
+]
+
+# ── Category 8: Customer context phrases (30 entries) ────────────────────
+
+CUSTOMER_CONTEXT = [
+    "this is the customer first time contacting support",
+    "the customer has contacted us multiple times about this",
+    "the customer has been waiting for more than",
+    "the customer account has been active since",
+    "the customer is on the premium subscription plan",
+    "the customer is on the basic subscription plan",
+    "the customer has a history of previous complaints",
+    "the customer was previously promised a resolution by",
+    "the customer has exceeded their monthly usage limit",
+    "the customer is within the free trial period",
+    "the customer account is currently suspended due to",
+    "the customer has an outstanding balance on their account",
+    "the customer has been a loyal member for over",
+    "the customer is eligible for an upgrade to the",
+    "the customer has already attempted to resolve this through",
+    "the customer is experiencing this issue for the first time",
+    "the customer reported this issue on the following date",
+    "the customer is located in the following region",
+    "the customer has multiple accounts associated with this email",
+    "the customer has previously requested to cancel their account",
+    "the customer is using the mobile application version",
+    "the customer has provided the following reference number",
+    "the customer was referred by an existing member",
+    "the customer has opted out of marketing communications",
+    "the customer has a pending order that has not shipped",
+    "the customer is currently in the return window period",
+    "the customer has already received a replacement for this",
+    "the customer has submitted supporting documentation including",
+    "the customer is contacting us from a different device",
+    "the customer has agreed to the terms and conditions",
+]
+
+# ── Category 9: Resolution phrases (20 entries) ──────────────────────────
+
+RESOLUTION_PHRASES = [
+    "the issue has been successfully resolved as requested",
+    "the refund has been processed and will appear within",
+    "a replacement has been shipped to the customer address",
+    "the customer account has been updated with the changes",
+    "the subscription has been cancelled and confirmation sent",
+    "the credit has been applied to the customer account",
+    "the password has been reset and recovery email sent",
+    "the shipping address has been updated on the order",
+    "the ticket has been escalated to the appropriate team",
+    "the promotional discount has been applied successfully",
+    "the warranty claim has been approved for processing",
+    "the return has been accepted and return label provided",
+    "the callback has been scheduled for the requested time",
+    "the duplicate charge has been identified and reversed",
+    "the account suspension has been lifted and access restored",
+    "the service has been upgraded as per customer request",
+    "the billing issue has been corrected on the account",
+    "the missing item has been added to the shipment",
+    "the technical issue has been identified and a fix deployed",
+    "the customer feedback has been recorded and forwarded to",
+]
+
+# ── Category 10: Escalation phrases (20 entries) ─────────────────────────
+
+ESCALATION_PHRASES = [
+    "this issue requires immediate attention from a supervisor",
+    "the customer is requesting to speak with a manager",
+    "this ticket has been flagged as high priority",
+    "the technical support team has been notified of this issue",
+    "this issue needs to be escalated to the engineering team",
+    "the customer has threatened to cancel their account unless",
+    "this is a time-sensitive issue that must be resolved today",
+    "the customer has been waiting beyond the acceptable response time",
+    "this issue is affecting multiple customers and requires urgent action",
+    "the previous resolution attempt was unsuccessful and needs review",
+    "the customer has filed a formal complaint about this matter",
+    "this issue has been open for longer than the target resolution time",
+    "a critical service failure is impacting the customer experience",
+    "the customer is requesting compensation for the service disruption",
+    "this requires approval from the department manager before proceeding",
+    "the security team needs to investigate this account activity",
+    "the customer data privacy concern requires immediate compliance review",
+    "the payment processing failure requires investigation by the finance team",
+    "this escalation involves a potential regulatory compliance issue",
+    "the customer satisfaction score for this interaction requires supervisor review",
+]
+
+
 def main():
     # Load safe characters
     with open(SAFE_CHARS_PATH, "r", encoding="utf-8") as f:
@@ -253,11 +374,15 @@ def main():
         + OUTPUT_FORMATS
         + GRAMMAR_CONNECTORS
         + QUESTION_PATTERNS
+        + SUPPORT_COMMANDS
+        + CUSTOMER_CONTEXT
+        + RESOLUTION_PHRASES
+        + ESCALATION_PHRASES
     )
 
-    assert len(all_phrases) == 200, f"Expected 200 phrases, got {len(all_phrases)}"
-    assert len(set(all_phrases)) == 200, "Duplicate phrases found!"
-    assert len(chars) >= 200, f"Need 200 chars, only have {len(chars)}"
+    assert len(all_phrases) == 300, f"Expected 300 phrases, got {len(all_phrases)}"
+    assert len(set(all_phrases)) == 300, "Duplicate phrases found!"
+    assert len(chars) >= 300, f"Need 300 chars, only have {len(chars)}"
 
     # Load tokenizer for validation
     enc = tiktoken.get_encoding("cl100k_base")
@@ -276,13 +401,13 @@ def main():
         encode_map[phrase] = char
         decode_map[char] = phrase
 
-    assert len(encode_map) == 200
-    assert len(decode_map) == 200  # confirms no duplicate CJK chars
+    assert len(encode_map) == 300
+    assert len(decode_map) == 300  # confirms no duplicate CJK chars
 
     dictionary = {
         "metadata": {
-            "version": "1.0",
-            "totalEntries": 200,
+            "version": "2.0",
+            "totalEntries": 300,
             "categories": {
                 "commands": 50,
                 "multi_word_phrases": 50,
@@ -290,6 +415,10 @@ def main():
                 "output_formats": 30,
                 "grammar_connectors": 20,
                 "question_patterns": 20,
+                "support_commands": 30,
+                "customer_context": 30,
+                "resolution_phrases": 20,
+                "escalation_phrases": 20,
             },
         },
         "encode": encode_map,
@@ -313,8 +442,8 @@ def main():
     print(f"Maximum token saving: {max(all_savings)}")
     print(f"Average token saving: {sum(all_savings) / len(all_savings):.1f}")
 
-    print("\n── 10 Sample Entries ──")
-    samples = list(encode_map.items())[:10]
+    print("\n── 10 Sample New Entries (from position 200+) ──")
+    samples = list(encode_map.items())[200:210]
     for phrase, char in samples:
         original_tokens = len(enc.encode(phrase))
         print(
