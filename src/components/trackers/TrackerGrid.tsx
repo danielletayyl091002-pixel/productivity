@@ -1,311 +1,340 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useTrackers } from "@/stores/trackers";
 import { cn } from "@/lib/utils";
-import { Plus, Minus, Pencil, Trash2, BarChart3, X, Check, DollarSign } from "lucide-react";
-import { BarChart, Bar, ResponsiveContainer } from "recharts";
-import type { TrackerDefinition, TrackerType } from "@/db/schema";
+import { Plus, Pencil, Trash2, Settings2, X, Check, GripVertical, Eye, EyeOff } from "lucide-react";
+import { format, subDays } from "date-fns";
+import type { TrackerDefinition, TrackerType, TrackerCategory } from "@/db/schema";
+import { TRACKER_COLORS } from "@/db/schema";
 
-const ICONS = ["💧", "🌙", "😊", "💪", "📚", "🧘", "💰", "🚶", "☕", "🙏", "📱", "🎯", "❤️", "🏃", "🥗", "💊", "🎨", "🎵", "✏️", "🌿", "💵", "🏦", "✍️", "🛏️", "🍎", "🧠", "🎮", "📊", "⏰", "🌡️"];
+// ─── Persona presets ───
+const PERSONA_PRESETS: Record<string, { label: string; trackers: Omit<TrackerDefinition, "id">[] }> = {
+  student: { label: "Student", trackers: [
+    { name: "Study Hours", emoji: "🎓", type: "duration", unit: "hrs", dailyGoal: 6, color: TRACKER_COLORS.blue, category: "focus", order: 0, showOnDashboard: true },
+    { name: "Assignments", emoji: "✅", type: "boolean", unit: "", dailyGoal: null, color: TRACKER_COLORS.emerald, category: "learning", order: 1, showOnDashboard: true },
+    { name: "Classes", emoji: "📚", type: "counter", unit: "classes", dailyGoal: 4, color: TRACKER_COLORS.violet, category: "learning", order: 2, showOnDashboard: true },
+    { name: "Screen Time", emoji: "📱", type: "duration", unit: "hrs", dailyGoal: 2, color: TRACKER_COLORS.rose, category: "health", order: 3, showOnDashboard: true, warnAfter: 4, warnMessage: "Consider a break" },
+  ]},
+  athlete: { label: "Athlete", trackers: [
+    { name: "Training", emoji: "💪", type: "duration", unit: "min", dailyGoal: 90, color: TRACKER_COLORS.emerald, category: "fitness", order: 0, showOnDashboard: true },
+    { name: "Recovery", emoji: "🔋", type: "rating", unit: "/5", dailyGoal: null, color: TRACKER_COLORS.teal, category: "health", order: 1, showOnDashboard: true },
+    { name: "Body Weight", emoji: "⚖️", type: "numeric", unit: "kg", dailyGoal: null, color: TRACKER_COLORS.amber, category: "fitness", order: 2, showOnDashboard: true },
+    { name: "Protein", emoji: "🥩", type: "numeric", unit: "g", dailyGoal: 150, color: TRACKER_COLORS.rose, category: "health", order: 3, showOnDashboard: true },
+  ]},
+  founder: { label: "Founder", trackers: [
+    { name: "Deep Work", emoji: "🧠", type: "duration", unit: "hrs", dailyGoal: 6, color: TRACKER_COLORS.blue, category: "focus", order: 0, showOnDashboard: true },
+    { name: "Shipped", emoji: "🚀", type: "boolean", unit: "", dailyGoal: null, color: TRACKER_COLORS.violet, category: "focus", order: 1, showOnDashboard: true },
+    { name: "Revenue", emoji: "💰", type: "numeric", unit: "$", dailyGoal: null, color: TRACKER_COLORS.emerald, category: "custom", order: 2, showOnDashboard: true },
+    { name: "Customer Calls", emoji: "📞", type: "counter", unit: "", dailyGoal: null, color: TRACKER_COLORS.amber, category: "custom", order: 3, showOnDashboard: true },
+  ]},
+  creative: { label: "Creative", trackers: [
+    { name: "Create", emoji: "🎨", type: "duration", unit: "hrs", dailyGoal: 3, color: TRACKER_COLORS.violet, category: "focus", order: 0, showOnDashboard: true },
+    { name: "Inspiration", emoji: "💡", type: "counter", unit: "ideas", dailyGoal: null, color: TRACKER_COLORS.amber, category: "custom", order: 1, showOnDashboard: true },
+    { name: "Published", emoji: "📤", type: "boolean", unit: "", dailyGoal: null, color: TRACKER_COLORS.emerald, category: "focus", order: 2, showOnDashboard: true },
+  ]},
+};
 
-const TYPE_OPTIONS: { id: TrackerType; label: string; desc: string }[] = [
-  { id: "number", label: "Number", desc: "Count anything (cups, pages)" },
-  { id: "counter", label: "Counter", desc: "Increment/decrement (caffeine mg)" },
-  { id: "duration", label: "Duration", desc: "Track time (minutes, hours)" },
-  { id: "habit", label: "Habit", desc: "Daily yes/no checkbox" },
-  { id: "currency", label: "Currency", desc: "Money tracking ($, €)" },
-  { id: "rating", label: "Rating", desc: "1-5 star scale" },
-  { id: "select", label: "Mood/Select", desc: "Pick from emoji options" },
-  { id: "goal", label: "Goal", desc: "Progress toward a target" },
-  { id: "journal", label: "Journal", desc: "Daily text entry" },
-];
+// ─── Sparkline SVG (no library) ───
+function Sparkline({ data, color, goal }: { data: number[]; color: string; goal: number | null }) {
+  const max = Math.max(...data, goal || 1, 1);
+  const w = 100;
+  const h = 20;
+  const barW = w / 7 - 2;
 
-const CATEGORIES = [
-  { id: "health", label: "Health", icon: "❤️" },
-  { id: "productivity", label: "Productivity", icon: "🎯" },
-  { id: "finance", label: "Finance", icon: "💰" },
-  { id: "personal", label: "Personal", icon: "🌿" },
-  { id: "custom", label: "Custom", icon: "⚡" },
-];
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-5" preserveAspectRatio="none">
+      {data.map((v, i) => {
+        const barH = Math.max((v / max) * h, 1);
+        const isToday = i === data.length - 1;
+        return (
+          <rect key={i} x={i * (barW + 2)} y={h - barH} width={barW} height={barH}
+            rx={1.5} fill={color} opacity={isToday ? 1 : 0.35} />
+        );
+      })}
+    </svg>
+  );
+}
 
 export default function TrackerGrid() {
-  const { definitions, loaded, load, addDefinition, updateDefinition, deleteDefinition, addLog, getTodayValue, getWeekData } = useTrackers();
-  const [showAdd, setShowAdd] = useState(false);
-  const [editing, setEditing] = useState<TrackerDefinition | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  // Form
-  const [formName, setFormName] = useState("");
-  const [formIcon, setFormIcon] = useState("📊");
-  const [formUnit, setFormUnit] = useState("");
-  const [formTarget, setFormTarget] = useState("");
-  const [formColor, setFormColor] = useState("#3B82F6");
-  const [formType, setFormType] = useState<TrackerType>("number");
-  const [formCategory, setFormCategory] = useState("custom");
+  const { definitions, loaded, load, addDefinition, deleteDefinition, updateDefinition, addLog, getTodayValue, getWeekData } = useTrackers();
+  const [manageOpen, setManageOpen] = useState(false);
 
   useEffect(() => { if (!loaded) load(); }, [loaded, load]);
 
-  const openAdd = () => {
-    setEditing(null); setFormName(""); setFormIcon("📊"); setFormUnit(""); setFormTarget(""); setFormColor("#3B82F6"); setFormType("number"); setFormCategory("custom"); setShowAdd(true);
-  };
-  const openEdit = (d: TrackerDefinition) => {
-    setEditing(d); setFormName(d.name); setFormIcon(d.icon); setFormUnit(d.unit); setFormTarget(d.target ? String(d.target) : ""); setFormColor(d.color); setFormType(d.type); setFormCategory(d.category || "custom"); setShowAdd(true);
-  };
-
-  const handleSave = async () => {
-    if (!formName.trim()) return;
-    const data = { name: formName.trim(), icon: formIcon, unit: formUnit, target: formTarget ? parseFloat(formTarget) : undefined, color: formColor, order: definitions.length, type: formType, category: formCategory };
-    if (editing) await updateDefinition(editing.id, data);
-    else await addDefinition(data);
-    setShowAdd(false);
-  };
-
-  const filtered = useMemo(() => {
-    if (!categoryFilter) return definitions;
-    return definitions.filter(d => (d.category || "custom") === categoryFilter);
-  }, [definitions, categoryFilter]);
-
-  // Group by category
-  const grouped = useMemo(() => {
-    const map: Record<string, TrackerDefinition[]> = {};
-    filtered.forEach(d => {
-      const cat = d.category || "custom";
-      (map[cat] ||= []).push(d);
-    });
-    return map;
-  }, [filtered]);
-
   if (!loaded) return null;
+
+  const visible = definitions.filter(d => d.showOnDashboard);
+  const now = new Date();
+  const hour = now.getHours();
+
+  // Time-context warnings
+  const caffeineTracker = definitions.find(d => d.name.toLowerCase().includes("caffein"));
+  const sleepTracker = definitions.find(d => d.name.toLowerCase().includes("sleep"));
+  const showCaffeineWarn = caffeineTracker && hour >= 14 && getTodayValue(caffeineTracker.id) > 0;
+  const yesterdayStr = format(subDays(now, 1), "yyyy-MM-dd");
+  const yesterdaySleep = sleepTracker ? getWeekData(sleepTracker.id).find(d => d.date === yesterdayStr)?.value || 0 : 0;
+  const showSleepWarn = sleepTracker && hour < 10 && sleepTracker.dailyGoal && yesterdaySleep < sleepTracker.dailyGoal;
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <BarChart3 className="h-4 w-4 text-[var(--text-muted)]" />
-          <h2 className="text-[13px] font-bold text-[var(--text-primary)]">Trackers</h2>
-          <span className="text-[10px] text-[var(--text-muted)]">{definitions.length} active</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          {/* Category filter */}
-          <div className="flex gap-0.5">
-            <button onClick={() => setCategoryFilter(null)}
-              className={cn("px-2 py-0.5 rounded-md text-[10px] font-medium transition-all",
-                !categoryFilter ? "bg-[var(--color-primary-light)] text-[var(--color-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)]")}>
-              All
-            </button>
-            {CATEGORIES.filter(c => definitions.some(d => (d.category || "custom") === c.id)).map(c => (
-              <button key={c.id} onClick={() => setCategoryFilter(categoryFilter === c.id ? null : c.id)}
-                className={cn("px-2 py-0.5 rounded-md text-[10px] font-medium transition-all",
-                  categoryFilter === c.id ? "bg-[var(--color-primary-light)] text-[var(--color-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)]")}>
-                {c.icon} {c.label}
-              </button>
-            ))}
-          </div>
-          <button onClick={openAdd}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-white transition-all active:scale-95"
-            style={{ backgroundColor: "var(--color-primary)" }}>
-            <Plus className="h-3 w-3" /> Add
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-[13px] font-bold text-[var(--text-primary)]">Trackers</h2>
+        <div className="flex gap-1.5">
+          <button onClick={() => setManageOpen(true)}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors">
+            <Settings2 className="h-3 w-3" /> Manage
           </button>
         </div>
       </div>
 
-      {definitions.length === 0 && (
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-8 text-center shadow-[var(--shadow)]">
-          <p className="text-2xl mb-2">📊</p>
-          <p className="text-sm font-medium text-[var(--text-primary)]">No trackers yet</p>
-          <p className="text-[11px] text-[var(--text-muted)] mt-1">Track habits, health, finances, goals — anything you want to measure daily.</p>
-          <button onClick={openAdd} className="text-[12px] font-semibold mt-3 inline-block" style={{ color: "var(--color-primary)" }}>+ Add your first tracker</button>
+      {/* Time-context warnings */}
+      {showSleepWarn && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-700 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-300">
+          🌙 Yesterday&apos;s sleep goal wasn&apos;t hit — consider an earlier wind-down tonight
         </div>
       )}
 
-      {/* Render by category */}
-      {Object.entries(grouped).map(([cat, defs]) => {
-        const catInfo = CATEGORIES.find(c => c.id === cat);
-        return (
-          <div key={cat}>
-            {!categoryFilter && Object.keys(grouped).length > 1 && (
-              <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2 flex items-center gap-1">
-                {catInfo?.icon} {catInfo?.label || cat}
-              </p>
-            )}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-              {defs.map(def => (
-                <TrackerCard key={def.id} def={def} todayValue={getTodayValue(def.id)} weekData={getWeekData(def.id)}
-                  onLog={(v) => addLog(def.id, v)} onEdit={() => openEdit(def)} onDelete={() => deleteDefinition(def.id)} />
-              ))}
-            </div>
-          </div>
-        );
-      })}
+      {/* Grid */}
+      {visible.length === 0 ? (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-8 text-center shadow-[var(--shadow)]">
+          <p className="text-2xl mb-2">📊</p>
+          <p className="text-sm font-medium text-[var(--text-primary)]">No trackers on dashboard</p>
+          <button onClick={() => setManageOpen(true)} className="text-[12px] font-semibold mt-2" style={{ color: "var(--color-primary)" }}>Manage Trackers →</button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+          {visible.map(def => (
+            <TrackerCard key={def.id} def={def} todayValue={getTodayValue(def.id)}
+              weekData={getWeekData(def.id).map(d => d.value)} onLog={v => addLog(def.id, v)}
+              showCaffeineWarn={showCaffeineWarn && def.id === caffeineTracker?.id} />
+          ))}
+        </div>
+      )}
 
-      {/* Add/Edit Modal */}
-      {showAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setShowAdd(false)} />
-          <div className="relative z-10 w-full max-w-sm bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shadow-[var(--shadow-lg)] overflow-hidden max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] shrink-0">
-              <h3 className="text-sm font-bold text-[var(--text-primary)]">{editing ? "Edit Tracker" : "New Tracker"}</h3>
-              <button onClick={() => setShowAdd(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"><X className="h-4 w-4" /></button>
-            </div>
-            <div className="p-4 space-y-3 overflow-y-auto">
-              {/* Type selector */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-[var(--text-secondary)]">Type</label>
-                <div className="grid grid-cols-3 gap-1">
-                  {TYPE_OPTIONS.map(t => (
-                    <button key={t.id} onClick={() => setFormType(t.id)}
-                      className={cn("px-2 py-1.5 rounded-lg text-[10px] font-medium border transition-all text-left",
-                        formType === t.id ? "border-[var(--color-primary)] bg-[var(--color-primary-light)] text-[var(--color-primary)]" : "border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--bg-hover)]")}>
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {/* Category */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-[var(--text-secondary)]">Category</label>
-                <div className="flex gap-1 flex-wrap">
-                  {CATEGORIES.map(c => (
-                    <button key={c.id} onClick={() => setFormCategory(c.id)}
-                      className={cn("px-2 py-1 rounded-lg text-[10px] font-medium border transition-all",
-                        formCategory === c.id ? "border-[var(--color-primary)] bg-[var(--color-primary-light)] text-[var(--color-primary)]" : "border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--bg-hover)]")}>
-                      {c.icon} {c.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {/* Icon */}
-              <div className="flex flex-wrap gap-1">
-                {ICONS.map(ic => (
-                  <button key={ic} onClick={() => setFormIcon(ic)}
-                    className={cn("h-7 w-7 rounded-lg flex items-center justify-center text-base transition-all",
-                      formIcon === ic ? "bg-[var(--color-primary-light)] ring-2 ring-[var(--color-primary)]" : "bg-[var(--bg-secondary)] hover:bg-[var(--bg-hover)]")}>
-                    {ic}
-                  </button>
-                ))}
-              </div>
-              <input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Name (e.g., Water intake)"
-                className="w-full text-sm bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text-primary)] outline-none focus:border-[var(--color-primary)]" />
-              <div className="flex gap-2">
-                <input value={formUnit} onChange={e => setFormUnit(e.target.value)} placeholder="Unit"
-                  className="flex-1 text-[12px] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text-primary)] outline-none" />
-                <input value={formTarget} onChange={e => setFormTarget(e.target.value)} placeholder="Daily target" type="number"
-                  className="w-24 text-[12px] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text-primary)] outline-none" />
-              </div>
-              <input type="color" value={formColor} onChange={e => setFormColor(e.target.value)}
-                className="h-8 w-full rounded-lg border border-[var(--border)] cursor-pointer" />
-            </div>
-            <div className="px-4 py-3 bg-[var(--bg-secondary)] border-t border-[var(--border)] shrink-0">
-              <button onClick={handleSave}
-                className="w-full py-2 rounded-lg text-[12px] font-semibold text-white transition-all active:scale-[0.98]"
-                style={{ backgroundColor: "var(--color-primary)" }}>
-                {editing ? "Save Changes" : "Create Tracker"}
-              </button>
-            </div>
+      {/* Manage slide-over */}
+      {manageOpen && (
+        <ManagePanel
+          definitions={definitions}
+          onClose={() => setManageOpen(false)}
+          onAdd={addDefinition}
+          onUpdate={updateDefinition}
+          onDelete={deleteDefinition}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Tracker Card (140px fixed height) ───
+function TrackerCard({ def, todayValue, weekData, onLog, showCaffeineWarn }: {
+  def: TrackerDefinition; todayValue: number; weekData: number[];
+  onLog: (v: number) => void; showCaffeineWarn?: boolean;
+}) {
+  const [customInput, setCustomInput] = useState(false);
+  const [inputVal, setInputVal] = useState("");
+  const isBoolean = def.type === "boolean";
+  const isRating = def.type === "rating";
+
+  return (
+    <div className="h-[140px] rounded-xl border border-[var(--border)] bg-[var(--bg-card)] shadow-[var(--shadow)] overflow-hidden flex flex-col"
+      style={{ borderLeftWidth: "4px", borderLeftColor: def.color, backgroundColor: def.color + "08" }}>
+      <div className="flex-1 p-3 flex flex-col justify-between min-h-0">
+        {/* Row 1: name + value */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-base shrink-0">{def.emoji}</span>
+            <span className="text-[11px] font-semibold text-[var(--text-primary)] truncate">{def.name}</span>
           </div>
+          <div className="text-right shrink-0">
+            <span className="text-lg font-bold text-[var(--text-primary)] tabular-nums">{todayValue}</span>
+            {def.dailyGoal && <span className="text-[10px] text-[var(--text-muted)]">/{def.dailyGoal}</span>}
+          </div>
+        </div>
+
+        {/* Row 2: sparkline or rating dots */}
+        {isRating ? (
+          <div className="flex gap-1 justify-center my-1">
+            {[1, 2, 3, 4, 5].map(star => (
+              <button key={star} onClick={() => onLog(star)}
+                className="h-4 w-4 rounded-full border transition-all hover:scale-125"
+                style={{ backgroundColor: todayValue >= star ? def.color : "transparent", borderColor: def.color + "40" }} />
+            ))}
+          </div>
+        ) : isBoolean ? (
+          <div className="flex justify-center my-1">
+            <button onClick={() => onLog(todayValue > 0 ? -todayValue : 1)}
+              className={cn("flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-semibold border transition-all",
+                todayValue > 0 ? "text-white border-transparent" : "border-[var(--border)] text-[var(--text-secondary)]")}
+              style={todayValue > 0 ? { backgroundColor: def.color } : undefined}>
+              {todayValue > 0 ? <><Check className="h-3 w-3" /> Done</> : "Mark done"}
+            </button>
+          </div>
+        ) : (
+          <Sparkline data={weekData} color={def.color} goal={def.dailyGoal} />
+        )}
+
+        {/* Row 3: increment button */}
+        {!isBoolean && !isRating && (
+          <div className="flex gap-1">
+            {customInput ? (
+              <div className="flex gap-1 flex-1">
+                <input value={inputVal} onChange={e => setInputVal(e.target.value)} type="number" autoFocus
+                  onKeyDown={e => { if (e.key === "Enter" && inputVal) { onLog(parseFloat(inputVal)); setCustomInput(false); setInputVal(""); } if (e.key === "Escape") setCustomInput(false); }}
+                  className="flex-1 text-[11px] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-md px-2 py-1 outline-none text-[var(--text-primary)] w-12" />
+              </div>
+            ) : (
+              <>
+                <button onClick={() => onLog(1)}
+                  className="flex-1 py-1 rounded-md text-[11px] font-semibold transition-all active:scale-95"
+                  style={{ backgroundColor: def.color + "20", color: def.color }}>
+                  +1 {def.unit}
+                </button>
+                <button onClick={() => setCustomInput(true)}
+                  className="px-2 py-1 rounded-md text-[10px] text-[var(--text-muted)] hover:bg-[var(--bg-hover)]">
+                  #
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Caffeine warning */}
+      {showCaffeineWarn && (
+        <div className="px-2 py-1 text-[9px] font-medium text-amber-600 bg-amber-50 border-t border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800">
+          ⚠️ Late caffeine may affect sleep
         </div>
       )}
     </div>
   );
 }
 
-function TrackerCard({ def, todayValue, weekData, onLog, onEdit, onDelete }: {
-  def: TrackerDefinition; todayValue: number; weekData: { date: string; value: number }[];
-  onLog: (v: number) => void; onEdit: () => void; onDelete: () => void;
+// ─── Manage Trackers Slide-Over ───
+function ManagePanel({ definitions, onClose, onAdd, onUpdate, onDelete }: {
+  definitions: TrackerDefinition[];
+  onClose: () => void;
+  onAdd: (d: Omit<TrackerDefinition, "id">) => Promise<TrackerDefinition>;
+  onUpdate: (id: string, u: Partial<TrackerDefinition>) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }) {
-  const [journalText, setJournalText] = useState("");
-  const progress = def.target ? Math.min(todayValue / def.target, 1) : 0;
-  const atGoal = def.target ? todayValue >= def.target : false;
-  const isHabit = def.type === "habit";
-  const isJournal = def.type === "journal";
-  const isRating = def.type === "rating";
-  const isCurrency = def.type === "currency";
+  const [name, setName] = useState("");
+  const [emoji, setEmoji] = useState("📊");
+  const [type, setType] = useState<TrackerType>("counter");
+  const [unit, setUnit] = useState("");
+  const [goal, setGoal] = useState("");
+  const [color, setColor] = useState<string>(TRACKER_COLORS.blue);
+  const [category, setCategory] = useState<TrackerCategory>("custom");
+  const [presetPreview, setPresetPreview] = useState<string | null>(null);
+
+  const handleAdd = async () => {
+    if (!name.trim()) return;
+    await onAdd({ name: name.trim(), emoji, type, unit, dailyGoal: goal ? parseFloat(goal) : null, color, category, order: definitions.length, showOnDashboard: true });
+    setName(""); setEmoji("📊"); setUnit(""); setGoal("");
+  };
+
+  const handlePreset = async (key: string) => {
+    const preset = PERSONA_PRESETS[key];
+    if (!preset) return;
+    for (const t of preset.trackers) {
+      await onAdd({ ...t, order: definitions.length });
+    }
+    setPresetPreview(null);
+  };
 
   return (
-    <div className="group rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 shadow-[var(--shadow)] hover:shadow-[var(--shadow-md)] transition-shadow relative overflow-hidden">
-      {/* Progress bar */}
-      {def.target && (
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--bg-secondary)]">
-          <div className="h-full transition-all duration-500" style={{ width: `${progress * 100}%`, backgroundColor: def.color }} />
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="fixed inset-0 bg-black/30" onClick={onClose} />
+      <div className="relative z-10 w-[380px] bg-[var(--bg-card)] border-l border-[var(--border)] shadow-[var(--shadow-lg)] flex flex-col h-full overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)] shrink-0">
+          <h3 className="text-sm font-bold text-[var(--text-primary)]">Manage Trackers</h3>
+          <button onClick={onClose} className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-md hover:bg-[var(--bg-hover)]"><X className="h-4 w-4" /></button>
         </div>
-      )}
 
-      {/* Edit/Delete */}
-      <div className="absolute top-2 right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button onClick={onEdit} className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"><Pencil className="h-3 w-3" /></button>
-        <button onClick={onDelete} className="p-1 rounded text-[var(--text-muted)] hover:text-red-500 hover:bg-[var(--bg-hover)]"><Trash2 className="h-3 w-3" /></button>
-      </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-5">
+          {/* Persona presets */}
+          <div className="space-y-2">
+            <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Quick Setup</p>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(PERSONA_PRESETS).map(([key, preset]) => (
+                <button key={key} onClick={() => setPresetPreview(presetPreview === key ? null : key)}
+                  className={cn("px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all",
+                    presetPreview === key ? "border-[var(--color-primary)] bg-[var(--color-primary-light)] text-[var(--color-primary)]" : "border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]")}>
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            {presetPreview && PERSONA_PRESETS[presetPreview] && (
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3 space-y-1">
+                <p className="text-[10px] font-semibold text-[var(--text-secondary)]">Will add:</p>
+                {PERSONA_PRESETS[presetPreview].trackers.map((t, i) => (
+                  <p key={i} className="text-[11px] text-[var(--text-secondary)]">{t.emoji} {t.name} ({t.type})</p>
+                ))}
+                <button onClick={() => handlePreset(presetPreview)}
+                  className="w-full mt-2 py-1.5 rounded-lg text-[11px] font-semibold text-white" style={{ backgroundColor: "var(--color-primary)" }}>
+                  Add These Trackers
+                </button>
+              </div>
+            )}
+          </div>
 
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-xl">{def.icon}</span>
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold text-[var(--text-primary)] truncate">{def.name}</p>
-          <p className="text-[10px] text-[var(--text-muted)]">
-            {isCurrency && "$"}{todayValue}{!isCurrency && def.unit && ` ${def.unit}`}
-            {def.target && <span> / {isCurrency && "$"}{def.target}</span>}
-            {atGoal && " ✓"}
-          </p>
-        </div>
-      </div>
+          {/* Existing trackers list */}
+          <div className="space-y-1">
+            <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Your Trackers ({definitions.length})</p>
+            {definitions.map(d => (
+              <div key={d.id} className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-[var(--bg-hover)] group">
+                <span className="text-base">{d.emoji}</span>
+                <span className="flex-1 text-[12px] text-[var(--text-primary)] truncate">{d.name}</span>
+                <button onClick={() => onUpdate(d.id, { showOnDashboard: !d.showOnDashboard })}
+                  className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+                  {d.showOnDashboard ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                </button>
+                <button onClick={() => onDelete(d.id)}
+                  className="p-1 text-[var(--text-muted)] hover:text-red-500 opacity-0 group-hover:opacity-100">
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
 
-      {/* Mini chart (not for habits/journals) */}
-      {!isHabit && !isJournal && (
-        <div className="h-7 mb-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={weekData}>
-              <Bar dataKey="value" fill={def.color} radius={[2, 2, 0, 0]} opacity={0.6} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {/* Input area — varies by type */}
-      {isHabit ? (
-        <button onClick={() => onLog(todayValue > 0 ? -todayValue : 1)}
-          className={cn("w-full py-2 rounded-lg text-[11px] font-semibold border transition-all",
-            todayValue > 0
-              ? "text-white border-transparent" : "border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]")}
-          style={todayValue > 0 ? { backgroundColor: def.color } : undefined}>
-          {todayValue > 0 ? <><Check className="h-3 w-3 inline mr-1" /> Done</> : "Mark Done"}
-        </button>
-      ) : isRating ? (
-        <div className="flex gap-0.5 justify-center">
-          {[1, 2, 3, 4, 5].map(star => (
-            <button key={star} onClick={() => onLog(star)} className="text-lg hover:scale-110 transition-transform">
-              {todayValue >= star ? "★" : "☆"}
+          {/* Add new */}
+          <div className="space-y-2 border-t border-[var(--border)] pt-4">
+            <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Add New</p>
+            <div className="flex gap-2">
+              <input value={emoji} onChange={e => setEmoji(e.target.value)} className="w-10 text-center text-lg bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg py-1 outline-none" />
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="Tracker name"
+                className="flex-1 text-[12px] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text-primary)] outline-none" />
+            </div>
+            <div className="flex gap-1 flex-wrap">
+              {(["counter", "duration", "rating", "boolean", "numeric"] as const).map(t => (
+                <button key={t} onClick={() => setType(t)}
+                  className={cn("px-2 py-1 rounded-md text-[10px] font-medium border transition-all capitalize",
+                    type === t ? "border-[var(--color-primary)] bg-[var(--color-primary-light)] text-[var(--color-primary)]" : "border-[var(--border)] text-[var(--text-muted)]")}>
+                  {t}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input value={unit} onChange={e => setUnit(e.target.value)} placeholder="Unit (cups, min)"
+                className="flex-1 text-[11px] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-2 py-1.5 text-[var(--text-primary)] outline-none" />
+              <input value={goal} onChange={e => setGoal(e.target.value)} placeholder="Goal" type="number"
+                className="w-16 text-[11px] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-2 py-1.5 text-[var(--text-primary)] outline-none" />
+            </div>
+            <div className="flex gap-1.5">
+              {Object.values(TRACKER_COLORS).map(c => (
+                <button key={c} onClick={() => setColor(c)}
+                  className={cn("h-6 w-6 rounded-full transition-all", color === c && "ring-2 ring-offset-1 ring-[var(--color-primary)] scale-110")}
+                  style={{ backgroundColor: c }} />
+              ))}
+            </div>
+            <button onClick={handleAdd} disabled={!name.trim()}
+              className="w-full py-2 rounded-lg text-[12px] font-semibold text-white disabled:opacity-50" style={{ backgroundColor: "var(--color-primary)" }}>
+              Add Tracker
             </button>
-          ))}
+          </div>
         </div>
-      ) : isJournal ? (
-        <div className="space-y-1">
-          <textarea value={journalText} onChange={e => setJournalText(e.target.value)}
-            placeholder="Write something..."
-            className="w-full text-[10px] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-2 py-1.5 text-[var(--text-primary)] outline-none resize-none h-12" />
-          {journalText && (
-            <button onClick={() => { onLog(1); setJournalText(""); }}
-              className="text-[10px] font-semibold" style={{ color: def.color }}>Save entry</button>
-          )}
-        </div>
-      ) : def.type === "select" && def.selectOptions ? (
-        <div className="flex gap-1 justify-center">
-          {def.selectOptions.map((opt, i) => (
-            <button key={i} onClick={() => onLog(i + 1)} className="text-base hover:scale-125 transition-transform">{opt}</button>
-          ))}
-        </div>
-      ) : (
-        <div className="flex gap-1">
-          <button onClick={() => onLog(-1)}
-            className="h-7 w-7 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors active:scale-90">
-            <Minus className="h-3 w-3" />
-          </button>
-          <button onClick={() => onLog(1)}
-            className="flex-1 h-7 rounded-lg flex items-center justify-center text-[11px] font-semibold transition-colors active:scale-95"
-            style={{ backgroundColor: def.color + "18", color: def.color, border: `1px solid ${def.color}30` }}>
-            <Plus className="h-3 w-3 mr-0.5" /> 1{isCurrency ? "$" : def.unit ? ` ${def.unit}` : ""}
-          </button>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

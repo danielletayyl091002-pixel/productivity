@@ -59,6 +59,7 @@ export default function MetricsGrid() {
         trend={focusTrend}
         color="#3B82F6"
         bold
+        history={[0, 0, 0, 0, 0, yesterdayScore, focusScore]}
       />
       <MetricCard
         icon={<CheckCircle className="h-4 w-4" />}
@@ -67,6 +68,7 @@ export default function MetricsGrid() {
         sub={`${tasksDoneOnTime.length}/${tasksDueToday.length} tasks today`}
         color="#22C55E"
         bold
+        history={[0, 0, 0, 0, 0, 0, completionRate]}
       />
       <MetricCard
         icon={<Clock className="h-4 w-4" />}
@@ -74,6 +76,7 @@ export default function MetricsGrid() {
         value={`${weeklyHours} hrs`}
         sub="Last 7 days"
         color="#8B5CF6"
+        history={[0, 0, 0, 0, 0, 0, parseFloat(weeklyHours)]}
       />
       <MetricCard
         icon={<Info className="h-4 w-4" />}
@@ -81,13 +84,24 @@ export default function MetricsGrid() {
         value={`${interruptionRate}%`}
         sub={`${interruptedCount}/${allSessions.length} sessions`}
         color={interruptionRate > 50 ? "#EF4444" : interruptionRate > 25 ? "#F59E0B" : "#22C55E"}
+        history={[0, 0, 0, 0, 0, 0, interruptionRate]}
       />
     </div>
   );
 }
 
-function MetricCard({ icon, label, value, sub, trend, color, bold }: {
-  icon: React.ReactNode; label: string; value: string; sub: string; trend?: string; color: string; bold?: boolean;
+function MiniTrend({ data, color }: { data: number[]; color: string }) {
+  const max = Math.max(...data, 1);
+  const points = data.map((v, i) => `${(i / 6) * 60},${24 - (v / max) * 20}`).join(" ");
+  return (
+    <svg viewBox="0 0 60 24" className="w-[60px] h-6 shrink-0">
+      <polyline points={points} fill="none" stroke={data.every(v => v === 0) ? "#CBD5E1" : color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function MetricCard({ icon, label, value, sub, trend, color, bold, history }: {
+  icon: React.ReactNode; label: string; value: string; sub: string; trend?: string; color: string; bold?: boolean; history?: number[];
 }) {
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 shadow-[var(--shadow)]">
@@ -97,14 +111,17 @@ function MetricCard({ icon, label, value, sub, trend, color, bold }: {
           {icon}
         </div>
       </div>
-      <div className="flex items-end gap-1.5">
-        <p className={cn("text-xl tabular-nums leading-none text-[var(--text-primary)]", bold ? "font-extrabold" : "font-bold")}>{value}</p>
-        {trend && (
-          <span className={cn("text-[11px] font-semibold leading-none mb-0.5",
-            trend === "up" ? "text-green-500" : trend === "down" ? "text-red-500" : "text-[var(--text-muted)]")}>
-            {trend === "up" ? "↑" : trend === "down" ? "↓" : "→"}
-          </span>
-        )}
+      <div className="flex items-end justify-between gap-1.5">
+        <div className="flex items-end gap-1">
+          <p className={cn("text-xl tabular-nums leading-none text-[var(--text-primary)]", bold ? "font-extrabold" : "font-bold")}>{value}</p>
+          {trend && (
+            <span className={cn("text-[11px] font-semibold leading-none mb-0.5",
+              trend === "up" ? "text-green-500" : trend === "down" ? "text-red-500" : "text-[var(--text-muted)]")}>
+              {trend === "up" ? "↑" : trend === "down" ? "↓" : "→"}
+            </span>
+          )}
+        </div>
+        {history && <MiniTrend data={history} color={color} />}
       </div>
       <p className="text-[10px] text-[var(--text-muted)] mt-1">{sub}</p>
     </div>

@@ -55,19 +55,33 @@ export interface Note {
 }
 
 // ─── Trackers ───────────────────────────────────────────────────────
-export type TrackerType = "number" | "duration" | "select" | "habit" | "currency" | "rating" | "journal" | "counter" | "goal";
+export type TrackerType = "counter" | "duration" | "rating" | "boolean" | "numeric";
+export type TrackerCategory = "health" | "focus" | "learning" | "fitness" | "custom";
+
+export const TRACKER_COLORS = {
+  blue: "#3B82F6",
+  violet: "#8B5CF6",
+  emerald: "#10B981",
+  amber: "#F59E0B",
+  rose: "#F43F5E",
+  sky: "#0EA5E9",
+  orange: "#F97316",
+  teal: "#14B8A6",
+} as const;
 
 export interface TrackerDefinition {
   id: string;
   name: string;
-  unit: string;
-  target?: number;
-  icon: string;
-  color: string;
-  order: number;
+  emoji: string;
   type: TrackerType;
-  selectOptions?: string[];
-  category?: string; // health, finance, productivity, personal, custom
+  unit: string;
+  dailyGoal: number | null;
+  color: string;
+  category: TrackerCategory;
+  order: number;
+  showOnDashboard: boolean;
+  warnAfter?: number | null;
+  warnMessage?: string | null;
 }
 
 export interface TrackerLog {

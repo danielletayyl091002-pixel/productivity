@@ -27,29 +27,15 @@ export async function seedDatabase() {
     ]);
   }
 
-  // ─── Tracker Definitions ────
+  // ─── Tracker Definitions (5 quality defaults) ────
   const trackerCount = await db.trackerDefinitions.count();
   if (trackerCount === 0) {
-    const trackers = [
-      // Health
-      { name: "Sleep", unit: "hours", target: 8, icon: "🌙", color: "#818CF8", type: "number" as const, order: 0, category: "health" },
-      { name: "Water", unit: "cups", target: 8, icon: "💧", color: "#06B6D4", type: "number" as const, order: 1, category: "health" },
-      { name: "Mood", unit: "score", target: undefined, icon: "😊", color: "#F472B6", type: "select" as const, order: 2, selectOptions: ["😢", "😟", "😐", "😊", "😄"], category: "health" },
-      { name: "Exercise", unit: "min", target: 30, icon: "💪", color: "#EF4444", type: "duration" as const, order: 3, category: "health" },
-      { name: "Steps", unit: "k", target: 10, icon: "🚶", color: "#22C55E", type: "number" as const, order: 4, category: "health" },
-      { name: "Caffeine", unit: "mg", target: 200, icon: "☕", color: "#92400E", type: "counter" as const, order: 5, category: "health" },
-      // Productivity
-      { name: "Reading", unit: "pages", target: 30, icon: "📚", color: "#8B5CF6", type: "number" as const, order: 6, category: "productivity" },
-      { name: "Meditation", unit: "min", target: 15, icon: "🧘", color: "#14B8A6", type: "duration" as const, order: 7, category: "productivity" },
-      { name: "Deep Work", unit: "hours", target: 4, icon: "🎯", color: "#3B82F6", type: "duration" as const, order: 8, category: "productivity" },
-      // Finance
-      { name: "Expenses", unit: "$", target: undefined, icon: "💰", color: "#F59E0B", type: "currency" as const, order: 9, category: "finance" },
-      { name: "Income", unit: "$", target: undefined, icon: "💵", color: "#22C55E", type: "currency" as const, order: 10, category: "finance" },
-      { name: "Savings", unit: "$", target: 500, icon: "🏦", color: "#6366F1", type: "currency" as const, order: 11, category: "finance" },
-      // Habits
-      { name: "Journaling", unit: "done", target: 1, icon: "✍️", color: "#EC4899", type: "habit" as const, order: 12, category: "personal" },
-      { name: "Gratitude", unit: "entries", target: 3, icon: "🙏", color: "#F472B6", type: "number" as const, order: 13, category: "personal" },
-      { name: "Screen Time", unit: "hours", target: 2, icon: "📱", color: "#64748B", type: "duration" as const, order: 14, category: "personal" },
+    const trackers: Omit<import("./schema").TrackerDefinition, "id">[] = [
+      { name: "Sleep", emoji: "🌙", type: "duration", unit: "hours", dailyGoal: 8, color: "#8B5CF6", category: "health", order: 0, showOnDashboard: true },
+      { name: "Water", emoji: "💧", type: "counter", unit: "cups", dailyGoal: 8, color: "#0EA5E9", category: "health", order: 1, showOnDashboard: true },
+      { name: "Exercise", emoji: "🏃", type: "duration", unit: "min", dailyGoal: 30, color: "#10B981", category: "fitness", order: 2, showOnDashboard: true },
+      { name: "Deep Work", emoji: "🧠", type: "duration", unit: "hrs", dailyGoal: 4, color: "#3B82F6", category: "focus", order: 3, showOnDashboard: true },
+      { name: "Mood", emoji: "😊", type: "rating", unit: "/5", dailyGoal: null, color: "#F59E0B", category: "health", order: 4, showOnDashboard: true },
     ];
     await db.trackerDefinitions.bulkAdd(
       trackers.map(t => ({ ...t, id: generateId() }))
