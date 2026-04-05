@@ -155,11 +155,29 @@ section { margin-bottom: 20px; }
 .history-empty { color: #999; font-size: 14px; text-align: center; padding: 40px 0; }
 .history-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .history-top .count { color: #888; font-size: 13px; }
+.info-banner {
+  background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px;
+  padding: 10px 32px 10px 12px; font-size: 12px; color: #1e40af; margin-bottom: 16px;
+  position: relative; line-height: 1.5; }
+.info-banner .dismiss { position: absolute; top: 6px; right: 8px; background: none;
+  border: none; font-size: 14px; color: #93c5fd; cursor: pointer; padding: 0; margin: 0; }
+.info-banner .dismiss:hover { color: #1e40af; }
+.tooltip-wrap { position: relative; display: inline-block; }
+.tooltip-icon { display: inline-block; width: 15px; height: 15px; border-radius: 50%;
+  background: #e5e7eb; color: #666; font-size: 10px; text-align: center; line-height: 15px;
+  cursor: help; margin-left: 4px; vertical-align: middle; }
+.tooltip-text { visibility: hidden; position: absolute; bottom: 125%; left: 50%;
+  transform: translateX(-50%); background: #1f2937; color: #fff; font-size: 11px;
+  font-weight: 400; padding: 8px 10px; border-radius: 4px; width: 260px; z-index: 10;
+  line-height: 1.4; }
+.tooltip-wrap:hover .tooltip-text { visibility: visible; }
+.result-hint { font-size: 12px; color: #888; margin-top: 6px; display: none; }
+.result-hint.show { display: block; }
 </style>
 </head>
 <body>
 
-<h1>Decoder <span>CJK Compression Tester</span></h1>
+<h1>Decoder <span>Reduce your AI API token costs automatically</span></h1>
 
 <div class="tabs">
   <button class="tab active" onclick="switchTab('compress')">Compress</button>
@@ -169,16 +187,21 @@ section { margin-bottom: 20px; }
 <!-- TAB 1: Compress -->
 <div class="tab-content active" id="tab-compress">
 
+<div class="info-banner" id="howItWorks">
+  How it works: Type your AI prompt below &rarr; Click Analyse &rarr; If encoding saves tokens, copy the compressed output &rarr; Paste into Claude with the System Prompt &rarr; Paste Claude's response back &rarr; Click Decode to read it.
+  <button class="dismiss" onclick="this.parentElement.style.display='none'">&times;</button>
+</div>
+
 <section>
 <div class="row">
   <div>
-    <label>Dictionary</label>
+    <label>Dictionary <span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-text">Select your compression dictionary. 'default' works for general AI prompts. Custom dictionaries are optimised for specific industries like customer support or e-commerce.</span></span></label>
     <select id="dict">
       {% for d in dicts %}<option value="{{d}}">{{d}}</option>{% endfor %}
     </select>
   </div>
   <div>
-    <label>Conversation Length</label>
+    <label>Conversation Length <span class="tooltip-wrap"><span class="tooltip-icon">?</span><span class="tooltip-text">How many messages will you send in this conversation? More messages = more token savings. Break-even is typically 27-33 messages with caching enabled.</span></span></label>
     <input type="number" id="convLen" value="50" min="1">
   </div>
 </div>
@@ -190,18 +213,19 @@ section { margin-bottom: 20px; }
     <button class="btn-copy" onclick="document.getElementById('inputText').value=''">Clear</button>
   </div>
 </div>
-<textarea id="inputText" placeholder="Type your English text here..."></textarea>
+<textarea id="inputText" placeholder="Type your AI prompt here — works best with structured commands like 'please generate a report about...' or 'analyze the following...'"></textarea>
 <button class="btn-primary" onclick="analyse()">Analyse</button>
 <div class="result-box" id="analyseResult">
   <div class="copy-row"><button class="btn-copy" onclick="copyEncoded(event)">Copy Encoded</button></div>
   <div id="analyseContent"></div>
 </div>
+<div class="result-hint" id="analyseHint"></div>
 </section>
 
 <hr>
 
-<div class="placeholder" id="apiPlaceholder">
-  <span>API key not configured — copy encoded text above and paste to Claude manually, then paste response in box below</span>
+<div id="apiPlaceholder" style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;padding:8px 12px;font-size:12px;color:#6b7280;margin:12px 0;display:flex;justify-content:space-between;align-items:center;">
+  <span>&#9881; Setup: Add your Anthropic API key to .env to enable automatic mode. Currently in manual mode.</span>
   <button class="btn-copy" onclick="copySystemPrompt(this)">Copy System Prompt</button>
 </div>
 
@@ -213,7 +237,7 @@ section { margin-bottom: 20px; }
     <button class="btn-copy" onclick="document.getElementById('aiResponse').value=''">Clear</button>
   </div>
 </div>
-<textarea id="aiResponse" placeholder="Paste CJK response from Claude here..."></textarea>
+<textarea id="aiResponse" placeholder="After sending your encoded prompt to Claude, paste Claude's response here to decode it back to plain English."></textarea>
 <button class="btn-secondary" onclick="decodeCjk()">Decode</button>
 <div class="result-box" id="decodeResult">
   <div class="copy-row"><button class="btn-copy" onclick="copyDecoded(event)">Copy Decoded</button></div>
@@ -306,6 +330,15 @@ async function analyse() {
   html += `Net saving: ${data.net_saving} tokens over ${convLen} messages`;
   content.innerHTML = html;
   box.classList.add('show');
+  const hint = document.getElementById('analyseHint');
+  if (data.decision === 'ENCODE') {
+    hint.innerHTML = '\\u2713 Encoding saves tokens for this conversation length. Copy the encoded text and paste to Claude with the System Prompt.';
+    hint.style.color = '#059669';
+  } else {
+    hint.innerHTML = '\\u2192 Plain English is more efficient for this conversation length. Send your original text directly to Claude.';
+    hint.style.color = '#888';
+  }
+  hint.classList.add('show');
 }
 
 async function decodeCjk() {
@@ -338,7 +371,7 @@ async function refreshHistory() {
   clearBtn.style.display = entries.length > 0 ? 'inline-block' : 'none';
 
   if (entries.length === 0) {
-    list.innerHTML = '<div class="history-empty">No history yet. Run an analysis to get started.</div>';
+    list.innerHTML = '<div class="history-empty">No history yet.<br>Run your first compression on the Compress tab to see results here.<br><span style="font-size:20px;cursor:pointer" onclick="switchTab(\\\'compress\\\')">&larr; Compress</span></div>';
     return;
   }
 
