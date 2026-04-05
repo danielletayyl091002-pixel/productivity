@@ -173,6 +173,53 @@ section { margin-bottom: 20px; }
 .tooltip-wrap:hover .tooltip-text { visibility: visible; }
 .result-hint { font-size: 12px; color: #888; margin-top: 6px; display: none; }
 .result-hint.show { display: block; }
+
+/* Token savings visual */
+.savings-card { padding: 4px 0; }
+.bar-wrap { margin-bottom: 10px; }
+.bar-outer { width: 100%; height: 24px; background: #e5e7eb; border-radius: 4px;
+  position: relative; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+.bar-fill.green { background: #059669; }
+.bar-fill.grey { background: #9ca3af; }
+.bar-labels { display: flex; justify-content: space-between; font-size: 11px; color: #666; margin-top: 3px; }
+.stats-row { display: flex; gap: 16px; font-size: 12px; color: #555; margin-bottom: 8px; }
+.stats-row .stat-item { }
+.stats-row .stat-val { font-weight: 700; }
+.net-saving { font-size: 18px; font-weight: 700; color: #059669; }
+.net-saving.negative { color: #d97706; }
+.net-note { font-size: 11px; color: #999; }
+.encoded-line { font-size: 12px; color: #444; margin-bottom: 8px; word-break: break-all; }
+
+/* Cost calculator */
+.cost-toggle { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534;
+  padding: 6px 14px; font-size: 13px; margin-top: 8px; border-radius: 4px; }
+.cost-toggle:hover { background: #dcfce7; }
+.cost-panel { max-height: 0; overflow: hidden; transition: max-height 0.35s ease;
+  border: 1px solid #e0e0e0; border-radius: 6px; margin-top: 8px; }
+.cost-panel.open { max-height: 600px; }
+.cost-inner { padding: 14px; }
+.cost-row { display: flex; gap: 12px; margin-bottom: 10px; align-items: end; }
+.cost-row > div { flex: 1; }
+.cost-row label { font-size: 12px; }
+.cost-row select, .cost-row input { font-size: 13px; }
+.toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; vertical-align: middle; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #ccc;
+  border-radius: 22px; cursor: pointer; transition: 0.2s; }
+.toggle-slider:before { content: ""; position: absolute; height: 16px; width: 16px;
+  left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.2s; }
+.toggle-switch input:checked + .toggle-slider { background: #059669; }
+.toggle-switch input:checked + .toggle-slider:before { transform: translateX(18px); }
+.cost-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.cost-card { border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px; text-align: center; }
+.cost-card .cost-label { font-size: 11px; color: #888; margin-bottom: 4px; }
+.cost-card .cost-val { font-size: 20px; font-weight: 700; }
+.cost-card .cost-val.red { color: #dc2626; }
+.cost-card .cost-val.green { color: #059669; }
+.cost-disclaimer { font-size: 10px; color: #999; margin-top: 10px; line-height: 1.4; }
+.btn-calc { background: #059669; color: #fff; font-size: 13px; padding: 6px 16px; }
+.btn-calc:hover { background: #047857; }
 </style>
 </head>
 <body>
@@ -220,6 +267,56 @@ section { margin-bottom: 20px; }
   <div id="analyseContent"></div>
 </div>
 <div class="result-hint" id="analyseHint"></div>
+
+<button class="cost-toggle" id="costToggleBtn" style="display:none" onclick="toggleCostPanel()">&#128176; Calculate Cost Savings</button>
+<div class="cost-panel" id="costPanel">
+<div class="cost-inner">
+  <div class="cost-row">
+    <div>
+      <label>AI Model</label>
+      <select id="costModel">
+        <optgroup label="Anthropic">
+          <option value="3.00">Claude Sonnet 4.6 ($3.00/M)</option>
+          <option value="0.80">Claude Haiku 4.5 ($0.80/M)</option>
+          <option value="15.00">Claude Opus 4.6 ($15.00/M)</option>
+        </optgroup>
+        <optgroup label="OpenAI">
+          <option value="2.50">GPT-4o ($2.50/M)</option>
+          <option value="0.15">GPT-4o mini ($0.15/M)</option>
+          <option value="10.00">o3 ($10.00/M)</option>
+        </optgroup>
+        <optgroup label="Google">
+          <option value="1.25">Gemini 1.5 Pro ($1.25/M)</option>
+          <option value="0.075">Gemini 1.5 Flash ($0.075/M)</option>
+        </optgroup>
+      </select>
+    </div>
+  </div>
+  <div class="cost-row">
+    <div>
+      <label>Daily messages</label>
+      <input type="number" id="costDailyMsgs" value="1000" min="1">
+    </div>
+    <div>
+      <label>Caching enabled</label><br>
+      <label class="toggle-switch" style="margin-top:6px">
+        <input type="checkbox" id="costCaching" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+  <button class="btn-calc" onclick="calculateCost()">Calculate</button>
+  <div id="costResults" style="display:none">
+    <div class="cost-grid">
+      <div class="cost-card"><div class="cost-label">Daily cost without Decoder</div><div class="cost-val red" id="costWithout">$0.00</div></div>
+      <div class="cost-card"><div class="cost-label">Daily cost with Decoder</div><div class="cost-val green" id="costWith">$0.00</div></div>
+      <div class="cost-card"><div class="cost-label">Daily saving</div><div class="cost-val green" id="costDailySaving">$0.00</div></div>
+      <div class="cost-card"><div class="cost-label">Monthly saving</div><div class="cost-val green" id="costMonthlySaving">$0.00</div></div>
+    </div>
+    <div class="cost-disclaimer">Input token savings only. Output tokens unchanged. Prices as of April 2026 — verify current rates at anthropic.com/pricing</div>
+  </div>
+</div>
+</div>
 </section>
 
 <hr>
@@ -259,6 +356,8 @@ section { margin-bottom: 20px; }
 <script>
 let lastEncodedText = '';
 let lastDecodedText = '';
+let lastAnalyseData = null;
+let lastConvLen = 50;
 
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -313,25 +412,45 @@ async function analyse() {
   if (!text) return;
   const dictId = document.getElementById('dict').value;
   const convLen = parseInt(document.getElementById('convLen').value) || 50;
+  lastConvLen = convLen;
   const res = await fetch('/analyse', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({text, dictionary_id: dictId, conversation_length: convLen})
   });
   const data = await res.json();
+  lastAnalyseData = data;
   const box = document.getElementById('analyseResult');
   const content = document.getElementById('analyseContent');
-  const cls = data.decision === 'ENCODE' ? 'decision-encode' : 'decision-plain';
   lastEncodedText = data.encoded || '';
-  let html = `<span class="${cls} stat">${data.decision}</span>\\n`;
-  if (data.encoded) html += `Encoded: ${data.encoded}\\n`;
-  html += `Tokens: ${data.tokens_before} \\u2192 ${data.tokens_after} (saved ${data.tokens_saved})\\n`;
-  html += `Break-even: ${data.break_even === -1 ? 'never' : data.break_even + ' messages'}\\n`;
-  html += `Net saving: ${data.net_saving} tokens over ${convLen} messages`;
+
+  const isEncode = data.decision === 'ENCODE';
+  const barColor = isEncode ? 'green' : 'grey';
+  const pct = data.tokens_before > 0 ? Math.round((data.tokens_after / data.tokens_before) * 100) : 100;
+  const compressionPct = data.tokens_before > 0 ? Math.round((1 - data.tokens_after / data.tokens_before) * 100) : 0;
+  const beText = data.break_even === -1 ? 'never' : data.break_even;
+  const netCls = data.net_saving > 0 ? 'net-saving' : 'net-saving negative';
+  const netLabel = data.net_saving > 0
+    ? `${data.net_saving} tokens saved over ${convLen} messages`
+    : `${Math.abs(data.net_saving)} tokens lost over ${convLen} messages`;
+
+  let html = '<div class="savings-card">';
+  if (data.encoded) html += `<div class="encoded-line"><strong>Encoded:</strong> ${data.encoded}</div>`;
+  html += `<div class="bar-wrap"><div class="bar-outer"><div class="bar-fill ${barColor}" style="width:${pct}%"></div></div>`;
+  html += `<div class="bar-labels"><span>${data.tokens_after} compressed</span><span>${data.tokens_before} original</span></div></div>`;
+  html += `<div class="stats-row">`;
+  html += `<div class="stat-item">Tokens saved: <span class="stat-val">${data.tokens_saved} per message</span></div>`;
+  html += `<div class="stat-item">Compression: <span class="stat-val">${compressionPct}%</span></div>`;
+  html += `<div class="stat-item">Break-even: <span class="stat-val">${beText} messages</span></div>`;
+  html += `</div>`;
+  html += `<div class="${netCls}">${netLabel}</div>`;
+  html += `<div class="net-note">with prompt caching enabled</div>`;
+  html += '</div>';
   content.innerHTML = html;
   box.classList.add('show');
+
   const hint = document.getElementById('analyseHint');
-  if (data.decision === 'ENCODE') {
+  if (isEncode) {
     hint.innerHTML = '\\u2713 Encoding saves tokens for this conversation length. Copy the encoded text and paste to Claude with the System Prompt.';
     hint.style.color = '#059669';
   } else {
@@ -339,6 +458,43 @@ async function analyse() {
     hint.style.color = '#888';
   }
   hint.classList.add('show');
+  document.getElementById('costToggleBtn').style.display = 'inline-block';
+}
+
+function toggleCostPanel() {
+  document.getElementById('costPanel').classList.toggle('open');
+}
+
+function calculateCost() {
+  if (!lastAnalyseData) return;
+  const pricePerM = parseFloat(document.getElementById('costModel').value);
+  const dailyMsgs = parseInt(document.getElementById('costDailyMsgs').value) || 1000;
+  const cachingOn = document.getElementById('costCaching').checked;
+  const savedPerMsg = lastAnalyseData.tokens_saved;
+  const beforePerMsg = lastAnalyseData.tokens_before;
+  const afterPerMsg = lastAnalyseData.tokens_after;
+
+  // Daily tokens
+  const dailyTokensBefore = beforePerMsg * dailyMsgs;
+  const dailyTokensSaved = savedPerMsg * dailyMsgs;
+
+  // System prompt cost: 2899 tokens, paid once per day (or cached)
+  const promptTokens = 2899;
+  const promptCost = cachingOn ? promptTokens * 0.1 : promptTokens;
+
+  // After tokens = compressed message tokens + prompt overhead
+  const dailyTokensAfter = (afterPerMsg * dailyMsgs) + promptCost;
+
+  const costBefore = (dailyTokensBefore / 1000000) * pricePerM;
+  const costAfter = (dailyTokensAfter / 1000000) * pricePerM;
+  const dailySaving = costBefore - costAfter;
+  const monthlySaving = dailySaving * 30;
+
+  document.getElementById('costWithout').textContent = '$' + costBefore.toFixed(4);
+  document.getElementById('costWith').textContent = '$' + costAfter.toFixed(4);
+  document.getElementById('costDailySaving').textContent = '$' + dailySaving.toFixed(4);
+  document.getElementById('costMonthlySaving').innerHTML = '\\ud83c\\udf89 $' + monthlySaving.toFixed(2);
+  document.getElementById('costResults').style.display = 'block';
 }
 
 async function decodeCjk() {
