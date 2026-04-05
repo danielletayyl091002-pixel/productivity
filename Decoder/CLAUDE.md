@@ -41,7 +41,7 @@ Python conversion: COMPLETE
 dictionary.json: COMPLETE — 300 entries across 10 categories (customer support domain added)
 encoder.py: COMPLETE — normalisation layer + greedy longest-match
 decoder.py: COMPLETE — CJK lookup with unknown character handling
-prompt_generator.py: COMPLETE — 3579 token system prompt with 300 mappings
+prompt_generator.py: COMPLETE — 2899 token system prompt with 300 mappings (compressed pipe-delimited format, system_prompt_backup.txt exists for rollback)
 efficiency_calculator.py: COMPLETE — break-even analysis with recommendation engine
 pipeline.py: COMPLETE — end-to-end compression pipeline with API placeholder
 Prompt caching: IMPLEMENTED — cache_control ephemeral on system prompt, 10% effective cost

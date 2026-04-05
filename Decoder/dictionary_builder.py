@@ -34,8 +34,18 @@ def get_available_characters(safe_chars: list, used_chars: set) -> list:
     return [c for c in safe_chars if c not in used_chars]
 
 
+ARTICLES = {"the", "a", "an"}
+
+
+def compact_phrase(phrase: str) -> str:
+    """Remove articles from a phrase while preserving core meaning."""
+    words = phrase.split()
+    compacted = [w for w in words if w.lower() not in ARTICLES]
+    return " ".join(compacted)
+
+
 def generate_system_prompt(encode_map: dict) -> str:
-    """Build a system prompt for a custom dictionary."""
+    """Build a system prompt in compact pipe-delimited format."""
     lines = []
 
     lines.append(
@@ -49,7 +59,7 @@ def generate_system_prompt(encode_map: dict) -> str:
     lines.append("")
 
     for phrase, char in encode_map.items():
-        lines.append(f'{char} = "{phrase}"')
+        lines.append(f"{char}|{compact_phrase(phrase)}")
     lines.append("")
 
     lines.append(

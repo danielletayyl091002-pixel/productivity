@@ -44,7 +44,7 @@ with open(DICT_PATH, "r", encoding="utf-8") as f:
     default_dict_meta = json.load(f)["metadata"]
 
 # System prompt token count (from prompt_generator.py)
-SYSTEM_PROMPT_TOKENS = 3579
+SYSTEM_PROMPT_TOKENS = 2899
 
 # ── FastAPI app ───────────────────────────────────────────────────────────
 

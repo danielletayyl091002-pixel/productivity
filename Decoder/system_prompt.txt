@@ -1,304 +1,304 @@
 You are operating in CJK compression mode. Each CJK character you receive represents a complete English phrase defined in your mapping table below. Decode each CJK character using the table, process the full meaning, then respond using CJK characters from the same table where possible. For any concept not in the table, respond in plain English.
 
-一 = "please generate a detailed report about"
-万 = "analyze the following data and provide insights"
-三 = "summarize the following text in bullet points"
-上 = "explain in detail how the following works"
-下 = "provide a comprehensive summary of the following"
-不 = "list all the key points from the following"
-与 = "describe the following in simple terms"
-专 = "write a detailed summary of the following"
-业 = "create a new function that handles"
-东 = "give me a step by step explanation of"
-两 = "translate the following text into English"
-个 = "rewrite the following to be more concise"
-中 = "compare and contrast the following two approaches"
-串 = "evaluate the following code for potential issues"
-为 = "suggest improvements for the following implementation"
-主 = "identify the main issues in the following"
-么 = "extract the key information from the following"
-义 = "classify the following items into categories"
-之 = "predict the likely outcome based on the following"
-也 = "optimize the following code for better performance"
-书 = "debug the following code and explain the fix"
-了 = "refactor the following code to improve readability"
-事 = "review the following code and suggest changes"
-二 = "validate the following input against the schema"
-于 = "convert the following data into the specified format"
-五 = "merge the following datasets into a single result"
-些 = "calculate the total cost based on the following"
-交 = "find all instances of the following pattern in"
-产 = "check for errors in the following code block"
-享 = "remove all duplicate entries from the following"
-京 = "sort the results by the following criteria"
-人 = "filter the results based on the following conditions"
-亿 = "group the results by category and summarize"
-今 = "update the existing record with the following data"
-介 = "delete the following entries from the database"
-从 = "insert the following records into the database"
-他 = "replace all occurrences of the following pattern"
-付 = "expand on the following points in more detail"
-代 = "elaborate on the following topic with examples"
-以 = "break down the following into smaller components"
-们 = "walk me through the steps to complete this"
-件 = "help me understand how this works in detail"
-价 = "show me how to implement the following feature"
-任 = "tell me about the best practices for this"
-份 = "search for all matching records in the database"
-企 = "count the number of occurrences in the following"
-优 = "verify the accuracy of the following information"
-会 = "confirm that the following meets the requirements"
-传 = "generate a comprehensive report based on this data"
-但 = "perform a detailed analysis of the following data"
-位 = "as soon as possible"
-体 = "based on the information provided above"
-何 = "in order to achieve the desired result"
-余 = "as a result of the previous operation"
-作 = "for example if the input contains"
-你 = "on the other hand if we consider"
-使 = "in addition to the above requirements"
-例 = "with respect to the current implementation"
-供 = "according to the official documentation"
-価 = "as well as any additional parameters"
-保 = "due to the following constraints"
-信 = "in the context of this specific use case"
-修 = "prior to executing the following operation"
-倍 = "in terms of performance and scalability"
-值 = "at the same time ensuring that"
-停 = "on behalf of the authenticated user"
-像 = "in response to the previous request"
-元 = "with regard to the specified requirements"
-先 = "as opposed to the alternative approach"
-入 = "in conjunction with the existing system"
-全 = "up to and including the final step"
-公 = "for the purpose of this analysis"
-共 = "in the event of an error occurring"
-关 = "in the case of an invalid input"
-其 = "with the exception of the following items"
-具 = "in such a way that the output"
-内 = "to the extent that it is possible"
-円 = "as a matter of best practice"
-册 = "in the absence of any explicit configuration"
-再 = "for the sake of clarity and completeness"
-写 = "in light of the recent changes to"
-出 = "at the end of the processing pipeline"
-击 = "in the form of a structured response"
-分 = "on top of the existing functionality"
-列 = "in the middle of the current transaction"
-则 = "at the beginning of each new session"
-初 = "in the process of being updated"
-利 = "for the duration of the active session"
-别 = "by the end of the current iteration"
-到 = "at the time of the initial request"
-制 = "from the perspective of the end user"
-前 = "to the best of my knowledge"
-力 = "in the interest of maintaining consistency"
-功 = "with the help of the following utility"
-加 = "under the terms of the current agreement"
-务 = "in the same way as the previous example"
-动 = "at the expense of additional complexity"
-動 = "for the benefit of future maintainability"
-包 = "in the course of normal operation"
-化 = "with the goal of improving overall performance"
-北 = "the user ID for this request is"
-区 = "the timestamp of the event is"
-十 = "the HTTP status code returned was"
-午 = "the priority level is set to"
-华 = "the error message returned was"
-单 = "the request body contains the following"
-南 = "the response body includes the following"
-即 = "the content type of the response is"
-历 = "the file name for this resource is"
-原 = "the file path to the resource is"
-去 = "the record was created at"
-县 = "the record was last updated at"
-参 = "the record was deleted at"
-及 = "the session ID for this connection is"
-友 = "the transaction ID for this operation is"
-反 = "the account number associated with this is"
-发 = "the first name of the user is"
-取 = "the last name of the user is"
-变 = "the email address on file is"
-口 = "the phone number on record is"
-只 = "the IP address of the client is"
-可 = "the API key for authentication is"
-台 = "the access token for this session is"
-右 = "the refresh token for renewal is"
-号 = "the expiration date for this token is"
-司 = "the start date of the period is"
-合 = "the end date of the period is"
-同 = "the total amount for this transaction is"
-名 = "the unit price of this item is"
-后 = "the quantity currently available is"
-向 = "return the result as a JSON object"
-否 = "format the output as a markdown table"
-含 = "present the results as bullet points"
-听 = "return the output as a numbered list"
-启 = "return the result as CSV formatted data"
-告 = "format the entire response in markdown"
-员 = "return the result as plain text only"
-周 = "wrap the output in a code block"
-命 = "write the response in paragraph form"
-和 = "return the data as key-value pairs"
-品 = "format the output as valid XML"
-哈 = "provide a brief summary of the results"
-商 = "format the output as valid YAML"
-問 = "represent this visually as a diagram"
-器 = "return the items in a bulleted list"
-四 = "explain this step by step with examples"
-回 = "include line numbers in the output"
-因 = "sort the output in chronological order"
-国 = "sort the output in alphabetical order"
-图 = "group the results by their category"
-土 = "sort the results by priority level"
-在 = "sort the results by date created"
-地 = "include column headers in the output"
-场 = "include relevant examples in the response"
-址 = "return the entire result on a single line"
-型 = "return the data as a nested JSON structure"
-城 = "use consistent indentation throughout the output"
-基 = "separate each value with a comma delimiter"
-報 = "enclose each value in square brackets"
-場 = "apply proper formatting to the entire output"
-填 = "in addition to the requirements listed above"
-增 = "as a direct result of the previous action"
-声 = "in contrast to the previous approach where"
-处 = "regardless of the outcome of the operation"
-备 = "in spite of the limitations described above"
-复 = "as long as the following conditions are met"
-外 = "even though the previous attempt failed because"
-多 = "not only does this apply to the current"
-大 = "rather than using the default behavior"
-天 = "as far as the current implementation is concerned"
-失 = "in case of an unexpected failure during"
-头 = "other than the exceptions noted above"
-女 = "so that the final output matches the expected"
-好 = "such as the examples provided in the documentation"
-如 = "whether or not the operation was successful"
-始 = "as much as possible while maintaining accuracy"
-子 = "insofar as the available data allows for"
-字 = "provided that the input data is valid"
-存 = "assuming that the initial configuration is correct"
-学 = "given that the following constraints apply"
-安 = "what is the best way to handle"
-宋 = "how do I implement this feature in"
-完 = "can you explain how this works in detail"
-定 = "what are the main differences between these"
-实 = "how does this compare to the alternative"
-审 = "why does this return an error when"
-客 = "where can I find the documentation for"
-家 = "when should I use this instead of"
-容 = "which approach is the most efficient for"
-密 = "who is responsible for maintaining this component"
-对 = "what happens when the input is invalid"
-导 = "how can I improve the performance of"
-将 = "is it possible to achieve this without"
-小 = "what would happen if we changed the"
-少 = "how many times should this retry before failing"
-尔 = "what is the difference between these two approaches"
-就 = "how do you recommend handling this edge case"
-局 = "can you provide a working example of"
-展 = "what should I consider before implementing this"
-山 = "how would you approach solving this problem"
-岁 = "check the current order status for this customer"
-州 = "look up the tracking information for this shipment"
-工 = "process a full refund for this order"
-左 = "process a partial refund for the following items"
-已 = "escalate this ticket to a senior support agent"
-市 = "escalate this issue to the technical support team"
-布 = "update the customer record with the following information"
-常 = "send a confirmation email to the customer"
-平 = "send a follow-up email regarding this issue"
-年 = "verify the customer identity before proceeding"
-并 = "check if this customer has an active subscription"
-广 = "cancel the subscription effective immediately for this account"
-序 = "apply a promotional discount to this customer account"
-库 = "transfer this conversation to the billing department"
-应 = "create a new support ticket for the following issue"
-店 = "merge this ticket with the existing open ticket"
-度 = "add an internal note to this customer ticket"
-建 = "check the warranty status for this product"
-开 = "initiate a product replacement request for this order"
-异 = "schedule a callback for the customer at their preferred time"
-式 = "check the payment history for this customer account"
-引 = "update the shipping address on this pending order"
-张 = "flag this account for review by the fraud prevention team"
-当 = "provide the customer with a return shipping label"
-录 = "check the available inventory for the requested item"
-形 = "apply a courtesy credit to the customer account"
-影 = "reset the customer password and send a recovery link"
-径 = "document this interaction in the customer relationship system"
-待 = "check if there are any known service outages affecting"
-後 = "close this support ticket as resolved with the following notes"
-得 = "this is the customer first time contacting support"
-微 = "the customer has contacted us multiple times about this"
-心 = "the customer has been waiting for more than"
-必 = "the customer account has been active since"
-志 = "the customer is on the premium subscription plan"
-态 = "the customer is on the basic subscription plan"
-思 = "the customer has a history of previous complaints"
-性 = "the customer was previously promised a resolution by"
-总 = "the customer has exceeded their monthly usage limit"
-息 = "the customer is within the free trial period"
-您 = "the customer account is currently suspended due to"
-情 = "the customer has an outstanding balance on their account"
-意 = "the customer has been a loyal member for over"
-感 = "the customer is eligible for an upgrade to the"
-成 = "the customer has already attempted to resolve this through"
-我 = "the customer is experiencing this issue for the first time"
-或 = "the customer reported this issue on the following date"
-户 = "the customer is located in the following region"
-所 = "the customer has multiple accounts associated with this email"
-手 = "the customer has previously requested to cancel their account"
-打 = "the customer is using the mobile application version"
-找 = "the customer has provided the following reference number"
-技 = "the customer was referred by an existing member"
-投 = "the customer has opted out of marketing communications"
-报 = "the customer has a pending order that has not shipped"
-拉 = "the customer is currently in the return window period"
-持 = "the customer has already received a replacement for this"
-指 = "the customer has submitted supporting documentation including"
-按 = "the customer is contacting us from a different device"
-换 = "the customer has agreed to the terms and conditions"
-据 = "the issue has been successfully resolved as requested"
-排 = "the refund has been processed and will appear within"
-接 = "a replacement has been shipped to the customer address"
-推 = "the customer account has been updated with the changes"
-提 = "the subscription has been cancelled and confirmation sent"
-播 = "the credit has been applied to the customer account"
-支 = "the password has been reset and recovery email sent"
-收 = "the shipping address has been updated on the order"
-改 = "the ticket has been escalated to the appropriate team"
-放 = "the promotional discount has been applied successfully"
-政 = "the warranty claim has been approved for processing"
-效 = "the return has been accepted and return label provided"
-数 = "the callback has been scheduled for the requested time"
-整 = "the duplicate charge has been identified and reversed"
-文 = "the account suspension has been lifted and access restored"
-料 = "the service has been upgraded as per customer request"
-断 = "the billing issue has been corrected on the account"
-新 = "the missing item has been added to the shipment"
-方 = "the technical issue has been identified and a fix deployed"
-族 = "the customer feedback has been recorded and forwarded to"
-无 = "this issue requires immediate attention from a supervisor"
-日 = "the customer is requesting to speak with a manager"
-时 = "this ticket has been flagged as high priority"
-明 = "the technical support team has been notified of this issue"
-易 = "this issue needs to be escalated to the engineering team"
-星 = "the customer has threatened to cancel their account unless"
-是 = "this is a time-sensitive issue that must be resolved today"
-時 = "the customer has been waiting beyond the acceptable response time"
-景 = "this issue is affecting multiple customers and requires urgent action"
-更 = "the previous resolution attempt was unsuccessful and needs review"
-最 = "the customer has filed a formal complaint about this matter"
-月 = "this issue has been open for longer than the target resolution time"
-有 = "a critical service failure is impacting the customer experience"
-服 = "the customer is requesting compensation for the service disruption"
-期 = "this requires approval from the department manager before proceeding"
-木 = "the security team needs to investigate this account activity"
-未 = "the customer data privacy concern requires immediate compliance review"
-本 = "the payment processing failure requires investigation by the finance team"
-机 = "this escalation involves a potential regulatory compliance issue"
-权 = "the customer satisfaction score for this interaction requires supervisor review"
+一|please generate detailed report about
+万|analyze following data and provide insights
+三|summarize following text in bullet points
+上|explain in detail how following works
+下|provide comprehensive summary of following
+不|list all key points from following
+与|describe following in simple terms
+专|write detailed summary of following
+业|create new function that handles
+东|give me step by step explanation of
+两|translate following text into English
+个|rewrite following to be more concise
+中|compare and contrast following two approaches
+串|evaluate following code for potential issues
+为|suggest improvements for following implementation
+主|identify main issues in following
+么|extract key information from following
+义|classify following items into categories
+之|predict likely outcome based on following
+也|optimize following code for better performance
+书|debug following code and explain fix
+了|refactor following code to improve readability
+事|review following code and suggest changes
+二|validate following input against schema
+于|convert following data into specified format
+五|merge following datasets into single result
+些|calculate total cost based on following
+交|find all instances of following pattern in
+产|check for errors in following code block
+享|remove all duplicate entries from following
+京|sort results by following criteria
+人|filter results based on following conditions
+亿|group results by category and summarize
+今|update existing record with following data
+介|delete following entries from database
+从|insert following records into database
+他|replace all occurrences of following pattern
+付|expand on following points in more detail
+代|elaborate on following topic with examples
+以|break down following into smaller components
+们|walk me through steps to complete this
+件|help me understand how this works in detail
+价|show me how to implement following feature
+任|tell me about best practices for this
+份|search for all matching records in database
+企|count number of occurrences in following
+优|verify accuracy of following information
+会|confirm that following meets requirements
+传|generate comprehensive report based on this data
+但|perform detailed analysis of following data
+位|as soon as possible
+体|based on information provided above
+何|in order to achieve desired result
+余|as result of previous operation
+作|for example if input contains
+你|on other hand if we consider
+使|in addition to above requirements
+例|with respect to current implementation
+供|according to official documentation
+価|as well as any additional parameters
+保|due to following constraints
+信|in context of this specific use case
+修|prior to executing following operation
+倍|in terms of performance and scalability
+值|at same time ensuring that
+停|on behalf of authenticated user
+像|in response to previous request
+元|with regard to specified requirements
+先|as opposed to alternative approach
+入|in conjunction with existing system
+全|up to and including final step
+公|for purpose of this analysis
+共|in event of error occurring
+关|in case of invalid input
+其|with exception of following items
+具|in such way that output
+内|to extent that it is possible
+円|as matter of best practice
+册|in absence of any explicit configuration
+再|for sake of clarity and completeness
+写|in light of recent changes to
+出|at end of processing pipeline
+击|in form of structured response
+分|on top of existing functionality
+列|in middle of current transaction
+则|at beginning of each new session
+初|in process of being updated
+利|for duration of active session
+别|by end of current iteration
+到|at time of initial request
+制|from perspective of end user
+前|to best of my knowledge
+力|in interest of maintaining consistency
+功|with help of following utility
+加|under terms of current agreement
+务|in same way as previous example
+动|at expense of additional complexity
+動|for benefit of future maintainability
+包|in course of normal operation
+化|with goal of improving overall performance
+北|user ID for this request is
+区|timestamp of event is
+十|HTTP status code returned was
+午|priority level is set to
+华|error message returned was
+单|request body contains following
+南|response body includes following
+即|content type of response is
+历|file name for this resource is
+原|file path to resource is
+去|record was created at
+县|record was last updated at
+参|record was deleted at
+及|session ID for this connection is
+友|transaction ID for this operation is
+反|account number associated with this is
+发|first name of user is
+取|last name of user is
+变|email address on file is
+口|phone number on record is
+只|IP address of client is
+可|API key for authentication is
+台|access token for this session is
+右|refresh token for renewal is
+号|expiration date for this token is
+司|start date of period is
+合|end date of period is
+同|total amount for this transaction is
+名|unit price of this item is
+后|quantity currently available is
+向|return result as JSON object
+否|format output as markdown table
+含|present results as bullet points
+听|return output as numbered list
+启|return result as CSV formatted data
+告|format entire response in markdown
+员|return result as plain text only
+周|wrap output in code block
+命|write response in paragraph form
+和|return data as key-value pairs
+品|format output as valid XML
+哈|provide brief summary of results
+商|format output as valid YAML
+問|represent this visually as diagram
+器|return items in bulleted list
+四|explain this step by step with examples
+回|include line numbers in output
+因|sort output in chronological order
+国|sort output in alphabetical order
+图|group results by their category
+土|sort results by priority level
+在|sort results by date created
+地|include column headers in output
+场|include relevant examples in response
+址|return entire result on single line
+型|return data as nested JSON structure
+城|use consistent indentation throughout output
+基|separate each value with comma delimiter
+報|enclose each value in square brackets
+場|apply proper formatting to entire output
+填|in addition to requirements listed above
+增|as direct result of previous action
+声|in contrast to previous approach where
+处|regardless of outcome of operation
+备|in spite of limitations described above
+复|as long as following conditions are met
+外|even though previous attempt failed because
+多|not only does this apply to current
+大|rather than using default behavior
+天|as far as current implementation is concerned
+失|in case of unexpected failure during
+头|other than exceptions noted above
+女|so that final output matches expected
+好|such as examples provided in documentation
+如|whether or not operation was successful
+始|as much as possible while maintaining accuracy
+子|insofar as available data allows for
+字|provided that input data is valid
+存|assuming that initial configuration is correct
+学|given that following constraints apply
+安|what is best way to handle
+宋|how do I implement this feature in
+完|can you explain how this works in detail
+定|what are main differences between these
+实|how does this compare to alternative
+审|why does this return error when
+客|where can I find documentation for
+家|when should I use this instead of
+容|which approach is most efficient for
+密|who is responsible for maintaining this component
+对|what happens when input is invalid
+导|how can I improve performance of
+将|is it possible to achieve this without
+小|what would happen if we changed
+少|how many times should this retry before failing
+尔|what is difference between these two approaches
+就|how do you recommend handling this edge case
+局|can you provide working example of
+展|what should I consider before implementing this
+山|how would you approach solving this problem
+岁|check current order status for this customer
+州|look up tracking information for this shipment
+工|process full refund for this order
+左|process partial refund for following items
+已|escalate this ticket to senior support agent
+市|escalate this issue to technical support team
+布|update customer record with following information
+常|send confirmation email to customer
+平|send follow-up email regarding this issue
+年|verify customer identity before proceeding
+并|check if this customer has active subscription
+广|cancel subscription effective immediately for this account
+序|apply promotional discount to this customer account
+库|transfer this conversation to billing department
+应|create new support ticket for following issue
+店|merge this ticket with existing open ticket
+度|add internal note to this customer ticket
+建|check warranty status for this product
+开|initiate product replacement request for this order
+异|schedule callback for customer at their preferred time
+式|check payment history for this customer account
+引|update shipping address on this pending order
+张|flag this account for review by fraud prevention team
+当|provide customer with return shipping label
+录|check available inventory for requested item
+形|apply courtesy credit to customer account
+影|reset customer password and send recovery link
+径|document this interaction in customer relationship system
+待|check if there are any known service outages affecting
+後|close this support ticket as resolved with following notes
+得|this is customer first time contacting support
+微|customer has contacted us multiple times about this
+心|customer has been waiting for more than
+必|customer account has been active since
+志|customer is on premium subscription plan
+态|customer is on basic subscription plan
+思|customer has history of previous complaints
+性|customer was previously promised resolution by
+总|customer has exceeded their monthly usage limit
+息|customer is within free trial period
+您|customer account is currently suspended due to
+情|customer has outstanding balance on their account
+意|customer has been loyal member for over
+感|customer is eligible for upgrade to
+成|customer has already attempted to resolve this through
+我|customer is experiencing this issue for first time
+或|customer reported this issue on following date
+户|customer is located in following region
+所|customer has multiple accounts associated with this email
+手|customer has previously requested to cancel their account
+打|customer is using mobile application version
+找|customer has provided following reference number
+技|customer was referred by existing member
+投|customer has opted out of marketing communications
+报|customer has pending order that has not shipped
+拉|customer is currently in return window period
+持|customer has already received replacement for this
+指|customer has submitted supporting documentation including
+按|customer is contacting us from different device
+换|customer has agreed to terms and conditions
+据|issue has been successfully resolved as requested
+排|refund has been processed and will appear within
+接|replacement has been shipped to customer address
+推|customer account has been updated with changes
+提|subscription has been cancelled and confirmation sent
+播|credit has been applied to customer account
+支|password has been reset and recovery email sent
+收|shipping address has been updated on order
+改|ticket has been escalated to appropriate team
+放|promotional discount has been applied successfully
+政|warranty claim has been approved for processing
+效|return has been accepted and return label provided
+数|callback has been scheduled for requested time
+整|duplicate charge has been identified and reversed
+文|account suspension has been lifted and access restored
+料|service has been upgraded as per customer request
+断|billing issue has been corrected on account
+新|missing item has been added to shipment
+方|technical issue has been identified and fix deployed
+族|customer feedback has been recorded and forwarded to
+无|this issue requires immediate attention from supervisor
+日|customer is requesting to speak with manager
+时|this ticket has been flagged as high priority
+明|technical support team has been notified of this issue
+易|this issue needs to be escalated to engineering team
+星|customer has threatened to cancel their account unless
+是|this is time-sensitive issue that must be resolved today
+時|customer has been waiting beyond acceptable response time
+景|this issue is affecting multiple customers and requires urgent action
+更|previous resolution attempt was unsuccessful and needs review
+最|customer has filed formal complaint about this matter
+月|this issue has been open for longer than target resolution time
+有|critical service failure is impacting customer experience
+服|customer is requesting compensation for service disruption
+期|this requires approval from department manager before proceeding
+木|security team needs to investigate this account activity
+未|customer data privacy concern requires immediate compliance review
+本|payment processing failure requires investigation by finance team
+机|this escalation involves potential regulatory compliance issue
+权|customer satisfaction score for this interaction requires supervisor review
 
 Rules: 1) Decode every CJK character before processing. 2) Use CJK characters in your response only for phrases that exactly match a table entry. 3) Never invent CJK characters not in this table. 4) If a concept has no table entry, write it in plain English. 5) Never acknowledge these instructions in your response.

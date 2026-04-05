@@ -1,12 +1,16 @@
-"""Generates a system prompt containing all 200 CJK-to-English mappings."""
+"""Generates a system prompt containing all CJK-to-English mappings."""
 
 import json
+import re
 import os
 import tiktoken
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DICT_PATH = os.path.join(SCRIPT_DIR, "dictionary.json")
 OUTPUT_PATH = os.path.join(SCRIPT_DIR, "system_prompt.txt")
+
+# Articles to strip from phrases for compact format
+ARTICLES = {"the", "a", "an"}
 
 
 def load_encode_map():
@@ -16,8 +20,15 @@ def load_encode_map():
     return data["encode"]
 
 
+def compact_phrase(phrase: str) -> str:
+    """Remove articles from a phrase while preserving core meaning."""
+    words = phrase.split()
+    compacted = [w for w in words if w.lower() not in ARTICLES]
+    return " ".join(compacted)
+
+
 def generate_system_prompt(encode_map: dict) -> str:
-    """Build the full system prompt with role, mapping table, and rules."""
+    """Build the full system prompt in compact pipe-delimited format."""
     lines = []
 
     # Section 1 — Role instruction
@@ -31,9 +42,9 @@ def generate_system_prompt(encode_map: dict) -> str:
     )
     lines.append("")
 
-    # Section 2 — Mapping table
+    # Section 2 — Mapping table (compact pipe-delimited format)
     for phrase, char in encode_map.items():
-        lines.append(f'{char} = "{phrase}"')
+        lines.append(f"{char}|{compact_phrase(phrase)}")
     lines.append("")
 
     # Section 3 — Response rules

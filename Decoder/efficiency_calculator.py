@@ -93,7 +93,7 @@ def main():
     encode_map = load_encoder()
     phrase_lengths = build_phrase_lengths(encode_map)
 
-    system_prompt_tokens = 3579
+    system_prompt_tokens = 2899
 
     scenarios = [
         (

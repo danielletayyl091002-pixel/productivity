@@ -10,7 +10,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SYSTEM_PROMPT_PATH = os.path.join(SCRIPT_DIR, "system_prompt.txt")
 
 # System prompt token count (from prompt_generator.py output)
-SYSTEM_PROMPT_TOKENS = 3579
+SYSTEM_PROMPT_TOKENS = 2899
 
 
 def load_system_prompt() -> str:
