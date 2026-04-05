@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useTrackers } from "@/stores/trackers";
 import { cn } from "@/lib/utils";
-import { Plus, Pencil, Trash2, Settings2, X, Check, GripVertical, Eye, EyeOff } from "lucide-react";
+import { Plus, Minus, Pencil, Trash2, Settings2, X, Check, GripVertical, Eye, EyeOff } from "lucide-react";
 import { format, subDays } from "date-fns";
 import type { TrackerDefinition, TrackerType, TrackerCategory } from "@/db/schema";
 import { TRACKER_COLORS } from "@/db/schema";
@@ -158,9 +158,15 @@ function TrackerCard({ def, todayValue, weekData, onLog, showCaffeineWarn }: {
             <span className="text-base shrink-0">{def.emoji}</span>
             <span className="text-[11px] font-semibold text-[var(--text-primary)] truncate">{def.name}</span>
           </div>
-          <div className="text-right shrink-0">
-            <span className="text-lg font-bold text-[var(--text-primary)] tabular-nums">{todayValue}</span>
-            {def.dailyGoal && <span className="text-[10px] text-[var(--text-muted)]">/{def.dailyGoal}</span>}
+          <div className="text-right shrink-0 flex items-baseline">
+            <span className="text-2xl font-extrabold text-[var(--text-primary)] tabular-nums">{todayValue}</span>
+            {isRating ? (
+              <span className="text-xs text-gray-400 ml-0.5">/ 5</span>
+            ) : def.dailyGoal ? (
+              <span className="text-xs text-gray-400 ml-0.5">/ {def.dailyGoal}{def.unit && ` ${def.unit}`}</span>
+            ) : def.unit ? (
+              <span className="text-xs text-gray-400 ml-0.5">{def.unit}</span>
+            ) : null}
           </div>
         </div>
 
@@ -200,14 +206,26 @@ function TrackerCard({ def, todayValue, weekData, onLog, showCaffeineWarn }: {
               </div>
             ) : (
               <>
-                <button onClick={() => onLog(1)}
-                  className="flex-1 py-1 rounded-md text-[11px] font-semibold transition-all active:scale-95"
+                <button onClick={() => { if (todayValue > 0) onLog(-1); }}
+                  className="h-7 w-7 rounded-md flex items-center justify-center text-gray-400 bg-[var(--bg-secondary)] border border-[var(--border)] hover:text-[var(--text-primary)] transition-all active:scale-90 shrink-0"
+                  title="Decrement">
+                  <Minus className="h-3 w-3" />
+                </button>
+                <button onClick={(e) => {
+                    onLog(1);
+                    const btn = e.currentTarget;
+                    btn.classList.add("scale-110");
+                    btn.style.backgroundColor = def.color + "30";
+                    setTimeout(() => { btn.classList.remove("scale-110"); btn.style.backgroundColor = def.color + "20"; }, 300);
+                  }}
+                  className="flex-1 py-1 rounded-md text-[11px] font-semibold transition-all"
                   style={{ backgroundColor: def.color + "20", color: def.color }}>
                   +1 {def.unit}
                 </button>
                 <button onClick={() => setCustomInput(true)}
-                  className="px-2 py-1 rounded-md text-[10px] text-[var(--text-muted)] hover:bg-[var(--bg-hover)]">
-                  #
+                  className="h-7 w-7 rounded-md flex items-center justify-center text-gray-400 hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all shrink-0"
+                  title="Custom value">
+                  <Pencil className="h-3 w-3" />
                 </button>
               </>
             )}

@@ -91,11 +91,22 @@ export default function MetricsGrid() {
 }
 
 function MiniTrend({ data, color }: { data: number[]; color: string }) {
+  const allZero = data.every(v => v === 0);
+  if (allZero) {
+    return (
+      <div className="flex items-center gap-1 shrink-0">
+        <svg viewBox="0 0 80 20" className="w-[80px] h-5">
+          <line x1="0" y1="10" x2="80" y2="10" stroke="#E2E8F0" strokeWidth="1" strokeDasharray="4 3" />
+        </svg>
+        <span className="text-[10px] text-gray-300 whitespace-nowrap">No data</span>
+      </div>
+    );
+  }
   const max = Math.max(...data, 1);
-  const points = data.map((v, i) => `${(i / 6) * 60},${24 - (v / max) * 20}`).join(" ");
+  const points = data.map((v, i) => `${(i / 6) * 80},${20 - (v / max) * 16}`).join(" ");
   return (
-    <svg viewBox="0 0 60 24" className="w-[60px] h-6 shrink-0">
-      <polyline points={points} fill="none" stroke={data.every(v => v === 0) ? "#CBD5E1" : color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="0 0 80 20" className="w-[80px] h-5 shrink-0">
+      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" />
     </svg>
   );
 }

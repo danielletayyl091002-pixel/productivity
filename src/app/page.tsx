@@ -11,28 +11,34 @@ export default function HomePage() {
   return (
     <div className="space-y-6">
       {/* Two-column layout */}
-      <div className="flex flex-col lg:flex-row gap-5">
+      <div className="flex flex-col lg:flex-row gap-5 items-start">
         {/* LEFT COLUMN */}
-        <div className="w-full lg:w-[35%] space-y-5 shrink-0">
+        <div className="w-full lg:w-[35%] flex flex-col gap-5 shrink-0">
           <DailyTop3 />
-          <MetricsGrid />
+          <div className="flex-1">
+            <MetricsGrid />
+          </div>
         </div>
         {/* RIGHT COLUMN — Calendar */}
         <div className="w-full lg:w-[65%] min-w-0">
-          <div className="max-h-[480px] overflow-hidden rounded-xl">
-            <CalendarSection />
-          </div>
+          <CalendarSection />
         </div>
       </div>
 
-      {/* Goals (horizontal scroll) */}
-      <GoalsSection />
+      {/* Goals */}
+      <div className="mt-6">
+        <GoalsSection />
+      </div>
 
       {/* Trackers */}
-      <TrackerGrid />
+      <div className="mt-6">
+        <TrackerGrid />
+      </div>
 
       {/* Kanban */}
-      <KanbanBoard />
+      <div className="mt-6">
+        <KanbanBoard />
+      </div>
     </div>
   );
 }

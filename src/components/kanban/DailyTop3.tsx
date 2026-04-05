@@ -71,7 +71,7 @@ export default function DailyTop3() {
   return (
     <div className="rounded-xl bg-[var(--bg-card)] p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xs font-semibold tracking-wide uppercase text-gray-400">Today&apos;s Top 3 Priorities</h2>
+        <h2 className="text-sm font-semibold text-gray-500">Today&apos;s Top 3 Priorities</h2>
         <span className="text-[11px] text-[var(--text-muted)]">{format(new Date(), "EEEE, MMM d")}</span>
       </div>
 

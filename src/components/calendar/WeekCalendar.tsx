@@ -163,9 +163,11 @@ export default function WeekCalendar({ currentDate, tasks, events, onSlotClick, 
             <div key={d.toISOString()} className={cn("py-2 text-center border-l border-[var(--border)] relative", isToday(d) && "bg-[var(--color-primary-light)]")}>
               {showMonthLabel && (
                 <div className="absolute left-0 top-0 bottom-0 flex items-center">
-                  <div className="w-px h-full bg-[var(--color-primary)]" style={{ opacity: 0.3 }} />
-                  <span className="absolute -left-3 top-0.5 text-[8px] font-semibold text-[var(--color-primary)] -rotate-90 origin-bottom-left whitespace-nowrap">{format(d, "MMM")}</span>
+                  <div className="w-px h-full" style={{ backgroundColor: "#CBD5E1" }} />
                 </div>
+              )}
+              {showMonthLabel && (
+                <span className="absolute -top-3.5 left-0 text-[9px] font-semibold text-blue-500">{format(d, "MMM")}</span>
               )}
               <p className={cn("text-[10px] font-medium uppercase", isToday(d) ? "text-[var(--color-primary)]" : "text-[var(--text-muted)]")}>{format(d, "EEE")}</p>
               <p className={cn("text-sm font-bold", isToday(d) ? "text-[var(--color-primary)]" : "text-[var(--text-primary)]")}>{format(d, "d")}</p>
@@ -175,7 +177,7 @@ export default function WeekCalendar({ currentDate, tasks, events, onSlotClick, 
       </div>
 
       {/* Grid */}
-      <div ref={scrollRef} className="overflow-y-auto max-h-[480px]" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={() => creating && handleMouseUp()}>
+      <div ref={scrollRef} className="overflow-y-auto h-[420px]" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={() => creating && handleMouseUp()}>
         <div ref={gridRef} className="grid grid-cols-[48px_repeat(7,1fr)] relative">
           {HOURS.map(hour => (
             <div key={hour} className="contents">

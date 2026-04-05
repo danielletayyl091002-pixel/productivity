@@ -65,13 +65,18 @@ export default function GoalsSection() {
       {/* Horizontal scroll row */}
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
         {filtered.length === 0 && !adding && (
-          <>
-            {[0, 1, 2].map(i => (
-              <div key={i} className="w-[240px] h-[130px] rounded-xl border-2 border-dashed border-[var(--border)] bg-[var(--bg-secondary)] shrink-0 flex items-center justify-center">
-                {i === 0 && <p className="text-[11px] text-[var(--text-muted)] text-center px-4">Set your first goal — what do you want to achieve this week?</p>}
-              </div>
-            ))}
-          </>
+          <div className="w-full flex flex-col items-center justify-center py-8 gap-3">
+            <span className="text-4xl">🎯</span>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">No goals yet</p>
+            <p className="text-xs text-gray-400 text-center max-w-xs">
+              Goals give your daily tasks direction. Set a weekly win, a monthly milestone, or a yearly vision.
+            </p>
+            <button onClick={() => setAdding(true)}
+              className="mt-2 px-4 py-2 text-white text-sm font-medium rounded-lg hover:opacity-90 transition-colors"
+              style={{ backgroundColor: "var(--color-primary)" }}>
+              Set your first goal
+            </button>
+          </div>
         )}
 
         {filtered.map(goal => {
