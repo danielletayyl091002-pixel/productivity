@@ -122,6 +122,9 @@ button {
   padding: 10px; font-size: 12px; color: #92400e; margin: 12px 0;
   display: flex; justify-content: space-between; align-items: center; }
 section { margin-bottom: 20px; }
+.label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.label-row label { margin-bottom: 0; }
+.label-row .input-btns { display: flex; gap: 4px; }
 
 /* Tabs */
 .tabs { display: flex; gap: 0; margin-bottom: 16px; border-bottom: 2px solid #e0e0e0; }
@@ -180,7 +183,13 @@ section { margin-bottom: 20px; }
   </div>
 </div>
 
-<label>English Input</label>
+<div class="label-row">
+  <label>English Input</label>
+  <div class="input-btns">
+    <button class="btn-copy" onclick="copyInputBox('inputText', this)">Copy</button>
+    <button class="btn-copy" onclick="document.getElementById('inputText').value=''">Clear</button>
+  </div>
+</div>
 <textarea id="inputText" placeholder="Type your English text here..."></textarea>
 <button class="btn-primary" onclick="analyse()">Analyse</button>
 <div class="result-box" id="analyseResult">
@@ -197,7 +206,13 @@ section { margin-bottom: 20px; }
 </div>
 
 <section>
-<label>AI Response (paste CJK here)</label>
+<div class="label-row">
+  <label>AI Response (paste CJK here)</label>
+  <div class="input-btns">
+    <button class="btn-copy" onclick="copyInputBox('aiResponse', this)">Copy</button>
+    <button class="btn-copy" onclick="document.getElementById('aiResponse').value=''">Clear</button>
+  </div>
+</div>
 <textarea id="aiResponse" placeholder="Paste CJK response from Claude here..."></textarea>
 <button class="btn-secondary" onclick="decodeCjk()">Decode</button>
 <div class="result-box" id="decodeResult">
@@ -243,6 +258,12 @@ function flashCopy(btn, success) {
 
 function copyToClipboard(text, btn) {
   navigator.clipboard.writeText(text).then(() => flashCopy(btn, true)).catch(() => flashCopy(btn, false));
+}
+
+function copyInputBox(id, btn) {
+  const text = document.getElementById(id).value;
+  if (!text) return;
+  copyToClipboard(text, btn);
 }
 
 function copyEncoded(e) {
