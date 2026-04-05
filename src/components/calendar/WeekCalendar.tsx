@@ -39,15 +39,15 @@ export default function WeekCalendar({ currentDate, tasks, events, onSlotClick, 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const nowHour = new Date().getHours();
 
-  // Auto-scroll to 8am — useLayoutEffect + rAF ensures DOM is painted
+  // Auto-scroll to 8am — use known SLOT_H constant (not derived from DOM)
   useLayoutEffect(() => {
     requestAnimationFrame(() => {
       if (scrollRef.current) {
-        const totalHours = END_HOUR - START_HOUR;
-        const hourHeight = scrollRef.current.scrollHeight / totalHours;
-        const scrollTo = (8 - START_HOUR) * hourHeight;
+        // SLOT_H is the exact pixel height per hour slot (52px)
+        // 8am is 2 hours past START_HOUR (6am), so scroll = 2 * 52 = 104
+        const scrollTo = (8 - START_HOUR) * SLOT_H;
         scrollRef.current.scrollTop = scrollTo;
-        console.log("[Calendar] scroll set to", scrollTo, "hourHeight:", hourHeight);
+        console.log("[Calendar] scrollTop:", scrollTo, "SLOT_H:", SLOT_H);
       }
     });
   }, []);
@@ -192,8 +192,7 @@ export default function WeekCalendar({ currentDate, tasks, events, onSlotClick, 
                   <div key={`${dateStr}-${hour}`}
                     className={cn("border-b border-l border-[var(--border)]/20 relative cursor-crosshair",
                       isToday(day) && "bg-[var(--color-primary-light)]",
-                      isPast && "opacity-40",
-                      isDrop && "!bg-[var(--color-primary-medium)]")}
+                      isPast && "opacity-40")}
                     style={{ height: `${SLOT_H}px` }}
                     onMouseDown={(e) => handleMouseDown(e, di)}
                     onDragOver={(e) => handleDragOver(e, dateStr, hour)}
@@ -201,6 +200,13 @@ export default function WeekCalendar({ currentDate, tasks, events, onSlotClick, 
                     onDragLeave={() => setDropTarget(null)}>
                     {/* Half-hour line */}
                     <div className="absolute left-0 right-0 border-b border-dashed border-[var(--border)]" style={{ top: `${SLOT_H / 2}px`, opacity: 0.3 }} />
+                    {/* Ghost block preview on drag hover */}
+                    {isDrop && (
+                      <div className="absolute inset-x-1 top-0 rounded-lg bg-blue-100 border-2 border-blue-400 border-dashed opacity-80 z-10 px-2 py-1 pointer-events-none" style={{ height: `${SLOT_H}px` }}>
+                        <p className="text-[10px] font-semibold text-blue-600">{hourLabel(hour)} – {hourLabel(hour + 1)}</p>
+                        <p className="text-[9px] text-blue-500">Drop to schedule</p>
+                      </div>
+                    )}
 
                     {/* Events */}
                     {hour === START_HOUR && (itemsByDay[dateStr] || []).map(it => {
@@ -211,8 +217,9 @@ export default function WeekCalendar({ currentDate, tasks, events, onSlotClick, 
                           onClick={(e) => { e.stopPropagation(); if (!it.isTask) onEventClick(events.find(ev => ev.id === it.id)!); }}
                           className={cn("absolute left-0.5 right-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-medium overflow-hidden cursor-pointer z-10 border hover:shadow-[var(--shadow)]",
                             it.done && "opacity-40 line-through")}
-                          style={{ ...style, backgroundColor: it.color.bg, borderColor: it.color.border, color: it.color.text }}>
-                          <p className="truncate leading-tight">{it.isTask ? "✓ " : ""}{it.title}</p>
+                          style={{ ...style, backgroundColor: it.color.bg, borderLeftWidth: "3px", borderLeftColor: it.color.border, borderColor: "transparent", color: it.color.text }}>
+                          <p className="truncate leading-tight font-semibold">{it.title}</p>
+                          <p className="text-[9px] opacity-60">{hourLabel(it.startH)}–{hourLabel(it.endH)}</p>
                           {/* Resize handle */}
                           <div className="absolute bottom-0 left-0 right-0 h-2 cursor-s-resize hover:bg-black/5"
                             onMouseDown={(e) => {

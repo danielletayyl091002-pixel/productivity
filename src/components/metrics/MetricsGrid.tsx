@@ -39,10 +39,14 @@ export default function MetricsGrid() {
   // Add event durations (standalone events without taskId)
   const weekAgo = format(subDays(new Date(), 7), "yyyy-MM-dd");
   const weekEventMins = events.filter(e => !e.taskId && e.date >= weekAgo).reduce((sum, e) => {
-    const dur = (new Date(e.endTime).getTime() - new Date(e.startTime).getTime()) / 60000;
-    return sum + dur;
+    const start = new Date(e.startTime).getTime();
+    const end = new Date(e.endTime).getTime();
+    if (isNaN(start) || isNaN(end)) return sum;
+    const dur = (end - start) / 60000;
+    return sum + (isNaN(dur) || dur < 0 ? 0 : dur);
   }, 0);
-  const weeklyHours = ((weeklySessionMins + weekEventMins) / 60).toFixed(1);
+  const rawHours = (weeklySessionMins + weekEventMins) / 60;
+  const weeklyHours = isNaN(rawHours) ? "0.0" : rawHours.toFixed(1);
 
   // ─── Metric 4: Interruption Rate ───
   const allSessions = sessions;
