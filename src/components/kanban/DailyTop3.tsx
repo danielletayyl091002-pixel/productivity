@@ -23,7 +23,17 @@ export default function DailyTop3() {
   const loadToday = async () => {
     const existing = await db.dailyPriorities.where("date").equals(today).toArray();
     const slots: (DailyPriority | null)[] = [null, null, null];
-    existing.forEach(p => { if (p.slot >= 0 && p.slot <= 2) slots[p.slot] = p; });
+    existing.forEach(p => {
+      if (p.slot >= 0 && p.slot <= 2) {
+        // Sanitize: treat single-char or empty strings as empty
+        if (typeof p.text === "string" && p.text.length < 2) {
+          p.text = "";
+          // Clean corrupted value in DB
+          db.dailyPriorities.update(p.id, { text: "" });
+        }
+        slots[p.slot] = p;
+      }
+    });
     setPriorities(slots);
   };
 

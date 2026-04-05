@@ -50,7 +50,7 @@ export default function MetricsGrid() {
   const interruptionRate = allSessions.length > 0 ? Math.round((interruptedCount / allSessions.length) * 100) : 0;
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 gap-2">
       <MetricCard
         icon={<Target className="h-4 w-4" />}
         label="Focus Score"
@@ -90,7 +90,7 @@ function MetricCard({ icon, label, value, sub, trend, color, bold }: {
   icon: React.ReactNode; label: string; value: string; sub: string; trend?: string; color: string; bold?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 shadow-[var(--shadow)]">
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 shadow-[var(--shadow)]">
       <div className="flex items-center justify-between mb-2">
         <span className="text-[11px] font-medium text-[var(--text-muted)]">{label}</span>
         <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: color + "15", color }}>

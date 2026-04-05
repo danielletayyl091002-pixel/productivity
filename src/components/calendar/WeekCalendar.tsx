@@ -39,12 +39,16 @@ export default function WeekCalendar({ currentDate, tasks, events, onSlotClick, 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const nowHour = new Date().getHours();
 
-  // Auto-scroll
+  // Auto-scroll to 8am after DOM paints
   useEffect(() => {
-    if (scrollRef.current) {
-      // Always scroll to 8am on load for a clean morning view
-      scrollRef.current.scrollTop = Math.max(0, (8 - START_HOUR) * SLOT_H);
-    }
+    const timer = setTimeout(() => {
+      if (scrollRef.current) {
+        const scrollTo = (8 - START_HOUR) * SLOT_H; // (8-6)*52 = 104px
+        scrollRef.current.scrollTop = scrollTo;
+        console.log("[Calendar] scrollTop set to", scrollTo);
+      }
+    }, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   // Merge tasks and events into unified calendar items
@@ -174,8 +178,8 @@ export default function WeekCalendar({ currentDate, tasks, events, onSlotClick, 
         <div ref={gridRef} className="grid grid-cols-[48px_repeat(7,1fr)] relative">
           {HOURS.map(hour => (
             <div key={hour} className="contents">
-              <div className="border-b border-[var(--border)] px-1 flex items-start justify-end" style={{ height: `${SLOT_H}px` }}>
-                <span className="text-[9px] text-[var(--text-muted)] -mt-1 tabular-nums">{hourLabel(hour)}</span>
+              <div className="border-b border-[var(--border)]/20 px-1 flex items-start justify-end" style={{ height: `${SLOT_H}px` }}>
+                <span className="text-xs text-gray-400 -mt-1 tabular-nums">{hourLabel(hour)}</span>
               </div>
               {days.map((day, di) => {
                 const dateStr = toDateStr(day);
@@ -183,7 +187,7 @@ export default function WeekCalendar({ currentDate, tasks, events, onSlotClick, 
                 const isPast = isToday(day) && hour < nowHour;
                 return (
                   <div key={`${dateStr}-${hour}`}
-                    className={cn("border-b border-l border-[var(--border)] relative cursor-crosshair",
+                    className={cn("border-b border-l border-[var(--border)]/20 relative cursor-crosshair",
                       isToday(day) && "bg-[var(--color-primary-light)]",
                       isPast && "opacity-40",
                       isDrop && "!bg-[var(--color-primary-medium)]")}
@@ -257,7 +261,7 @@ export default function WeekCalendar({ currentDate, tasks, events, onSlotClick, 
             return (
               <div className="absolute pointer-events-none z-20"
                 style={{ top: `${top}px`, left: `calc(48px + ${ti} * ((100% - 48px) / 7))`, width: `calc((100% - 48px) / 7)` }}>
-                <div className="flex items-center"><div className="h-2.5 w-2.5 rounded-full -ml-1" style={{ backgroundColor: "var(--color-primary)" }} /><div className="flex-1 h-[2px]" style={{ backgroundColor: "var(--color-primary)" }} /></div>
+                <div className="flex items-center"><div className="h-[6px] w-[6px] rounded-full -ml-[3px]" style={{ backgroundColor: "var(--color-primary)" }} /><div className="flex-1 h-[2px]" style={{ backgroundColor: "var(--color-primary)" }} /></div>
               </div>
             );
           })()}
