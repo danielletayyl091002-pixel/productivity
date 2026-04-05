@@ -47,5 +47,5 @@ pipeline.py: COMPLETE — end-to-end compression pipeline with API placeholder
 Prompt caching: IMPLEMENTED — cache_control ephemeral on system prompt, 10% effective cost
 api.py: COMPLETE — FastAPI REST API with /encode, /decode, /compress endpoints, API key auth, dictionary_id loads from dictionaries.json registry
 dictionary_builder.py: COMPLETE — custom per-company dictionary builder, multi-tenant dictionaries enabled
-app.py: COMPLETE — personal testing interface on localhost:5000
+app.py: COMPLETE — personal testing interface on localhost:5000 with copy buttons, persistent history tab, auto-fill from history, delete single/clear all
 Overall status: MVP COMPLETE
