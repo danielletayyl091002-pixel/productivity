@@ -57,12 +57,34 @@ export default function DailyTop3() {
     setPriorities(prev => prev.map((p, i) => i === slot ? updated : p));
   };
 
+  // Morning planning trigger
+  const hour = new Date().getHours();
+  const allEmpty = priorities.every(p => !p?.text);
+  const plannedKey = `fluent_planned_today_${today}`;
+  const alreadyPlanned = typeof window !== "undefined" && localStorage.getItem(plannedKey);
+  const showMorningBanner = hour < 12 && allEmpty && !alreadyPlanned;
+
+  const dismissBanner = () => {
+    localStorage.setItem(plannedKey, "true");
+  };
+
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[var(--shadow)]">
+    <div className="rounded-xl bg-[var(--bg-card)] p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-[13px] font-bold text-[var(--text-primary)]">Today&apos;s Top 3 Priorities</h2>
+        <h2 className="text-xs font-semibold tracking-wide uppercase text-gray-400">Today&apos;s Top 3 Priorities</h2>
         <span className="text-[11px] text-[var(--text-muted)]">{format(new Date(), "EEEE, MMM d")}</span>
       </div>
+
+      {/* Morning planning banner */}
+      {showMorningBanner && (
+        <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-[var(--color-primary-light)] border border-[var(--color-primary-medium)] mb-3">
+          <p className="text-[12px] text-[var(--color-primary)] font-medium">☀️ Good morning. What are your 3 wins for today?</p>
+          <div className="flex gap-2 shrink-0">
+            <button onClick={dismissBanner} className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)]">skip</button>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-2">
         {[0, 1, 2].map(slot => (
           <PrioritySlot

@@ -137,6 +137,17 @@ function TrackerCard({ def, todayValue, weekData, onLog, showCaffeineWarn }: {
   const isBoolean = def.type === "boolean";
   const isRating = def.type === "rating";
 
+  // Calculate streak (consecutive days meeting goal, excluding today)
+  const streak = def.dailyGoal ? (() => {
+    let count = 0;
+    // weekData is [6 days ago ... yesterday, today] — check from yesterday backwards
+    for (let i = weekData.length - 2; i >= 0; i--) {
+      if (weekData[i] >= def.dailyGoal!) count++;
+      else break;
+    }
+    return count;
+  })() : 0;
+
   return (
     <div className="h-[140px] rounded-xl border border-[var(--border)] bg-[var(--bg-card)] shadow-[var(--shadow)] overflow-hidden flex flex-col"
       style={{ borderLeftWidth: "4px", borderLeftColor: def.color, backgroundColor: def.color + "08" }}>
@@ -172,7 +183,10 @@ function TrackerCard({ def, todayValue, weekData, onLog, showCaffeineWarn }: {
             </button>
           </div>
         ) : (
-          <Sparkline data={weekData} color={def.color} goal={def.dailyGoal} />
+          <div>
+            <Sparkline data={weekData} color={def.color} goal={def.dailyGoal} />
+            {streak >= 2 && <p className="text-[9px] text-[var(--text-muted)] mt-0.5">🔥 {streak} day streak</p>}
+          </div>
         )}
 
         {/* Row 3: increment button */}
@@ -237,8 +251,12 @@ function ManagePanel({ definitions, onClose, onAdd, onUpdate, onDelete }: {
   const handlePreset = async (key: string) => {
     const preset = PERSONA_PRESETS[key];
     if (!preset) return;
+    const existingNames = definitions.map(d => d.name.toLowerCase());
     for (const t of preset.trackers) {
+      // Skip duplicates (case-insensitive name match)
+      if (existingNames.includes(t.name.toLowerCase())) continue;
       await onAdd({ ...t, order: definitions.length });
+      existingNames.push(t.name.toLowerCase());
     }
     setPresetPreview(null);
   };

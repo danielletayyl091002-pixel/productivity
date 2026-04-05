@@ -111,6 +111,29 @@ export interface Pomodoro {
   date: string;
 }
 
+// ─── Goals ──────────────────────────────────────────────────────────
+export type GoalCategory = "health" | "career" | "learning" | "finance" | "personal";
+export type GoalTimeframe = "weekly" | "monthly" | "quarterly" | "yearly";
+export type GoalStatus = "active" | "completed" | "paused";
+
+export interface Goal {
+  id: string;
+  title: string;
+  description: string;
+  category: GoalCategory;
+  timeframe: GoalTimeframe;
+  targetValue: number | null;
+  currentValue: number;
+  unit: string | null;
+  linkedTrackerIds: string[];
+  linkedTaskIds: string[];
+  color: string;
+  emoji: string;
+  createdAt: string;
+  dueDate: string | null;
+  status: GoalStatus;
+}
+
 // ─── Daily Priorities ────────────────────────────────────────────────
 export interface DailyPriority {
   id: string;
@@ -139,11 +162,12 @@ export class FluentDB extends Dexie {
   timerSessions!: EntityTable<TimerSession, "id">;
   pomodoros!: EntityTable<Pomodoro, "id">;
   dailyPriorities!: EntityTable<DailyPriority, "id">;
+  goals!: EntityTable<Goal, "id">;
   settings!: EntityTable<Setting, "id">;
 
   constructor() {
     super("fluent");
-    this.version(3).stores({
+    this.version(4).stores({
       tasks: "id, title, status, columnId, dueDate, priority, scheduledStart, createdAt, updatedAt, parentId, *tags",
       columns: "id, name, order",
       events: "id, title, startTime, endTime, date, taskId",
@@ -153,6 +177,7 @@ export class FluentDB extends Dexie {
       timerSessions: "id, taskId, startedAt",
       pomodoros: "id, taskId, date",
       dailyPriorities: "id, date, slot, completed",
+      goals: "id, title, category, timeframe, status, createdAt",
       settings: "id, key",
     });
   }

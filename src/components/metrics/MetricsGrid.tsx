@@ -104,7 +104,8 @@ function MetricCard({ icon, label, value, sub, trend, color, bold, history }: {
   icon: React.ReactNode; label: string; value: string; sub: string; trend?: string; color: string; bold?: boolean; history?: number[];
 }) {
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 shadow-[var(--shadow)]">
+    <div className="rounded-xl bg-[var(--bg-card)] p-3 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden"
+      style={{ borderTop: `3px solid ${color}` }}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-[11px] font-medium text-[var(--text-muted)]">{label}</span>
         <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: color + "15", color }}>

@@ -5,7 +5,7 @@ import { useSettings } from "@/stores/settings";
 import { useTimer } from "@/stores/timer";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Sun, Moon, Settings, Timer, Square, FileText, LayoutDashboard } from "lucide-react";
+import { Sun, Moon, Settings, Timer, Square, FileText, LayoutDashboard, Target, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import TimerModal from "@/components/timer/TimerModal";
 import InterruptionPopup from "@/components/timer/InterruptionPopup";
@@ -90,6 +90,10 @@ export default function TopBar({ onSettingsClick, onTimerClick, timerModalOpen, 
             <Link href="/notes" className={cn("flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] font-medium transition-colors",
               pathname === "/notes" ? "bg-[var(--color-primary-light)] text-[var(--color-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)]")}>
               <FileText className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Notes</span>
+            </Link>
+            <Link href="/review" className={cn("flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] font-medium transition-colors",
+              pathname === "/review" ? "bg-[var(--color-primary-light)] text-[var(--color-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)]")}>
+              <BookOpen className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Review</span>
             </Link>
           </div>
         </div>

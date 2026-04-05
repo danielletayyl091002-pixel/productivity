@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useCallback, useEffect } from "react";
+import { useMemo, useRef, useState, useCallback, useLayoutEffect } from "react";
 import { cn } from "@/lib/utils";
 import { format, startOfWeek, addDays, isToday, getMonth } from "date-fns";
 import type { Task, CalendarEvent } from "@/db/schema";
@@ -39,16 +39,17 @@ export default function WeekCalendar({ currentDate, tasks, events, onSlotClick, 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const nowHour = new Date().getHours();
 
-  // Auto-scroll to 8am after DOM paints
-  useEffect(() => {
-    const timer = setTimeout(() => {
+  // Auto-scroll to 8am — useLayoutEffect + rAF ensures DOM is painted
+  useLayoutEffect(() => {
+    requestAnimationFrame(() => {
       if (scrollRef.current) {
-        const scrollTo = (8 - START_HOUR) * SLOT_H; // (8-6)*52 = 104px
+        const totalHours = END_HOUR - START_HOUR;
+        const hourHeight = scrollRef.current.scrollHeight / totalHours;
+        const scrollTo = (8 - START_HOUR) * hourHeight;
         scrollRef.current.scrollTop = scrollTo;
-        console.log("[Calendar] scrollTop set to", scrollTo);
+        console.log("[Calendar] scroll set to", scrollTo, "hourHeight:", hourHeight);
       }
-    }, 100);
-    return () => clearTimeout(timer);
+    });
   }, []);
 
   // Merge tasks and events into unified calendar items
