@@ -55,6 +55,8 @@ export interface Note {
 }
 
 // ─── Trackers ───────────────────────────────────────────────────────
+export type TrackerType = "number" | "duration" | "select" | "habit" | "currency" | "rating" | "journal" | "counter" | "goal";
+
 export interface TrackerDefinition {
   id: string;
   name: string;
@@ -63,8 +65,9 @@ export interface TrackerDefinition {
   icon: string;
   color: string;
   order: number;
-  type: "number" | "duration" | "select";
+  type: TrackerType;
   selectOptions?: string[];
+  category?: string; // health, finance, productivity, personal, custom
 }
 
 export interface TrackerLog {
