@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useGoals } from "@/stores/goals";
+import { useTrackers } from "@/stores/trackers";
 import { format, subDays, startOfWeek } from "date-fns";
 import { ChevronDown, ChevronUp, Save } from "lucide-react";
 
@@ -53,6 +54,12 @@ export default function ReviewPage() {
 
   const activeGoals = goals.filter(g => g.status === "active");
 
+  // Tracker weekly summary
+  const { definitions: trackerDefs, getWeekData, loaded: trackersLoaded, load: loadTrackers } = useTrackers();
+  useEffect(() => { if (!trackersLoaded) loadTrackers(); }, [trackersLoaded, loadTrackers]);
+
+  const trackersWithGoals = trackerDefs.filter(t => t.dailyGoal);
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -87,6 +94,47 @@ export default function ReviewPage() {
           )}
         </div>
       )}
+
+      {/* Last Week at a Glance */}
+      <div className="rounded-xl bg-gray-50 p-4">
+        <h3 className="text-sm font-semibold text-gray-500 tracking-wide mb-3">Last Week at a Glance</h3>
+        {trackersWithGoals.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-4">Set up trackers with daily goals to see your weekly summary here</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {trackersWithGoals.map(tracker => {
+              const weekData = getWeekData(tracker.id);
+              // Use days 0-6 (last 7 including today for display — the function returns 7 days ending today)
+              const daysHit = weekData.filter(d => tracker.dailyGoal && d.value >= tracker.dailyGoal).length;
+              const avg = weekData.reduce((s, d) => s + d.value, 0) / 7;
+              return (
+                <div key={tracker.id} className="flex items-center gap-3">
+                  <span className="text-base shrink-0">{tracker.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-700 truncate">{tracker.name}</p>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      {weekData.map((d, i) => (
+                        <div key={i}
+                          className="h-2 w-2 rounded-full"
+                          style={{
+                            backgroundColor: tracker.dailyGoal && d.value >= tracker.dailyGoal ? tracker.color : "transparent",
+                            border: tracker.dailyGoal && d.value >= tracker.dailyGoal ? "none" : "2px solid #E5E7EB"
+                          }} />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs text-gray-500">{avg.toFixed(1)} {tracker.unit}</p>
+                    <p className={`text-xs font-medium ${daysHit >= 5 ? "text-green-600" : daysHit >= 3 ? "text-amber-600" : "text-red-500"}`}>
+                      {daysHit}/7 days
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Questions */}
       {QUESTIONS.map((question, i) => (

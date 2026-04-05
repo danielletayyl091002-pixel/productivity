@@ -7,6 +7,7 @@ import { Plus, Minus, Pencil, Trash2, Settings2, X, Check, GripVertical, Eye, Ey
 import { format, subDays } from "date-fns";
 import type { TrackerDefinition, TrackerType, TrackerCategory } from "@/db/schema";
 import { TRACKER_COLORS } from "@/db/schema";
+import TrackerHistoryModal from "./TrackerHistoryModal";
 
 // ─── Persona presets ───
 const PERSONA_PRESETS: Record<string, { label: string; trackers: Omit<TrackerDefinition, "id">[] }> = {
@@ -59,6 +60,7 @@ function Sparkline({ data, color, goal }: { data: number[]; color: string; goal:
 export default function TrackerGrid() {
   const { definitions, loaded, load, addDefinition, deleteDefinition, updateDefinition, addLog, getTodayValue, getWeekData } = useTrackers();
   const [manageOpen, setManageOpen] = useState(false);
+  const [historyTrackerId, setHistoryTrackerId] = useState<string | null>(null);
 
   useEffect(() => { if (!loaded) load(); }, [loaded, load]);
 
@@ -108,7 +110,8 @@ export default function TrackerGrid() {
           {visible.map(def => (
             <TrackerCard key={def.id} def={def} todayValue={getTodayValue(def.id)}
               weekData={getWeekData(def.id).map(d => d.value)} onLog={v => addLog(def.id, v)}
-              showCaffeineWarn={showCaffeineWarn && def.id === caffeineTracker?.id} />
+              showCaffeineWarn={showCaffeineWarn && def.id === caffeineTracker?.id}
+              onOpenHistory={() => setHistoryTrackerId(def.id)} />
           ))}
         </div>
       )}
@@ -123,14 +126,19 @@ export default function TrackerGrid() {
           onDelete={deleteDefinition}
         />
       )}
+
+      {/* History modal */}
+      {historyTrackerId && (
+        <TrackerHistoryModal trackerId={historyTrackerId} onClose={() => setHistoryTrackerId(null)} />
+      )}
     </div>
   );
 }
 
 // ─── Tracker Card (140px fixed height) ───
-function TrackerCard({ def, todayValue, weekData, onLog, showCaffeineWarn }: {
+function TrackerCard({ def, todayValue, weekData, onLog, showCaffeineWarn, onOpenHistory }: {
   def: TrackerDefinition; todayValue: number; weekData: number[];
-  onLog: (v: number) => void; showCaffeineWarn?: boolean;
+  onLog: (v: number) => void; showCaffeineWarn?: boolean; onOpenHistory?: () => void;
 }) {
   const [customInput, setCustomInput] = useState(false);
   const [inputVal, setInputVal] = useState("");
@@ -149,7 +157,8 @@ function TrackerCard({ def, todayValue, weekData, onLog, showCaffeineWarn }: {
   })() : 0;
 
   return (
-    <div className="h-[140px] rounded-xl border border-[var(--border)] bg-[var(--bg-card)] shadow-[var(--shadow)] overflow-hidden flex flex-col"
+    <div className="h-[140px] rounded-xl border border-[var(--border)] bg-[var(--bg-card)] shadow-[var(--shadow)] overflow-hidden flex flex-col cursor-pointer hover:shadow-md transition-shadow"
+      onClick={onOpenHistory}
       style={{ borderLeftWidth: "4px", borderLeftColor: def.color, backgroundColor: def.color + "08" }}>
       <div className="flex-1 p-3 flex flex-col justify-between min-h-0">
         {/* Row 1: name + value */}
@@ -172,7 +181,7 @@ function TrackerCard({ def, todayValue, weekData, onLog, showCaffeineWarn }: {
 
         {/* Row 2: sparkline or rating dots */}
         {isRating ? (
-          <div className="flex gap-1 justify-center my-1">
+          <div className="flex gap-1 justify-center my-1" onClick={e => e.stopPropagation()}>
             {[1, 2, 3, 4, 5].map(star => (
               <button key={star} onClick={() => onLog(star)}
                 className="h-4 w-4 rounded-full border transition-all hover:scale-125"
@@ -180,7 +189,7 @@ function TrackerCard({ def, todayValue, weekData, onLog, showCaffeineWarn }: {
             ))}
           </div>
         ) : isBoolean ? (
-          <div className="flex justify-center my-1">
+          <div className="flex justify-center my-1" onClick={e => e.stopPropagation()}>
             <button onClick={() => onLog(todayValue > 0 ? -todayValue : 1)}
               className={cn("flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-semibold border transition-all",
                 todayValue > 0 ? "text-white border-transparent" : "border-[var(--border)] text-[var(--text-secondary)]")}
@@ -197,7 +206,7 @@ function TrackerCard({ def, todayValue, weekData, onLog, showCaffeineWarn }: {
 
         {/* Row 3: increment button */}
         {!isBoolean && !isRating && (
-          <div className="flex gap-1">
+          <div className="flex gap-1" onClick={e => e.stopPropagation()}>
             {customInput ? (
               <div className="flex gap-1 flex-1">
                 <input value={inputVal} onChange={e => setInputVal(e.target.value)} type="number" autoFocus

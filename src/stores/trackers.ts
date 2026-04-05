@@ -16,6 +16,8 @@ interface TrackersState {
   deleteLog: (id: string) => Promise<void>;
   getTodayValue: (trackerId: string) => number;
   getWeekData: (trackerId: string) => { date: string; value: number }[];
+  getMonthData: (trackerId: string) => { date: string; value: number }[];
+  updateLog: (trackerId: string, date: string, value: number) => Promise<void>;
 }
 
 export const useTrackers = create<TrackersState>((set, get) => ({
@@ -88,5 +90,31 @@ export const useTrackers = create<TrackersState>((set, get) => ({
       result.push({ date: d, value: dayTotal });
     }
     return result;
+  },
+
+  getMonthData: (trackerId: string) => {
+    const result: { date: string; value: number }[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = format(subDays(new Date(), i), "yyyy-MM-dd");
+      const dayTotal = get().logs
+        .filter(l => l.trackerId === trackerId && l.timestamp.startsWith(d))
+        .reduce((sum, l) => sum + l.value, 0);
+      result.push({ date: d, value: dayTotal });
+    }
+    return result;
+  },
+
+  updateLog: async (trackerId: string, date: string, value: number) => {
+    const dayLogs = get().logs.filter(l => l.trackerId === trackerId && l.timestamp.startsWith(date));
+    if (dayLogs.length > 0) {
+      // Update existing log for that day
+      await db.trackerLogs.update(dayLogs[0].id, { value });
+      set(s => ({ logs: s.logs.map(l => l.id === dayLogs[0].id ? { ...l, value } : l) }));
+    } else {
+      // Create new log
+      const log: TrackerLog = { id: generateId(), trackerId, value, timestamp: `${date}T12:00:00.000Z` };
+      await db.trackerLogs.add(log);
+      set(s => ({ logs: [...s.logs, log] }));
+    }
   },
 }));
