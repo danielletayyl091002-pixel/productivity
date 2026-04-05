@@ -139,6 +139,34 @@ export default function WeekCalendar({ currentDate, tasks, events, onSlotClick, 
 
   const handleDrop = useCallback((e: React.DragEvent, date: string, hour: number) => {
     e.preventDefault();
+
+    console.log('=== DROP DEBUG ===');
+    console.log('event.clientY:', e.clientY);
+    console.log('date:', date, 'hour:', hour);
+    console.log('scrollRef.current:', scrollRef.current);
+
+    const gridEl = scrollRef.current;
+    if (gridEl) {
+      const rect = gridEl.getBoundingClientRect();
+      console.log('gridRect.top:', rect.top);
+      console.log('gridRect.height:', rect.height);
+      console.log('gridEl.scrollTop:', gridEl.scrollTop);
+      console.log('gridEl.scrollHeight:', gridEl.scrollHeight);
+      console.log('gridEl.clientHeight:', gridEl.clientHeight);
+
+      const relativeY = e.clientY - rect.top + gridEl.scrollTop;
+      console.log('relativeY:', relativeY);
+
+      const hourHeight = gridEl.scrollHeight / (END_HOUR - START_HOUR);
+      console.log('hourHeight:', hourHeight);
+      console.log('START_HOUR:', START_HOUR);
+      console.log('END_HOUR:', END_HOUR);
+
+      const rawHour = START_HOUR + (relativeY / hourHeight);
+      console.log('rawHour:', rawHour);
+    }
+    console.log('==================');
+
     const id = e.dataTransfer.getData("text/plain");
     const isTask = e.dataTransfer.getData("application/x-task");
     if (id) {
