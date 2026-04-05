@@ -32,6 +32,12 @@ function hourLabel(h: number) { return h === 0 ? "12 AM" : h < 12 ? `${h} AM` : 
 export default function WeekCalendar({ currentDate, tasks, events, onSlotClick, onEventClick, onTaskDrop, onEventDrag, onResize }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+
+  // Quick-add popover state
+  const [quickAdd, setQuickAdd] = useState<{ date: string; hour: number; x: number; y: number } | null>(null);
+  const [quickTitle, setQuickTitle] = useState("");
+  const [quickDuration, setQuickDuration] = useState(60);
+  const quickInputRef = useRef<HTMLInputElement>(null);
   const [dropTarget, setDropTarget] = useState<{ date: string; hour: number } | null>(null);
   const [creating, setCreating] = useState<{ dayIdx: number; startY: number; currentY: number } | null>(null);
 
@@ -195,6 +201,13 @@ export default function WeekCalendar({ currentDate, tasks, events, onSlotClick, 
                       isPast && "opacity-40")}
                     style={{ height: `${SLOT_H}px` }}
                     onMouseDown={(e) => handleMouseDown(e, di)}
+                    onClick={(e) => {
+                      if (!(e.target as HTMLElement).closest("[data-event]") && !creating) {
+                        setQuickAdd({ date: dateStr, hour, x: e.clientX, y: e.clientY });
+                        setQuickTitle(""); setQuickDuration(60);
+                        setTimeout(() => quickInputRef.current?.focus(), 50);
+                      }
+                    }}
                     onDragOver={(e) => handleDragOver(e, dateStr, hour)}
                     onDrop={(e) => handleDrop(e, dateStr, hour)}
                     onDragLeave={() => setDropTarget(null)}>
@@ -277,6 +290,43 @@ export default function WeekCalendar({ currentDate, tasks, events, onSlotClick, 
           })()}
         </div>
       </div>
+
+      {/* Quick-add popover */}
+      {quickAdd && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setQuickAdd(null)} />
+          <div className="fixed z-40 bg-white rounded-xl shadow-xl border border-gray-100 p-3 w-[220px]"
+            style={{ top: Math.min(quickAdd.y, window.innerHeight - 200), left: Math.min(quickAdd.x, window.innerWidth - 240) }}>
+            <input ref={quickInputRef} value={quickTitle} onChange={e => setQuickTitle(e.target.value)}
+              placeholder="Add event..."
+              onKeyDown={e => {
+                if (e.key === "Enter" && quickTitle.trim()) {
+                  onSlotClick(quickAdd.date, quickAdd.hour);
+                  setQuickAdd(null);
+                }
+                if (e.key === "Escape") setQuickAdd(null);
+              }}
+              className="w-full text-sm bg-gray-50 rounded-lg px-3 py-2 outline-none placeholder:text-gray-300 mb-2" />
+            <div className="flex gap-1 mb-2">
+              {[30, 60, 120].map(d => (
+                <button key={d} onClick={() => setQuickDuration(d)}
+                  className={cn("flex-1 py-1 rounded-md text-[10px] font-medium transition-all",
+                    quickDuration === d ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500")}>
+                  {d}m
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => { onSlotClick(quickAdd.date, quickAdd.hour); setQuickAdd(null); }}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700">
+                Create
+              </button>
+              <button onClick={() => setQuickAdd(null)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+            </div>
+            <p className="text-[9px] text-gray-300 mt-1.5">{hourLabel(quickAdd.hour)} · {format(new Date(quickAdd.date), "EEE, MMM d")}</p>
+          </div>
+        </>
+      )}
     </div>
   );
 }
