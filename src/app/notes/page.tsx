@@ -32,7 +32,7 @@ export default function NotesPage() {
   return (
     <div className="flex h-[calc(100vh-56px)] -m-6">
       {/* List panel */}
-      <div className="w-[280px] shrink-0">
+      <div className="w-[260px] shrink-0">
         <NotesList selectedId={selectedId} onSelect={setSelectedId} onNew={handleNew} />
       </div>
 

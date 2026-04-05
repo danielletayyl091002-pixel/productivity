@@ -73,11 +73,11 @@ export default function NotesList({ selectedId, onSelect, onNew }: Props) {
   const unpinned = filtered.filter(n => !n.isPinned);
 
   return (
-    <div className="flex flex-col h-full border-r border-[var(--border)] bg-[var(--bg-secondary)]">
+    <div className="flex flex-col h-full border-r border-[#F1F5F9] bg-[#FAFAFA]" style={{ width: 260 }}>
       {/* Header */}
       <div className="p-3 border-b border-[var(--border)] space-y-2 shrink-0">
         <div className="flex items-center justify-between">
-          <h2 className="text-[13px] font-bold text-[var(--text-primary)]">Notes</h2>
+          <h2 className="text-base font-semibold text-gray-800">Notes</h2>
           <button onClick={onNew}
             className="h-7 w-7 flex items-center justify-center rounded-md text-white"
             style={{ backgroundColor: "var(--color-primary)" }}>
@@ -87,7 +87,7 @@ export default function NotesList({ selectedId, onSelect, onNew }: Props) {
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search title & content..."
-            className="w-full pl-8 pr-3 py-1.5 rounded-md border border-[var(--border)] bg-[var(--bg-card)] text-[11px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--color-primary)]" />
+            className="w-full pl-8 pr-3 py-1.5 h-8 rounded-lg bg-gray-100 text-[11px] text-gray-800 outline-none placeholder:text-gray-400 border-none" />
         </div>
         <div className="flex items-center justify-between">
           <select value={sort} onChange={e => setSort(e.target.value as SortMode)}
