@@ -9,6 +9,7 @@ import KanbanBoard from "@/components/kanban/KanbanBoard";
 import PomodoroBlock from "@/components/blocks/PomodoroBlock";
 import QuickCaptureBlock from "@/components/blocks/QuickCaptureBlock";
 import MoodJournalBlock from "@/components/blocks/MoodJournalBlock";
+import FinanceBlock from "@/components/blocks/FinanceBlock";
 
 export default function HomePage() {
   return (
@@ -28,10 +29,11 @@ export default function HomePage() {
       {/* Row 2: Goals */}
       <GoalsSection />
 
-      {/* Row 3: Pomodoro + Mood Journal */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      {/* Row 3: Pomodoro + Mood + Finance */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <PomodoroBlock />
         <MoodJournalBlock />
+        <FinanceBlock />
       </div>
 
       {/* Row 4: Trackers */}

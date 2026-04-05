@@ -155,6 +155,31 @@ export interface Setting {
   value: string;
 }
 
+// ─── Finance ────────────────────────────────────────────────────────
+export interface FinanceEntry {
+  id: string;
+  type: "income" | "expense";
+  amount: number;
+  category: string;
+  date: string;
+  note: string;
+  createdAt: string;
+}
+
+export interface FinanceCategory {
+  id: string;
+  name: string;
+  color: string;
+  type: "income" | "expense" | "both";
+  isDefault: boolean;
+}
+
+export interface FinanceSetting {
+  id: string;
+  key: string;
+  value: string;
+}
+
 // ─── Database ───────────────────────────────────────────────────────
 export class FluentDB extends Dexie {
   tasks!: EntityTable<Task, "id">;
@@ -168,10 +193,13 @@ export class FluentDB extends Dexie {
   dailyPriorities!: EntityTable<DailyPriority, "id">;
   goals!: EntityTable<Goal, "id">;
   settings!: EntityTable<Setting, "id">;
+  financeEntries!: EntityTable<FinanceEntry, "id">;
+  financeCategories!: EntityTable<FinanceCategory, "id">;
+  financeSettings!: EntityTable<FinanceSetting, "id">;
 
   constructor() {
     super("fluent");
-    this.version(4).stores({
+    this.version(5).stores({
       tasks: "id, title, status, columnId, dueDate, priority, scheduledStart, createdAt, updatedAt, parentId, *tags",
       columns: "id, name, order",
       events: "id, title, startTime, endTime, date, taskId",
@@ -183,6 +211,9 @@ export class FluentDB extends Dexie {
       dailyPriorities: "id, date, slot, completed",
       goals: "id, title, category, timeframe, status, createdAt",
       settings: "id, key",
+      financeEntries: "id, type, amount, category, date, createdAt",
+      financeCategories: "id, name, type, isDefault",
+      financeSettings: "id, key",
     });
   }
 }
