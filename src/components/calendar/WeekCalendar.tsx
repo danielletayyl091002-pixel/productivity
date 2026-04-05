@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { format, startOfWeek, addDays, isToday } from "date-fns";
+import { format, startOfWeek, addDays, isToday, getMonth } from "date-fns";
 import type { Task, CalendarEvent } from "@/db/schema";
 
 interface Props {
@@ -42,7 +42,8 @@ export default function WeekCalendar({ currentDate, tasks, events, onSlotClick, 
   // Auto-scroll
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = Math.max(0, (nowHour - START_HOUR - 1) * SLOT_H);
+      // Always scroll to 8am on load for a clean morning view
+      scrollRef.current.scrollTop = Math.max(0, (8 - START_HOUR) * SLOT_H);
     }
   }, []);
 
@@ -150,12 +151,22 @@ export default function WeekCalendar({ currentDate, tasks, events, onSlotClick, 
       {/* Day headers */}
       <div className="grid grid-cols-[48px_repeat(7,1fr)] border-b border-[var(--border)]">
         <div className="p-2" />
-        {days.map(d => (
-          <div key={d.toISOString()} className={cn("py-2 text-center border-l border-[var(--border)]", isToday(d) && "bg-[var(--color-primary-light)]")}>
-            <p className={cn("text-[10px] font-medium uppercase", isToday(d) ? "text-[var(--color-primary)]" : "text-[var(--text-muted)]")}>{format(d, "EEE")}</p>
-            <p className={cn("text-sm font-bold", isToday(d) ? "text-[var(--color-primary)]" : "text-[var(--text-primary)]")}>{format(d, "d")}</p>
-          </div>
-        ))}
+        {days.map((d, i) => {
+          // Check if this day starts a new month (and isn't the first day of the week)
+          const showMonthLabel = i > 0 && getMonth(d) !== getMonth(days[i - 1]);
+          return (
+            <div key={d.toISOString()} className={cn("py-2 text-center border-l border-[var(--border)] relative", isToday(d) && "bg-[var(--color-primary-light)]")}>
+              {showMonthLabel && (
+                <div className="absolute left-0 top-0 bottom-0 flex items-center">
+                  <div className="w-px h-full bg-[var(--color-primary)]" style={{ opacity: 0.3 }} />
+                  <span className="absolute -left-3 top-0.5 text-[8px] font-semibold text-[var(--color-primary)] -rotate-90 origin-bottom-left whitespace-nowrap">{format(d, "MMM")}</span>
+                </div>
+              )}
+              <p className={cn("text-[10px] font-medium uppercase", isToday(d) ? "text-[var(--color-primary)]" : "text-[var(--text-muted)]")}>{format(d, "EEE")}</p>
+              <p className={cn("text-sm font-bold", isToday(d) ? "text-[var(--color-primary)]" : "text-[var(--text-primary)]")}>{format(d, "d")}</p>
+            </div>
+          );
+        })}
       </div>
 
       {/* Grid */}

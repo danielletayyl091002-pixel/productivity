@@ -104,6 +104,7 @@ export interface DailyPriority {
   completed: boolean;
   date: string; // YYYY-MM-DD
   slot: number; // 0, 1, or 2
+  estimatedMinutes?: number;
 }
 
 // ─── Settings ───────────────────────────────────────────────────────

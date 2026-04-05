@@ -2,7 +2,7 @@
 
 import type { Task } from "@/db/schema";
 import { cn } from "@/lib/utils";
-import { GripVertical, Calendar } from "lucide-react";
+import { GripVertical, Calendar, ArrowRight } from "lucide-react";
 
 const PRIORITY_DOT: Record<number, string> = {
   1: "bg-red-500", 2: "bg-red-400", 3: "bg-amber-400", 4: "bg-green-400", 5: "bg-green-400",
@@ -39,10 +39,11 @@ export default function UnscheduledSidebar({ tasks }: Props) {
           </div>
         ))}
         {tasks.length > 0 && (
-          <p className="text-[9px] text-[var(--text-muted)] text-center pt-2">
-            <Calendar className="h-3 w-3 inline mr-0.5" /> Drag to calendar
+          <p className="text-[9px] text-[var(--text-muted)] text-center pt-2 flex items-center justify-center gap-1">
+            <ArrowRight className="h-3 w-3 animate-[nudge_1.5s_ease-in-out_infinite]" /> Drag to calendar
           </p>
         )}
+        <style>{`@keyframes nudge { 0%,100% { transform: translateX(0); opacity: 0.5; } 50% { transform: translateX(3px); opacity: 1; } }`}</style>
       </div>
     </div>
   );

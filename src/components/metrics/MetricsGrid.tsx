@@ -6,7 +6,7 @@ import { useCalendarStore } from "@/stores/calendar";
 import { useSettings } from "@/stores/settings";
 import { cn } from "@/lib/utils";
 import { format, subDays } from "date-fns";
-import { Target, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { Target, CheckCircle, Clock, Info } from "lucide-react";
 
 export default function MetricsGrid() {
   const { sessions, pomodoros, todaySessions, weekSessions } = useTimer();
@@ -58,13 +58,15 @@ export default function MetricsGrid() {
         sub={`${completedPoms}/${dailyGoal} pomodoros`}
         trend={focusTrend}
         color="#3B82F6"
+        bold
       />
       <MetricCard
         icon={<CheckCircle className="h-4 w-4" />}
         label="Completion Rate"
-        value={tasksDueToday.length > 0 ? `${completionRate}%` : "—"}
+        value={`${completionRate}%`}
         sub={`${tasksDoneOnTime.length}/${tasksDueToday.length} tasks today`}
         color="#22C55E"
+        bold
       />
       <MetricCard
         icon={<Clock className="h-4 w-4" />}
@@ -74,9 +76,9 @@ export default function MetricsGrid() {
         color="#8B5CF6"
       />
       <MetricCard
-        icon={<AlertTriangle className="h-4 w-4" />}
+        icon={<Info className="h-4 w-4" />}
         label="Interruptions"
-        value={allSessions.length > 0 ? `${interruptionRate}%` : "—"}
+        value={`${interruptionRate}%`}
         sub={`${interruptedCount}/${allSessions.length} sessions`}
         color={interruptionRate > 50 ? "#EF4444" : interruptionRate > 25 ? "#F59E0B" : "#22C55E"}
       />
@@ -84,8 +86,8 @@ export default function MetricsGrid() {
   );
 }
 
-function MetricCard({ icon, label, value, sub, trend, color }: {
-  icon: React.ReactNode; label: string; value: string; sub: string; trend?: string; color: string;
+function MetricCard({ icon, label, value, sub, trend, color, bold }: {
+  icon: React.ReactNode; label: string; value: string; sub: string; trend?: string; color: string; bold?: boolean;
 }) {
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 shadow-[var(--shadow)]">
@@ -96,7 +98,7 @@ function MetricCard({ icon, label, value, sub, trend, color }: {
         </div>
       </div>
       <div className="flex items-end gap-1.5">
-        <p className="text-xl font-bold text-[var(--text-primary)] tabular-nums leading-none">{value}</p>
+        <p className={cn("text-xl tabular-nums leading-none text-[var(--text-primary)]", bold ? "font-extrabold" : "font-bold")}>{value}</p>
         {trend && (
           <span className={cn("text-[11px] font-semibold leading-none mb-0.5",
             trend === "up" ? "text-green-500" : trend === "down" ? "text-red-500" : "text-[var(--text-muted)]")}>

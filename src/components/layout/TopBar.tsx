@@ -97,7 +97,7 @@ export default function TopBar({ onSettingsClick, onTimerClick, timerModalOpen, 
         <div className="flex items-center gap-1.5">
           {/* Pomodoro count */}
           <div className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-[var(--text-muted)]" title={`${completed}/${dailyGoal} pomodoros today`}>
-            🍅 <span className="tabular-nums">{completed}/{dailyGoal}</span>
+            🍅 <span className="tabular-nums">{completed}/{dailyGoal}</span> <span className="text-[var(--text-muted)]">tasks</span>
           </div>
 
           {/* Active timer */}

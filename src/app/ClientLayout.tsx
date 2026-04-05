@@ -19,6 +19,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false);
   const [timerModalOpen, setTimerModalOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardName, setOnboardName] = useState("");
+  const [onboardWorkStart, setOnboardWorkStart] = useState("09:00");
+  const [onboardPomGoal, setOnboardPomGoal] = useState("8");
 
   const loadSettings = useSettings(s => s.load);
   const loadTimer = useTimer(s => s.load);
@@ -36,10 +40,24 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         console.error("Init error:", err);
       } finally {
         setReady(true);
+        // Check onboarding
+        if (!localStorage.getItem("fluent_onboarded")) {
+          setShowOnboarding(true);
+        }
       }
     }
     init();
   }, [loadSettings, loadTimer, loadTrackers]);
+
+  const handleOnboardingSubmit = () => {
+    localStorage.setItem("fluent_onboarded", "true");
+    if (onboardName) localStorage.setItem("fluent_userName", onboardName);
+    if (onboardWorkStart) localStorage.setItem("fluent_workStart", onboardWorkStart);
+    localStorage.setItem("fluent_pomodoroGoal", onboardPomGoal || "8");
+    // Also save to settings DB for timer store to use
+    setSetting("dailyGoal", onboardPomGoal || "8");
+    setShowOnboarding(false);
+  };
 
   // ─── Apply visual settings ───
   useEffect(() => {
@@ -182,6 +200,44 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         onOpenTimer={() => { setCommandOpen(false); setTimerModalOpen(true); }} />
       <QuickAddModal isOpen={quickAddOpen} onClose={() => setQuickAddOpen(false)} />
       <ShortcutHelp isOpen={shortcutHelpOpen} onClose={() => setShortcutHelpOpen(false)} />
+
+      {/* Onboarding modal */}
+      {showOnboarding && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="relative z-10 w-full max-w-sm bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shadow-[var(--shadow-lg)] overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="h-12 w-12 rounded-xl bg-[var(--color-primary)] flex items-center justify-center mx-auto mb-3 text-white text-xl font-bold">F</div>
+              <h2 className="text-lg font-bold text-[var(--text-primary)] mb-1">Welcome to Fluent</h2>
+              <p className="text-[12px] text-[var(--text-secondary)] mb-5">Let&apos;s set up your workspace</p>
+            </div>
+            <div className="px-6 pb-2 space-y-3">
+              <div>
+                <label className="text-[11px] font-medium text-[var(--text-secondary)] block mb-1">Your name</label>
+                <input value={onboardName} onChange={e => setOnboardName(e.target.value)} placeholder="e.g., Alex"
+                  className="w-full text-sm bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text-primary)] outline-none focus:border-[var(--color-primary)]" />
+              </div>
+              <div>
+                <label className="text-[11px] font-medium text-[var(--text-secondary)] block mb-1">Work start time</label>
+                <input type="time" value={onboardWorkStart} onChange={e => setOnboardWorkStart(e.target.value)}
+                  className="w-full text-sm bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text-secondary)] outline-none" />
+              </div>
+              <div>
+                <label className="text-[11px] font-medium text-[var(--text-secondary)] block mb-1">Daily pomodoro target</label>
+                <input type="number" value={onboardPomGoal} onChange={e => setOnboardPomGoal(e.target.value)} min="1" max="20"
+                  className="w-full text-sm bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text-primary)] outline-none" />
+              </div>
+            </div>
+            <div className="p-6">
+              <button onClick={handleOnboardingSubmit}
+                className="w-full py-2.5 rounded-lg text-[13px] font-semibold text-white transition-all active:scale-[0.98]"
+                style={{ backgroundColor: "var(--color-primary)" }}>
+                Get Started
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
