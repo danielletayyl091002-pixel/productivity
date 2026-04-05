@@ -166,7 +166,7 @@ export default function NoteEditor({ noteId, onBack }: Props) {
       )}
 
       {/* White content card */}
-      <div className="max-w-[860px] w-full mx-auto bg-white rounded-xl shadow-[0_1px_4px_rgba(0,0,0,0.06)] px-16 py-12 my-4 min-h-[calc(100vh-280px)] relative">
+      <div className="max-w-[900px] w-full mx-auto bg-white rounded-xl shadow-[0_1px_4px_rgba(0,0,0,0.06)] px-16 py-12 my-4 min-h-[calc(100vh-280px)] relative">
         {/* Emoji */}
         <div className="mb-4">
           <input value={emoji} onChange={e => saveEmoji(e.target.value)} placeholder="+"
