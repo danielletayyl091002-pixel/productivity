@@ -52,6 +52,10 @@ export interface Note {
   updatedAt: string;
   tags: string[];
   isPinned: boolean;
+  folderId?: string | null;
+  color?: string | null;
+  coverEmoji?: string | null;
+  template?: string | null;
 }
 
 // ─── Trackers ───────────────────────────────────────────────────────

@@ -1,250 +1,255 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNotes } from "@/stores/notes";
-import { useKanban } from "@/stores/kanban";
-import { useSettings } from "@/stores/settings";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
+import TaskList from "@tiptap/extension-task-list";
+import TaskItem from "@tiptap/extension-task-item";
+import Highlight from "@tiptap/extension-highlight";
 import { cn } from "@/lib/utils";
-import { Bold, Italic, Strikethrough, Heading1, Heading2, Heading3, List, ListOrdered, CheckSquare, Code, Quote, Save, BookmarkPlus } from "lucide-react";
-import SlashMenu from "./SlashMenu";
 import { format } from "date-fns";
+import { Bold, Italic, Highlighter, Heading1, Heading2, Code, List, ListOrdered, CheckSquare, Quote, Minus } from "lucide-react";
 
 interface Props {
   noteId: string;
 }
 
+// Slash command suggestions
+const SLASH_COMMANDS = [
+  { label: "Text", icon: "📝", desc: "Plain paragraph", command: (editor: ReturnType<typeof useEditor>) => editor?.chain().focus().setParagraph().run() },
+  { label: "Heading 1", icon: "#", desc: "Large heading", command: (editor: ReturnType<typeof useEditor>) => editor?.chain().focus().toggleHeading({ level: 1 }).run() },
+  { label: "Heading 2", icon: "##", desc: "Medium heading", command: (editor: ReturnType<typeof useEditor>) => editor?.chain().focus().toggleHeading({ level: 2 }).run() },
+  { label: "Heading 3", icon: "###", desc: "Small heading", command: (editor: ReturnType<typeof useEditor>) => editor?.chain().focus().toggleHeading({ level: 3 }).run() },
+  { label: "Bullet list", icon: "•", desc: "Unordered list", command: (editor: ReturnType<typeof useEditor>) => editor?.chain().focus().toggleBulletList().run() },
+  { label: "Numbered", icon: "1.", desc: "Ordered list", command: (editor: ReturnType<typeof useEditor>) => editor?.chain().focus().toggleOrderedList().run() },
+  { label: "To-do", icon: "☐", desc: "Task list", command: (editor: ReturnType<typeof useEditor>) => editor?.chain().focus().toggleTaskList().run() },
+  { label: "Quote", icon: "\"", desc: "Blockquote", command: (editor: ReturnType<typeof useEditor>) => editor?.chain().focus().toggleBlockquote().run() },
+  { label: "Divider", icon: "─", desc: "Horizontal rule", command: (editor: ReturnType<typeof useEditor>) => editor?.chain().focus().setHorizontalRule().run() },
+  { label: "Code", icon: "`", desc: "Code block", command: (editor: ReturnType<typeof useEditor>) => editor?.chain().focus().toggleCodeBlock().run() },
+];
+
 export default function NoteEditor({ noteId }: Props) {
   const { getById, updateNote } = useNotes();
-  const { get: getSetting, set: setSetting } = useSettings();
   const note = getById(noteId);
-
   const [title, setTitle] = useState("");
-  const [saved, setSaved] = useState(true);
-  const editorRef = useRef<HTMLDivElement>(null);
-  const initialized = useRef(false);
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Slash menu state
+  const [emoji, setEmoji] = useState("");
+  const [wordCount, setWordCount] = useState(0);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [slashOpen, setSlashOpen] = useState(false);
   const [slashFilter, setSlashFilter] = useState("");
-  const [slashPos, setSlashPos] = useState({ top: 0, left: 0 });
-  const slashStart = useRef<number | null>(null);
+  const [slashIdx, setSlashIdx] = useState(0);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialized = useRef(false);
 
-  // Init
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({ codeBlock: { HTMLAttributes: { class: "bg-[var(--bg-secondary)] rounded-lg p-3 text-sm font-mono my-2" } } }),
+      Placeholder.configure({ placeholder: "Start writing, or type '/' for commands..." }),
+      TaskList,
+      TaskItem.configure({ nested: true }),
+      Highlight.configure({ multicolor: false }),
+    ],
+    editorProps: {
+      attributes: { class: "outline-none min-h-[400px] prose prose-sm max-w-none" },
+      handleKeyDown: (_view, event) => {
+        if (event.key === "/" && !slashOpen) {
+          // Will be detected in onUpdate
+        }
+        if (slashOpen) {
+          const filtered = SLASH_COMMANDS.filter(c => c.label.toLowerCase().includes(slashFilter.toLowerCase()));
+          if (event.key === "ArrowDown") { event.preventDefault(); setSlashIdx(i => Math.min(i + 1, filtered.length - 1)); return true; }
+          if (event.key === "ArrowUp") { event.preventDefault(); setSlashIdx(i => Math.max(i - 1, 0)); return true; }
+          if (event.key === "Enter") {
+            event.preventDefault();
+            if (filtered[slashIdx]) {
+              // Delete the slash text
+              editor?.commands.deleteRange({ from: editor.state.selection.from - slashFilter.length - 1, to: editor.state.selection.from });
+              filtered[slashIdx].command(editor);
+            }
+            setSlashOpen(false);
+            setSlashFilter("");
+            return true;
+          }
+          if (event.key === "Escape") { setSlashOpen(false); setSlashFilter(""); return true; }
+          if (event.key === " ") { setSlashOpen(false); setSlashFilter(""); return false; }
+        }
+        return false;
+      },
+    },
+    onUpdate: ({ editor: e }) => {
+      // Word count
+      const text = e.getText();
+      setWordCount(text.trim() ? text.trim().split(/\s+/).length : 0);
+
+      // Slash command detection
+      const { from } = e.state.selection;
+      const textBefore = e.state.doc.textBetween(Math.max(0, from - 20), from, " ");
+      const slashMatch = textBefore.match(/\/(\w*)$/);
+      if (slashMatch) {
+        setSlashOpen(true);
+        setSlashFilter(slashMatch[1]);
+        setSlashIdx(0);
+      } else if (slashOpen) {
+        setSlashOpen(false);
+        setSlashFilter("");
+      }
+
+      // Debounced save
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => {
+        updateNote(noteId, { content: e.getHTML() });
+        setLastSaved(new Date());
+      }, 500);
+    },
+  });
+
+  // Init editor content
   useEffect(() => {
-    if (note && !initialized.current) {
+    if (note && editor && !initialized.current) {
       setTitle(note.title);
-      if (editorRef.current) editorRef.current.innerHTML = note.content;
+      setEmoji(note.coverEmoji || "");
+      if (note.content) editor.commands.setContent(note.content);
       initialized.current = true;
     }
-  }, [note]);
+  }, [note, editor]);
 
-  // Reset when note changes
+  // Reset on note change
   useEffect(() => {
     initialized.current = false;
-    if (note) {
+    if (note && editor) {
       setTitle(note.title);
-      if (editorRef.current) editorRef.current.innerHTML = note.content;
+      setEmoji(note.coverEmoji || "");
+      editor.commands.setContent(note.content || "");
       initialized.current = true;
     }
   }, [noteId]);
 
-  // Auto-save
-  const save = useCallback(() => {
-    if (!note || !editorRef.current) return;
-    updateNote(noteId, { title: title.trim() || "Untitled", content: editorRef.current.innerHTML });
-    setSaved(true);
+  const saveTitle = useCallback(() => {
+    if (note) {
+      updateNote(noteId, { title: title.trim() || "Untitled" });
+      setLastSaved(new Date());
+    }
   }, [noteId, title, note, updateNote]);
 
-  const scheduleSave = useCallback(() => {
-    setSaved(false);
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(save, 3000);
-  }, [save]);
-
-  // Save as template
-  const saveAsTemplate = async () => {
-    if (!editorRef.current) return;
-    const raw = getSetting("noteTemplates", "[]");
-    const templates = JSON.parse(raw);
-    templates.push({ name: title || "Untitled Template", content: editorRef.current.innerHTML });
-    await setSetting("noteTemplates", JSON.stringify(templates));
-    alert("Saved as template!");
+  const saveEmoji = (e: string) => {
+    setEmoji(e);
+    updateNote(noteId, { coverEmoji: e || null });
   };
-
-  // Exec command
-  const exec = useCallback((cmd: string, val?: string) => {
-    document.execCommand(cmd, false, val);
-    editorRef.current?.focus();
-    scheduleSave();
-  }, [scheduleSave]);
-
-  const insertHTML = useCallback((html: string) => {
-    document.execCommand("insertHTML", false, html);
-    editorRef.current?.focus();
-    scheduleSave();
-  }, [scheduleSave]);
-
-  // Slash commands
-  const handleInput = useCallback(() => {
-    scheduleSave();
-    if (!editorRef.current) return;
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-    const range = sel.getRangeAt(0);
-    const node = range.startContainer;
-    if (node.nodeType !== Node.TEXT_NODE) return;
-    const text = node.textContent || "";
-    const pos = range.startOffset;
-
-    // Track slash filter
-    if (slashOpen && slashStart.current !== null) {
-      setSlashFilter(text.slice(slashStart.current + 1, pos));
-      return;
-    }
-
-    // Detect /
-    if (pos > 0 && text[pos - 1] === "/") {
-      const rect = range.getBoundingClientRect();
-      setSlashPos({ top: rect.bottom + 4, left: rect.left });
-      setSlashFilter("");
-      setSlashOpen(true);
-      slashStart.current = pos - 1;
-      return;
-    }
-
-    // Markdown shortcuts
-    if (text.endsWith(" ")) {
-      const t = text.slice(0, -1);
-      if (t === "#") { node.textContent = ""; exec("formatBlock", "h1"); return; }
-      if (t === "##") { node.textContent = ""; exec("formatBlock", "h2"); return; }
-      if (t === "###") { node.textContent = ""; exec("formatBlock", "h3"); return; }
-      if (t === "-" || t === "*") { node.textContent = ""; exec("insertUnorderedList"); return; }
-      if (t === "1.") { node.textContent = ""; exec("insertOrderedList"); return; }
-      if (t === ">") { node.textContent = ""; exec("formatBlock", "blockquote"); return; }
-      if (t === "[]") { node.textContent = ""; insertHTML('<div class="todo-item"><input type="checkbox" style="margin-right:8px" /><span>To-do</span></div>'); return; }
-    }
-  }, [slashOpen, exec, insertHTML, scheduleSave]);
-
-  const handleSlashSelect = useCallback((action: () => void) => {
-    // Remove slash text
-    if (editorRef.current && slashStart.current !== null) {
-      const sel = window.getSelection();
-      if (sel && sel.rangeCount > 0) {
-        const range = sel.getRangeAt(0);
-        const node = range.startContainer;
-        if (node.nodeType === Node.TEXT_NODE) {
-          const text = node.textContent || "";
-          node.textContent = text.slice(0, slashStart.current) + text.slice(range.startOffset);
-          const nr = document.createRange();
-          nr.setStart(node, slashStart.current);
-          nr.collapse(true);
-          sel.removeAllRanges();
-          sel.addRange(nr);
-        }
-      }
-    }
-    action();
-    setSlashOpen(false);
-    slashStart.current = null;
-  }, []);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    const mod = e.metaKey || e.ctrlKey;
-    if (mod && e.key === "b") { e.preventDefault(); exec("bold"); }
-    else if (mod && e.key === "i") { e.preventDefault(); exec("italic"); }
-    else if (mod && e.key === "u") { e.preventDefault(); exec("underline"); }
-    else if (mod && e.key === "s") { e.preventDefault(); save(); }
-    if (slashOpen && (e.key === " " || e.key === "Escape")) { setSlashOpen(false); slashStart.current = null; }
-  }, [exec, save, slashOpen]);
 
   if (!note) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-[var(--text-muted)] text-sm">Select a note or create a new one</p>
+        <p className="text-[var(--text-muted)] text-sm">Select a note</p>
       </div>
     );
   }
 
-  const TOOLBAR = [
-    { icon: <Bold className="h-3.5 w-3.5" />, cmd: "bold", title: "Bold (⌘B)" },
-    { icon: <Italic className="h-3.5 w-3.5" />, cmd: "italic", title: "Italic (⌘I)" },
-    { icon: <Strikethrough className="h-3.5 w-3.5" />, cmd: "strikeThrough", title: "Strikethrough" },
-    null,
-    { icon: <Heading1 className="h-3.5 w-3.5" />, cmd: "formatBlock", val: "h1", title: "Heading 1" },
-    { icon: <Heading2 className="h-3.5 w-3.5" />, cmd: "formatBlock", val: "h2", title: "Heading 2" },
-    { icon: <Heading3 className="h-3.5 w-3.5" />, cmd: "formatBlock", val: "h3", title: "Heading 3" },
-    null,
-    { icon: <List className="h-3.5 w-3.5" />, cmd: "insertUnorderedList", title: "Bullet list" },
-    { icon: <ListOrdered className="h-3.5 w-3.5" />, cmd: "insertOrderedList", title: "Numbered list" },
-    { icon: <CheckSquare className="h-3.5 w-3.5" />, cmd: "insertHTML", val: '<div class="todo-item"><input type="checkbox" style="margin-right:8px" /><span>To-do</span></div>', title: "Checkbox" },
-    null,
-    { icon: <Code className="h-3.5 w-3.5" />, cmd: "formatBlock", val: "pre", title: "Code block" },
-    { icon: <Quote className="h-3.5 w-3.5" />, cmd: "formatBlock", val: "blockquote", title: "Quote" },
-  ];
+  const relativeTime = lastSaved ? (
+    Date.now() - lastSaved.getTime() < 5000 ? "just now" :
+    Date.now() - lastSaved.getTime() < 60000 ? `${Math.floor((Date.now() - lastSaved.getTime()) / 1000)}s ago` :
+    `${Math.floor((Date.now() - lastSaved.getTime()) / 60000)}m ago`
+  ) : "—";
+
+  const filteredSlash = SLASH_COMMANDS.filter(c => c.label.toLowerCase().includes(slashFilter.toLowerCase()));
 
   return (
-    <div className="flex-1 flex flex-col min-w-0">
-      {/* Toolbar */}
-      <div className="flex items-center gap-0.5 px-4 py-2 border-b border-[var(--border)] bg-[var(--bg-card)] flex-wrap">
-        {TOOLBAR.map((item, i) => item === null ? (
-          <div key={i} className="w-px h-4 bg-[var(--border)] mx-1" />
-        ) : (
-          <button key={i} onClick={() => item.cmd === "insertHTML" ? insertHTML(item.val!) : exec(item.cmd, item.val)} title={item.title}
-            className="h-7 w-7 flex items-center justify-center rounded-md text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors">
-            {item.icon}
-          </button>
-        ))}
-        <div className="ml-auto flex items-center gap-1.5">
-          <span className="text-[10px] text-[var(--text-muted)]">{saved ? "Saved" : "Saving..."}</span>
-          <button onClick={saveAsTemplate} title="Save as template"
-            className="h-7 w-7 flex items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]">
-            <BookmarkPlus className="h-3.5 w-3.5" />
-          </button>
-          <button onClick={save} title="Save now (⌘S)"
-            className="h-7 w-7 flex items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]">
-            <Save className="h-3.5 w-3.5" />
-          </button>
+    <div className="flex-1 flex flex-col min-w-0 h-full">
+      {/* Top area — not scrollable */}
+      <div className="px-8 pt-6 shrink-0">
+        {/* Cover emoji */}
+        <div className="flex justify-start mb-2">
+          <input value={emoji} onChange={e => saveEmoji(e.target.value)} placeholder="+"
+            className="text-5xl w-16 text-center bg-transparent outline-none cursor-pointer" title="Add cover emoji" />
         </div>
-      </div>
 
-      {/* Title */}
-      <div className="px-6 pt-5">
-        <input value={title} onChange={e => { setTitle(e.target.value); scheduleSave(); }}
-          onBlur={save} placeholder="Untitled"
-          className="w-full text-2xl font-bold text-[var(--text-primary)] bg-transparent outline-none placeholder:text-[var(--text-muted)]" />
-        <p className="text-[10px] text-[var(--text-muted)] mt-1">
-          Last edited {format(new Date(note.updatedAt), "MMM d, yyyy 'at' h:mm a")}
-        </p>
-      </div>
+        {/* Title */}
+        <input value={title} onChange={e => setTitle(e.target.value)} onBlur={saveTitle}
+          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); editor?.commands.focus(); } }}
+          placeholder="Untitled" autoFocus
+          className="w-full text-3xl font-bold text-[var(--text-primary)] bg-transparent outline-none placeholder:text-gray-300" />
 
-      {/* Editor */}
-      <div className="flex-1 overflow-y-auto px-6 py-4">
-        <div ref={editorRef} contentEditable suppressContentEditableWarning
-          onInput={handleInput} onKeyDown={handleKeyDown} onBlur={save}
-          className={cn(
-            "min-h-[300px] outline-none text-[var(--text-primary)] leading-relaxed text-[14px]",
-            "[&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mt-6 [&_h1]:mb-2",
-            "[&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2",
-            "[&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1",
-            "[&_p]:mb-2",
-            "[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-2",
-            "[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-2",
-            "[&_li]:mb-0.5",
-            "[&_blockquote]:border-l-[3px] [&_blockquote]:border-[var(--color-primary)] [&_blockquote]:pl-4 [&_blockquote]:py-1 [&_blockquote]:text-[var(--text-secondary)] [&_blockquote]:italic [&_blockquote]:my-2",
-            "[&_pre]:bg-[var(--bg-secondary)] [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:text-sm [&_pre]:font-mono [&_pre]:my-2 [&_pre]:overflow-x-auto",
-            "[&_code]:bg-[var(--bg-secondary)] [&_code]:rounded [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[13px] [&_code]:font-mono",
-            "[&_hr]:border-[var(--border)] [&_hr]:my-4",
-            "[&_.todo-item]:flex [&_.todo-item]:items-center [&_.todo-item]:gap-2 [&_.todo-item]:my-1",
-            "[&:empty]:before:content-['Type_/_for_commands...'] [&:empty]:before:text-[var(--text-muted)]",
+        {/* Metadata */}
+        <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
+          <span>Created {format(new Date(note.createdAt), "MMM d, yyyy")}</span>
+          <span>·</span>
+          <span>{wordCount} words</span>
+          {note.tags.length > 0 && (
+            <>
+              <span>·</span>
+              {note.tags.map(t => <span key={t} className="px-1.5 py-0.5 bg-[var(--bg-secondary)] rounded text-[10px]">{t}</span>)}
+            </>
           )}
-        />
+        </div>
+
+        <hr className="mt-4 border-[var(--border)]" />
       </div>
 
-      {/* Slash menu */}
-      <SlashMenu isOpen={slashOpen} filter={slashFilter} position={slashPos}
-        onSelect={handleSlashSelect} onClose={() => { setSlashOpen(false); slashStart.current = null; }}
-        exec={exec} insertHTML={insertHTML} />
+      {/* Toolbar */}
+      {editor && (
+        <div className="flex items-center gap-0.5 px-8 py-1.5 border-b border-[var(--border)] shrink-0 flex-wrap">
+          {[
+            { icon: <Bold className="h-3.5 w-3.5" />, action: () => editor.chain().focus().toggleBold().run(), active: editor.isActive("bold"), title: "Bold" },
+            { icon: <Italic className="h-3.5 w-3.5" />, action: () => editor.chain().focus().toggleItalic().run(), active: editor.isActive("italic"), title: "Italic" },
+            { icon: <Highlighter className="h-3.5 w-3.5" />, action: () => editor.chain().focus().toggleHighlight().run(), active: editor.isActive("highlight"), title: "Highlight" },
+            null,
+            { icon: <Heading1 className="h-3.5 w-3.5" />, action: () => editor.chain().focus().toggleHeading({ level: 1 }).run(), active: editor.isActive("heading", { level: 1 }), title: "H1" },
+            { icon: <Heading2 className="h-3.5 w-3.5" />, action: () => editor.chain().focus().toggleHeading({ level: 2 }).run(), active: editor.isActive("heading", { level: 2 }), title: "H2" },
+            null,
+            { icon: <List className="h-3.5 w-3.5" />, action: () => editor.chain().focus().toggleBulletList().run(), active: editor.isActive("bulletList"), title: "Bullet list" },
+            { icon: <ListOrdered className="h-3.5 w-3.5" />, action: () => editor.chain().focus().toggleOrderedList().run(), active: editor.isActive("orderedList"), title: "Numbered list" },
+            { icon: <CheckSquare className="h-3.5 w-3.5" />, action: () => editor.chain().focus().toggleTaskList().run(), active: editor.isActive("taskList"), title: "To-do" },
+            null,
+            { icon: <Quote className="h-3.5 w-3.5" />, action: () => editor.chain().focus().toggleBlockquote().run(), active: editor.isActive("blockquote"), title: "Quote" },
+            { icon: <Code className="h-3.5 w-3.5" />, action: () => editor.chain().focus().toggleCodeBlock().run(), active: editor.isActive("codeBlock"), title: "Code block" },
+            { icon: <Minus className="h-3.5 w-3.5" />, action: () => editor.chain().focus().setHorizontalRule().run(), active: false, title: "Divider" },
+          ].map((btn, i) => btn === null ? (
+            <div key={i} className="w-px h-4 bg-[var(--border)] mx-0.5" />
+          ) : (
+            <button key={i} onClick={btn.action} title={btn.title}
+              className={cn("h-7 w-7 flex items-center justify-center rounded-md text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors",
+                btn.active && "bg-[var(--color-primary-light)] text-[var(--color-primary)]")}>
+              {btn.icon}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Editor area — scrollable */}
+      <div className="flex-1 overflow-y-auto px-8 py-4 relative">
+        <EditorContent editor={editor} />
+
+        {/* Slash command menu */}
+        {slashOpen && filteredSlash.length > 0 && (
+          <div className="absolute z-50 bg-[var(--bg-card)] border border-[var(--border)] rounded-lg shadow-[var(--shadow-lg)] py-1 w-56">
+            {filteredSlash.map((cmd, i) => (
+              <button key={cmd.label}
+                onMouseEnter={() => setSlashIdx(i)}
+                onClick={() => {
+                  editor?.commands.deleteRange({ from: editor.state.selection.from - slashFilter.length - 1, to: editor.state.selection.from });
+                  cmd.command(editor);
+                  setSlashOpen(false);
+                  setSlashFilter("");
+                }}
+                className={cn("w-full flex items-center gap-3 px-3 py-2 text-left transition-colors",
+                  slashIdx === i ? "bg-[var(--color-primary-light)]" : "hover:bg-[var(--bg-hover)]")}>
+                <span className="w-6 text-center text-sm font-mono text-[var(--text-muted)]">{cmd.icon}</span>
+                <div>
+                  <p className="text-[12px] font-medium text-[var(--text-primary)]">{cmd.label}</p>
+                  <p className="text-[10px] text-[var(--text-muted)]">{cmd.desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Bottom status bar */}
+      <div className="h-8 flex items-center justify-between px-8 bg-white border-t border-[#F1F5F9] text-[10px] text-gray-400 shrink-0">
+        <span>{wordCount} words</span>
+        <span>Last saved {relativeTime}</span>
+      </div>
     </div>
   );
 }
