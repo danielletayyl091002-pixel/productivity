@@ -11,6 +11,7 @@ export default function FinancePage() {
   const [currency, setCurrency] = useState('$')
   const [showAddModal, setShowAddModal] = useState(false)
   const [addType, setAddType] = useState<'income' | 'expense'>('expense')
+  const [showCatManager, setShowCatManager] = useState(false)
   const [currentYear, setCurrentYear] = useState(2026)
   const [currentMonth, setCurrentMonth] = useState(0)
 
@@ -104,6 +105,17 @@ export default function FinancePage() {
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
+          <button
+            onClick={() => setShowCatManager(true)}
+            style={{
+              padding: '6px 16px', borderRadius: '8px',
+              border: '1px solid var(--border)',
+              background: 'var(--bg-primary)',
+              color: 'var(--text-secondary)',
+              fontSize: '13px', cursor: 'pointer'
+            }}>
+            Manage Categories
+          </button>
           <button onClick={() => { setAddType('income'); setShowAddModal(true) }}
             style={{
               padding: '6px 16px', borderRadius: '8px',
@@ -221,6 +233,14 @@ export default function FinancePage() {
             setEntries(prev => [...prev, { ...full, id: id as number }])
             setShowAddModal(false)
           }}
+        />
+      )}
+
+      {showCatManager && (
+        <CategoryManager
+          categories={categories}
+          onClose={() => setShowCatManager(false)}
+          onUpdate={(updated) => setCategories(updated)}
         />
       )}
     </div>
@@ -538,6 +558,234 @@ function AddEntryModal({ type, categories, currency, onClose, onSave }: {
             color: 'white', fontSize: '13px',
             fontWeight: 600, cursor: 'pointer'
           }}>Save Entry</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CategoryManager({
+  categories,
+  onClose,
+  onUpdate
+}: {
+  categories: FinanceCategory[]
+  onClose: () => void
+  onUpdate: (cats: FinanceCategory[]) => void
+}) {
+  const [cats, setCats] = useState(categories)
+  const [newName, setNewName] = useState('')
+  const [newColor, setNewColor] = useState('#3B82F6')
+  const [newType, setNewType] = useState<'income' | 'expense' | 'both'>('expense')
+  const [editingId, setEditingId] = useState<number | null>(null)
+
+  const PRESET_COLORS = [
+    '#EF4444', '#F97316', '#EAB308', '#22C55E',
+    '#10B981', '#06B6D4', '#3B82F6', '#8B5CF6',
+    '#EC4899', '#6B7280', '#1E293B', '#14B8A6'
+  ]
+
+  async function addCategory() {
+    if (!newName.trim()) return
+    const newCat: FinanceCategory = {
+      name: newName.trim(),
+      color: newColor,
+      type: newType,
+      isDefault: false
+    }
+    const id = await db.financeCategories.add(newCat)
+    const updated = [...cats, { ...newCat, id: id as number }]
+    setCats(updated)
+    onUpdate(updated)
+    setNewName('')
+  }
+
+  async function deleteCategory(id: number) {
+    await db.financeCategories.delete(id)
+    const updated = cats.filter(c => c.id !== id)
+    setCats(updated)
+    onUpdate(updated)
+  }
+
+  async function updateCategory(id: number, changes: Partial<FinanceCategory>) {
+    await db.financeCategories.update(id, changes)
+    const updated = cats.map(c =>
+      c.id === id ? { ...c, ...changes } : c
+    )
+    setCats(updated)
+    onUpdate(updated)
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 1000,
+      background: 'rgba(0,0,0,0.4)',
+      display: 'flex', alignItems: 'center',
+      justifyContent: 'center'
+    }} onClick={onClose}>
+      <div style={{
+        background: 'var(--bg-primary)',
+        borderRadius: '16px',
+        padding: '24px',
+        width: '480px',
+        maxHeight: '80vh',
+        overflowY: 'auto',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+      }} onClick={e => e.stopPropagation()}>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between',
+          alignItems: 'center', marginBottom: '20px' }}>
+          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700,
+            color: 'var(--text-primary)' }}>
+            Manage Categories
+          </h3>
+          <button onClick={onClose} style={{
+            background: 'none', border: 'none',
+            color: 'var(--text-tertiary)', cursor: 'pointer',
+            fontSize: '18px'
+          }}>x</button>
+        </div>
+
+        {/* Existing categories */}
+        <div style={{ marginBottom: '24px' }}>
+          {cats.map(cat => (
+            <div key={cat.id} style={{
+              display: 'flex', alignItems: 'center',
+              gap: '10px', padding: '8px 0',
+              borderBottom: '1px solid var(--border)'
+            }}>
+              <div style={{ position: 'relative' }}>
+                <div style={{
+                  width: '20px', height: '20px',
+                  borderRadius: '50%',
+                  background: cat.color,
+                  cursor: 'pointer',
+                  flexShrink: 0
+                }} onClick={() => setEditingId(
+                  editingId === cat.id ? null : cat.id ?? null
+                )} />
+                {editingId === cat.id && (
+                  <div style={{
+                    position: 'absolute', top: '24px', left: 0,
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px', padding: '8px',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(6, 1fr)',
+                    gap: '4px', zIndex: 10,
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)'
+                  }}>
+                    {PRESET_COLORS.map(color => (
+                      <div key={color} style={{
+                        width: '20px', height: '20px',
+                        borderRadius: '50%',
+                        background: color,
+                        cursor: 'pointer',
+                        border: cat.color === color
+                          ? '2px solid var(--text-primary)'
+                          : '2px solid transparent'
+                      }} onClick={() => {
+                        if (cat.id) updateCategory(cat.id, { color })
+                        setEditingId(null)
+                      }} />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <span style={{ flex: 1, fontSize: '13px',
+                color: 'var(--text-primary)' }}>
+                {cat.name}
+              </span>
+
+              <span style={{
+                fontSize: '10px', padding: '2px 6px',
+                borderRadius: '8px',
+                background: 'var(--bg-hover)',
+                color: 'var(--text-tertiary)'
+              }}>
+                {cat.type}
+              </span>
+
+              {!cat.isDefault && (
+                <button onClick={() => cat.id && deleteCategory(cat.id)}
+                  style={{
+                    background: 'none', border: 'none',
+                    color: '#EF4444', cursor: 'pointer',
+                    fontSize: '12px', padding: '2px 6px'
+                  }}>
+                  Remove
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Add new */}
+        <div style={{
+          borderTop: '1px solid var(--border)',
+          paddingTop: '16px'
+        }}>
+          <p style={{ fontSize: '12px', fontWeight: 600,
+            color: 'var(--text-tertiary)', marginBottom: '12px',
+            textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Add Category
+          </p>
+          <div style={{ display: 'flex', gap: '8px',
+            marginBottom: '8px' }}>
+            <input
+              placeholder="Category name"
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              style={{
+                flex: 1, padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border)',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                fontSize: '13px'
+              }}
+            />
+            <select value={newType}
+              onChange={e => setNewType(
+                e.target.value as 'income' | 'expense' | 'both'
+              )}
+              style={{
+                padding: '8px', borderRadius: '8px',
+                border: '1px solid var(--border)',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                fontSize: '13px'
+              }}>
+              <option value="expense">Expense</option>
+              <option value="income">Income</option>
+              <option value="both">Both</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', gap: '6px',
+            marginBottom: '12px', flexWrap: 'wrap' }}>
+            {PRESET_COLORS.map(color => (
+              <div key={color} style={{
+                width: '24px', height: '24px',
+                borderRadius: '50%', background: color,
+                cursor: 'pointer',
+                border: newColor === color
+                  ? '3px solid var(--text-primary)'
+                  : '3px solid transparent'
+              }} onClick={() => setNewColor(color)} />
+            ))}
+          </div>
+
+          <button onClick={addCategory} style={{
+            width: '100%', padding: '8px',
+            borderRadius: '8px', border: 'none',
+            background: 'var(--accent)', color: 'white',
+            fontSize: '13px', fontWeight: 600,
+            cursor: 'pointer'
+          }}>
+            Add Category
+          </button>
         </div>
       </div>
     </div>
