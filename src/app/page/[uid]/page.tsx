@@ -23,6 +23,31 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
+class SmartPointerSensor extends PointerSensor {
+  static activators = [
+    {
+      eventName: 'onPointerDown' as const,
+      handler: ({ nativeEvent: event }: {
+        nativeEvent: PointerEvent
+      }) => {
+        const target = event.target as HTMLElement
+
+        const isHandle = !!target.closest('.drag-handle')
+        if (!isHandle) return false
+
+        if (
+          target.isContentEditable ||
+          target.closest('[contenteditable="true"]')
+        ) {
+          return false
+        }
+
+        return true
+      }
+    }
+  ]
+}
+
 export default function PageCanvas() {
   const { uid } = useParams<{ uid: string }>()
   const [page, setPage] = useState<Page | null>(null)
@@ -151,11 +176,7 @@ export default function PageCanvas() {
     }, 50)
   }
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 }
-    })
-  )
+  const sensors = useSensors(useSensor(SmartPointerSensor))
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
