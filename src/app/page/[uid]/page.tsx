@@ -23,6 +23,29 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
+class SmartPointerSensor extends PointerSensor {
+  static activators = [
+    {
+      eventName: 'onPointerDown' as const,
+      handler: ({ nativeEvent: event }: {
+        nativeEvent: PointerEvent
+      }) => {
+        const target = event.target as HTMLElement
+        if (
+          target.isContentEditable ||
+          target.tagName === 'INPUT' ||
+          target.tagName === 'BUTTON' ||
+          target.tagName === 'SELECT' ||
+          target.closest('[contenteditable]')
+        ) {
+          return false
+        }
+        return true
+      }
+    }
+  ]
+}
+
 export default function PageCanvas() {
   const { uid } = useParams<{ uid: string }>()
   const [page, setPage] = useState<Page | null>(null)
@@ -152,7 +175,7 @@ export default function PageCanvas() {
   }
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(SmartPointerSensor, {
       activationConstraint: { distance: 8 }
     }),
     useSensor(KeyboardSensor, {
