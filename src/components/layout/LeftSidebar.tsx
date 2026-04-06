@@ -14,6 +14,19 @@ export default function LeftSidebar() {
     async function init() {
       await seedIfEmpty()
 
+      // One-time cleanup of duplicate untitled pages
+      const allPages = await db.pages.toArray()
+      const seen = new Set<string>()
+      for (const p of allPages) {
+        if (p.title === 'Untitled' && !p.isFavorite) {
+          if (seen.has('untitled')) {
+            if (p.id) await db.pages.delete(p.id)
+          } else {
+            seen.add('untitled')
+          }
+        }
+      }
+
       // Load pages FIRST so sidebar populates
       const all = await db.pages
         .filter(p => !p.inTrash)
@@ -21,13 +34,17 @@ export default function LeftSidebar() {
       setPages(all)
       setLoading(false)
 
+      // Debug: verify home page exists
+      const homeSetting = await db.settings
+        .where('key').equals('homePageUid').first()
+      const homePage = await db.pages
+        .where('uid').equals(homeSetting?.value || '')
+        .first()
+      console.log('home page:', homePage)
+
       // THEN redirect if on root
-      if (pathname === '/') {
-        const homeSetting = await db.settings
-          .where('key').equals('homePageUid').first()
-        if (homeSetting?.value) {
-          router.replace(`/page/${homeSetting.value}`)
-        }
+      if (pathname === '/' && homeSetting?.value) {
+        router.replace(`/page/${homeSetting.value}`)
       }
     }
     init()
@@ -41,7 +58,11 @@ export default function LeftSidebar() {
     setLoading(false)
   }
 
+  let creating = false
   async function createPage() {
+    if (creating) return
+    creating = true
+
     const uid = nanoid()
     const count = await db.pages.count()
     await db.pages.add({
@@ -56,14 +77,12 @@ export default function LeftSidebar() {
       updatedAt: new Date().toISOString()
     })
 
-    // Refetch all pages from DB
     const all = await db.pages
       .filter(p => !p.inTrash)
       .sortBy('order')
     setPages(all)
-
-    // Navigate to new page
     router.push(`/page/${uid}`)
+    creating = false
   }
 
   const favorites = pages.filter(p => p.isFavorite)
