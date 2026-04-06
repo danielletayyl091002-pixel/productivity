@@ -235,10 +235,11 @@ export default function PageCanvas() {
                 background: 'var(--bg-primary)',
                 border: '1px solid var(--border)',
                 borderRadius: '6px',
-                padding: '4px 8px',
+                padding: '4px 12px',
                 fontSize: '14px',
                 color: 'var(--text-primary)',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
+                boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                zIndex: 1000
               }}>
                 {activeBlock.content || '...'}
               </div>
