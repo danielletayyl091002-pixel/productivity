@@ -30,7 +30,7 @@ export default function LeftSidebar() {
 
   async function loadPages() {
     const all = await db.pages
-      .where('inTrash').equals(0)
+      .filter(p => !p.inTrash)
       .sortBy('order')
     setPages(all)
     setLoading(false)
@@ -42,7 +42,7 @@ export default function LeftSidebar() {
     await db.pages.add({
       uid,
       title: 'Untitled',
-      icon: '📄',
+      icon: null,
       parentUid: null,
       isFavorite: false,
       inTrash: false,
@@ -50,7 +50,14 @@ export default function LeftSidebar() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     })
-    await loadPages()
+
+    // Refetch all pages from DB
+    const all = await db.pages
+      .filter(p => !p.inTrash)
+      .sortBy('order')
+    setPages(all)
+
+    // Navigate to new page
     router.push(`/page/${uid}`)
   }
 
