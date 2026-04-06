@@ -18,8 +18,7 @@ function formatHour(h: number) {
   return `${h} AM`
 }
 
-function WeekStrip() {
-  const today = new Date()
+function WeekStrip({ today }: { today: Date }) {
   const startOnMonday = typeof window !== 'undefined' && localStorage.getItem('week_start') === 'monday'
 
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -74,10 +73,9 @@ function WeekStrip() {
   )
 }
 
-function Timeline() {
+function Timeline({ now }: { now: number }) {
   const HOUR_H = 52
   const START = 6
-  const now = new Date().getHours() + new Date().getMinutes() / 60
   const currentTop = (now - START) * HOUR_H
 
   return (
@@ -169,14 +167,32 @@ function Ring({ value, max, color, label }: {
 
 export default function RightRail() {
   const [upcoming, setUpcoming] = useState<Task[]>([])
+  const [dateStr, setDateStr] = useState('')
+  const [today, setToday] = useState<Date | null>(null)
+  const [now, setNow] = useState(0)
+
+  useEffect(() => {
+    setDateStr(new Date().toLocaleDateString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric'
+    }))
+    setToday(new Date())
+
+    const update = () => {
+      const d = new Date()
+      setNow(d.getHours() + d.getMinutes() / 60)
+    }
+    update()
+    const interval = setInterval(update, 60000)
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     async function load() {
-      const today = new Date().toISOString().split('T')[0]
+      const todayStr = new Date().toISOString().split('T')[0]
       const tasks = await db.tasks
         .filter(t => t.status !== 'done' &&
                      t.dueDate !== null &&
-                     (t.dueDate ?? '') >= today)
+                     (t.dueDate ?? '') >= todayStr)
         .sortBy('dueDate')
       setUpcoming(tasks.slice(0, 3))
     }
@@ -207,14 +223,12 @@ export default function RightRail() {
         <span style={{
           fontSize: '11px', color: 'var(--text-tertiary)'
         }}>
-          {new Date().toLocaleDateString('en-US', {
-            weekday: 'short', month: 'short', day: 'numeric'
-          })}
+          {dateStr}
         </span>
       </div>
 
-      <WeekStrip />
-      <Timeline />
+      {today && <WeekStrip today={today} />}
+      <Timeline now={now} />
 
       {/* Progress rings */}
       <div style={{
