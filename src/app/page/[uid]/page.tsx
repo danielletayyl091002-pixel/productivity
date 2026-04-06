@@ -129,15 +129,21 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
 
   function handleInput(e: React.FormEvent<HTMLDivElement>) {
     const text = e.currentTarget.textContent || ''
+    onChange(text)
+
     const slashIndex = text.lastIndexOf('/')
     if (slashIndex !== -1) {
       const query = text.slice(slashIndex + 1)
       const rect = divRef.current?.getBoundingClientRect()
-      if (rect) onSlash(query, { top: rect.bottom + 4, left: rect.left })
+      if (rect) {
+        onSlash(query, {
+          top: rect.bottom + window.scrollY + 4,
+          left: rect.left + window.scrollX
+        })
+      }
     } else {
       onSlashClose()
     }
-    onChange(text)
   }
 
   return (
