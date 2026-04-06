@@ -88,11 +88,10 @@ body {
 .ProseMirror p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #D1D5DB; pointer-events: none; float: left; height: 0; }
 
 .drag-handle {
-  opacity: 0 !important;
+  opacity: 0;
   transition: opacity 0.15s;
 }
-
 .block-wrapper:hover .drag-handle {
-  opacity: 1 !important;
+  opacity: 1;
 }
 
