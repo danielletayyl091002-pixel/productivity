@@ -89,4 +89,5 @@ body {
 
 /* Block drag handle */
 .drag-handle { opacity: 0; }
-div:hover > .drag-handle { opacity: 1; }
+.drag-handle:hover { opacity: 1 !important; }
+.block-wrapper:hover .drag-handle { opacity: 1; }

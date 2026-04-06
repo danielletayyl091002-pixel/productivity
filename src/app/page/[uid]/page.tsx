@@ -174,7 +174,7 @@ export default function PageCanvas() {
           style={{ fontSize: '2.25rem', fontWeight: 700, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-primary)', width: '100%', marginBottom: '24px' }}
         />
       </div>
-      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 80px 120px 24px' }}>
+      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 80px 120px 100px' }}>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -283,6 +283,7 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
   return (
     <div
       ref={setNodeRef}
+      className="block-wrapper"
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
@@ -295,11 +296,16 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
         {...listeners}
         style={{
           position: 'absolute',
-          left: '-20px',
+          left: '-28px',
           top: '4px',
+          width: '20px',
+          height: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           cursor: 'grab',
           color: 'var(--text-tertiary)',
-          fontSize: '14px',
+          fontSize: '16px',
           touchAction: 'none',
           opacity: 0,
           transition: 'opacity 0.15s',
