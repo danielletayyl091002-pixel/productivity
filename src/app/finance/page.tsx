@@ -619,27 +619,33 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                   {currency}{entry.amount.toFixed(2)}
                 </span>
               )}
-              {isEditing ? (
-                <select
-                  value={editForm.category}
-                  onClick={e => e.stopPropagation()}
-                  onChange={e => setEditForm(p => ({ ...p, category: e.target.value }))}
-                  style={{
-                    padding: '2px 6px', borderRadius: '4px',
-                    border: '1px solid var(--border)',
-                    background: 'var(--bg-hover)',
-                    color: 'var(--text-primary)',
-                    fontSize: '12px'
-                  }}
-                >
-                  <option value="">No category</option>
-                  {categories
-                    .filter(c => c.type === type || c.type === 'both')
-                    .map(c => (
-                      <option key={c.id} value={c.name}>{c.name}</option>
-                    ))}
-                </select>
-              ) : cat ? (
+              {isEditing ? (() => {
+                const editCat = categories.find(c => c.name === editForm.category)
+                return (
+                  <select
+                    value={editForm.category}
+                    onClick={e => e.stopPropagation()}
+                    onChange={e => setEditForm(p => ({ ...p, category: e.target.value }))}
+                    style={{
+                      padding: '3px 8px',
+                      borderRadius: '12px',
+                      border: `1px solid ${editCat?.color || 'var(--border)'}`,
+                      background: editCat ? editCat.color + '25' : 'var(--bg-hover)',
+                      color: editCat?.color || 'var(--text-secondary)',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="">No category</option>
+                    {categories
+                      .filter(c => c.type === type || c.type === 'both')
+                      .map(c => (
+                        <option key={c.id} value={c.name}>{c.name}</option>
+                      ))}
+                  </select>
+                )
+              })() : cat ? (
                 <span style={{
                   display: 'inline-block',
                   padding: '2px 8px', borderRadius: '12px',
