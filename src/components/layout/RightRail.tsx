@@ -120,15 +120,15 @@ function Timeline({ now, tasks }: { now: number, tasks: Task[] }) {
             top: `${(startHour - START + startMin / 60) * HOUR_H}px`,
             left: '44px', right: '8px',
             height: `${(endHour - startHour) * HOUR_H - 2}px`,
-            background: (task.color || '#3B82F6') + '20',
-            borderLeft: `3px solid ${task.color || '#3B82F6'}`,
+            background: 'var(--accent-light)',
+            borderLeft: `3px solid ${task.color || 'var(--accent)'}`,
             borderRadius: '4px',
             padding: '3px 6px', overflow: 'hidden',
             minHeight: '20px'
           }}>
             <span style={{
               fontSize: '10px', fontWeight: 600,
-              color: task.color || '#3B82F6'
+              color: task.color || 'var(--accent)'
             }}>{task.title}</span>
           </div>
         )

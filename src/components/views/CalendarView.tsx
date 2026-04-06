@@ -104,7 +104,7 @@ export default function CalendarView({
       scheduledDate: dateStr,
       startTime: null,
       endTime: null,
-      color: '#3B82F6',
+      color: 'var(--accent)',
       createdAt: new Date().toISOString()
     }
     await db.tasks.add(task)
