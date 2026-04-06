@@ -14,16 +14,18 @@ export default function LeftSidebar() {
     async function init() {
       await seedIfEmpty()
 
+      // Load pages first so sidebar is populated before redirect
+      await loadPages()
+
       const homeSetting = await db.settings
         .where('key').equals('homePageUid').first()
 
       console.log('homePageUid found:', homeSetting?.value)
+      console.log('pathname:', pathname)
 
-      if (homeSetting?.value) {
+      if (homeSetting?.value && pathname === '/') {
         router.replace(`/page/${homeSetting.value}`)
       }
-
-      await loadPages()
     }
     init()
   }, [pathname])
