@@ -275,6 +275,7 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
           cursor: 'grab',
           color: 'var(--text-tertiary)',
           fontSize: '14px',
+          touchAction: 'none',
           opacity: 0,
           transition: 'opacity 0.15s',
           userSelect: 'none'
@@ -380,6 +381,7 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
           data-block-uid={block.uid}
           onKeyUp={handleKeyUp}
           onKeyDown={handleKeyDown}
+          onPointerDown={(e) => e.stopPropagation()}
           style={{ flex: 1, outline: 'none', color: 'var(--text-primary)', lineHeight: 1.7, minHeight: '28px', wordBreak: 'break-word', userSelect: 'text', WebkitUserSelect: 'text', cursor: 'text', ...style }}
         />
       )}
