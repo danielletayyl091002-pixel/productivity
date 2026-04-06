@@ -26,6 +26,7 @@ export default function CalendarView({
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [showAddTask, setShowAddTask] = useState(false)
   const [newTaskTitle, setNewTaskTitle] = useState('')
+  const [hoveredDate, setHoveredDate] = useState<string | null>(null)
 
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
@@ -225,12 +226,16 @@ export default function CalendarView({
               key={dateStr}
               onClick={() => {
                 setSelectedDate(dateStr)
-                setShowAddTask(false)
+                setShowAddTask(true)
               }}
+              onMouseEnter={() => setHoveredDate(dateStr)}
+              onMouseLeave={() => setHoveredDate(null)}
               style={{
                 background: isSelected
                   ? 'var(--accent-light)'
-                  : 'var(--bg-primary)',
+                  : isToday
+                    ? 'var(--accent-light)'
+                    : isCurrentMonth ? 'var(--bg-primary)' : 'var(--bg-hover)',
                 padding: '8px',
                 minHeight: '80px',
                 cursor: 'pointer',
@@ -253,6 +258,30 @@ export default function CalendarView({
               }}>
                 {date.getDate()}
               </div>
+
+              {/* Inline add task input */}
+              {selectedDate === dateStr && showAddTask && (
+                <input
+                  autoFocus
+                  value={newTaskTitle}
+                  onChange={e => setNewTaskTitle(e.target.value)}
+                  onClick={e => e.stopPropagation()}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') addTaskOnDate(dateStr)
+                    if (e.key === 'Escape') setShowAddTask(false)
+                  }}
+                  placeholder="Add task..."
+                  style={{
+                    width: '100%', fontSize: '11px',
+                    border: '1px solid var(--accent)',
+                    borderRadius: '4px', padding: '2px 4px',
+                    background: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    boxSizing: 'border-box',
+                    marginBottom: '2px'
+                  }}
+                />
+              )}
 
               <div style={{
                 display: 'flex', flexDirection: 'column',
@@ -294,6 +323,15 @@ export default function CalendarView({
                   </div>
                 )}
               </div>
+
+              {/* Hover ghost + */}
+              {hoveredDate === dateStr && dayTasks.length === 0 && !(selectedDate === dateStr && showAddTask) && (
+                <div style={{
+                  position: 'absolute', bottom: '4px', right: '4px',
+                  fontSize: '16px', color: 'var(--text-tertiary)',
+                  opacity: 0.5, lineHeight: 1
+                }}>+</div>
+              )}
             </div>
           )
         })}
@@ -319,49 +357,16 @@ export default function CalendarView({
                 })}
             </span>
             <button
-              onClick={() => setShowAddTask(!showAddTask)}
+              onClick={() => setShowAddTask(true)}
               style={{
-                padding: '4px 12px', borderRadius: '6px',
-                border: 'none', background: 'var(--accent)',
-                color: 'white', fontSize: '12px',
-                cursor: 'pointer', fontWeight: 500
+                background: 'none', border: 'none',
+                color: 'var(--accent)', fontSize: '12px',
+                cursor: 'pointer', fontWeight: 500,
+                padding: 0
               }}>
               + Add task
             </button>
           </div>
-
-          {showAddTask && (
-            <div style={{ marginBottom: '12px',
-              display: 'flex', gap: '8px' }}>
-              <input
-                autoFocus
-                value={newTaskTitle}
-                onChange={e => setNewTaskTitle(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter')
-                    addTaskOnDate(selectedDate)
-                  if (e.key === 'Escape')
-                    setShowAddTask(false)
-                }}
-                placeholder="Task title..."
-                style={{
-                  flex: 1, padding: '6px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--accent)',
-                  background: 'var(--bg-secondary)',
-                  color: 'var(--text-primary)',
-                  fontSize: '13px'
-                }}
-              />
-              <button onClick={() => addTaskOnDate(selectedDate)}
-                style={{
-                  padding: '6px 12px', borderRadius: '8px',
-                  border: 'none', background: 'var(--accent)',
-                  color: 'white', fontSize: '12px',
-                  cursor: 'pointer'
-                }}>Add</button>
-            </div>
-          )}
 
           {getTasksForDate(selectedDate).length === 0 ? (
             <p style={{ fontSize: '13px',
