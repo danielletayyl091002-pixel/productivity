@@ -146,7 +146,7 @@ export default function PageCanvas() {
             block={block}
             onChange={content => updateBlockContent(block.uid, content)}
             onDelete={() => deleteBlock(block.uid)}
-            onEnter={() => addBlock(block.uid)}
+            onEnter={(type) => addBlock(block.uid, type)}
             onSlash={(query, pos) => setSlashMenu({ blockUid: block.uid, query, position: pos })}
             onSlashClose={() => setSlashMenu(null)}
             showSlash={slashMenu?.blockUid === block.uid}
@@ -168,7 +168,7 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
   block: Block
   onChange: (content: string) => void
   onDelete: () => void
-  onEnter: () => void
+  onEnter: (type?: Block['type']) => void
   onSlash: (query: string, pos: { top: number; left: number }) => void
   onSlashClose: () => void
   showSlash: boolean
@@ -189,7 +189,23 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
     const text = e.currentTarget.textContent || ''
-    if (e.key === 'Enter' && !showSlash) { e.preventDefault(); onEnter(); return }
+    if (e.key === 'Enter' && !showSlash) {
+      e.preventDefault()
+      // Continue same type for lists and todos
+      // But if block is empty, convert back to text
+      if (text === '') {
+        onConvert('text')
+      } else {
+        const continueTypes: Block['type'][] = [
+          'bullet', 'numbered', 'todo'
+        ]
+        const nextType = continueTypes.includes(block.type)
+          ? block.type
+          : 'text'
+        onEnter(nextType)
+      }
+      return
+    }
     if (e.key === 'Backspace' && text === '') { e.preventDefault(); onDelete(); return }
     if (e.key === 'Escape' && showSlash) { onSlashClose(); return }
   }
@@ -218,7 +234,7 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '1px 0', position: 'relative', userSelect: 'text', WebkitUserSelect: 'text' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '1px 0', position: 'relative' }}>
       {block.type === 'todo' && (
         <input type="checkbox" defaultChecked={block.checked}
           style={{ marginTop: '4px', accentColor: 'var(--accent)', flexShrink: 0 }} />
