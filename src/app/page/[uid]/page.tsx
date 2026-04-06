@@ -233,7 +233,10 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
         <span style={{ color: 'var(--text-tertiary)', marginTop: '3px', flexShrink: 0 }}>•</span>
       )}
       {block.type === 'divider' ? (
-        <hr style={{ flex: 1, border: 'none', borderTop: '1px solid var(--border)', margin: '12px 0' }} />
+        <div style={{ flex: 1, padding: '8px 0', cursor: 'pointer' }}
+          onClick={() => onEnter('text')}>
+          <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
+        </div>
       ) : (
         <div
           ref={divRef}
