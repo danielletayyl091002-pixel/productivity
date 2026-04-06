@@ -1,8 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
 import {
-  DndContext, DragOverlay, closestCenter,
+  DndContext, DragOverlay, rectIntersection,
   PointerSensor, useSensor, useSensors,
+  useDroppable,
   DragStartEvent, DragEndEvent
 } from '@dnd-kit/core'
 import {
@@ -73,33 +74,47 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
     setActiveTask(null)
     if (!over) return
 
-    const draggedTask = tasks.find(t => t.uid === active.id)
-    if (!draggedTask) return
+    const activeTaskItem = tasks.find(t => t.uid === active.id)
+    if (!activeTaskItem) return
 
     const overId = over.id as string
 
-    // Check if dropped on a column
+    // Check if dropped on column directly
     const overColumn = COLUMNS.find(c => c.id === overId)
-    if (overColumn && draggedTask.status !== overColumn.id) {
-      const newStatus = overColumn.id as Task['status']
-      if (draggedTask.id) {
-        await db.tasks.update(draggedTask.id, { status: newStatus })
+    if (overColumn) {
+      if (activeTaskItem.status !== overColumn.id) {
+        const newStatus = overColumn.id as Task['status']
+        if (activeTaskItem.id) {
+          await db.tasks.update(activeTaskItem.id, { status: newStatus })
+        }
+        setTasks(prev => prev.map(t =>
+          t.uid === activeTaskItem.uid ? { ...t, status: newStatus } : t
+        ))
+      }
+      return
+    }
+
+    // Check if dropped on a task in another column
+    const overTaskItem = tasks.find(t => t.uid === overId)
+    if (overTaskItem && overTaskItem.status !== activeTaskItem.status) {
+      const newStatus = overTaskItem.status
+      if (activeTaskItem.id) {
+        await db.tasks.update(activeTaskItem.id, { status: newStatus })
       }
       setTasks(prev => prev.map(t =>
-        t.uid === draggedTask.uid ? { ...t, status: newStatus } : t
+        t.uid === activeTaskItem.uid ? { ...t, status: newStatus } : t
       ))
       return
     }
 
-    // Dropped on another task — reorder within same column
-    const overTask = tasks.find(t => t.uid === overId)
-    if (overTask && draggedTask.status === overTask.status) {
-      const columnTasks = tasks.filter(t => t.status === draggedTask.status)
-      const oldIndex = columnTasks.findIndex(t => t.uid === active.id)
-      const newIndex = columnTasks.findIndex(t => t.uid === over.id)
-      const reordered = arrayMove(columnTasks, oldIndex, newIndex)
+    // Same column reorder
+    if (overTaskItem && overTaskItem.status === activeTaskItem.status) {
+      const colTasks = tasks.filter(t => t.status === activeTaskItem.status)
+      const oldIndex = colTasks.findIndex(t => t.uid === active.id)
+      const newIndex = colTasks.findIndex(t => t.uid === over.id)
+      const reordered = arrayMove(colTasks, oldIndex, newIndex)
       setTasks(prev => [
-        ...prev.filter(t => t.status !== draggedTask.status),
+        ...prev.filter(t => t.status !== activeTaskItem.status),
         ...reordered
       ])
     }
@@ -113,7 +128,7 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
     }}>
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={rectIntersection}
         onDragStart={(e: DragStartEvent) => {
           setActiveTask(tasks.find(t => t.uid === e.active.id) || null)
         }}
@@ -166,33 +181,35 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
               </div>
 
               {/* Cards */}
-              <SortableContext
-                items={colTasks.map(t => t.uid)}
-                strategy={verticalListSortingStrategy}
-              >
-                <div style={{
-                  display: 'flex', flexDirection: 'column',
-                  gap: '8px', minHeight: '40px'
-                }}>
-                  {colTasks.map(task => (
-                    <TaskCard key={task.uid} task={task}
-                      onDelete={async () => {
-                        if (task.id) await db.tasks.delete(task.id)
-                        setTasks(prev =>
-                          prev.filter(t => t.uid !== task.uid))
-                      }}
-                      onPriorityChange={async (priority) => {
-                        if (task.id) await db.tasks.update(
-                          task.id, { priority })
-                        setTasks(prev => prev.map(t =>
-                          t.uid === task.uid
-                            ? { ...t, priority } : t
-                        ))
-                      }}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
+              <DroppableColumn id={col.id}>
+                <SortableContext
+                  items={colTasks.map(t => t.uid)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div style={{
+                    display: 'flex', flexDirection: 'column',
+                    gap: '8px', minHeight: '40px'
+                  }}>
+                    {colTasks.map(task => (
+                      <TaskCard key={task.uid} task={task}
+                        onDelete={async () => {
+                          if (task.id) await db.tasks.delete(task.id)
+                          setTasks(prev =>
+                            prev.filter(t => t.uid !== task.uid))
+                        }}
+                        onPriorityChange={async (priority) => {
+                          if (task.id) await db.tasks.update(
+                            task.id, { priority })
+                          setTasks(prev => prev.map(t =>
+                            t.uid === task.uid
+                              ? { ...t, priority } : t
+                          ))
+                        }}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DroppableColumn>
 
               {/* Add task */}
               {addingTo === col.id ? (
@@ -353,6 +370,22 @@ function TaskCard({ task, onDelete, onPriorityChange }: {
           })}
         </div>
       )}
+    </div>
+  )
+}
+
+function DroppableColumn({ id, children }: {
+  id: string, children: React.ReactNode
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id })
+  return (
+    <div ref={setNodeRef} style={{
+      minHeight: '100px',
+      background: isOver ? 'var(--accent-light)' : 'transparent',
+      borderRadius: '8px',
+      transition: 'background 0.15s'
+    }}>
+      {children}
     </div>
   )
 }
