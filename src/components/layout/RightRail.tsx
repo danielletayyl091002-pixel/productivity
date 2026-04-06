@@ -272,7 +272,7 @@ export default function RightRail() {
     <aside style={{
       width: '280px', minWidth: '280px',
       height: '100vh',
-      borderLeft: '1px solid #E5E7EB',
+      borderLeft: '1px solid var(--border)',
       background: 'var(--bg-sidebar)',
       display: 'flex', flexDirection: 'column',
       overflow: 'hidden',
@@ -315,27 +315,24 @@ export default function RightRail() {
           top: '56px', left: '8px', right: '8px',
           zIndex: 300,
           background: 'var(--bg-primary)',
-          border: '1px solid var(--accent)',
-          borderRadius: '8px',
-          padding: '12px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
+          border: '2px solid var(--accent)',
+          borderRadius: '10px',
+          padding: '14px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.25)'
         }}>
           <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '8px'
+            display: 'flex', justifyContent: 'space-between',
+            alignItems: 'center', marginBottom: '10px'
           }}>
             <span style={{ fontSize: '12px', fontWeight: 600,
               color: 'var(--text-primary)' }}>
-              Add event at {newEvent.time}
+              Add at {newEvent.time}
             </span>
             <button onClick={() => setNewEvent(null)} style={{
               background: 'none', border: 'none',
               color: 'var(--text-tertiary)',
-              cursor: 'pointer', fontSize: '16px',
-              lineHeight: 1, padding: '0 4px'
-            }}>x</button>
+              cursor: 'pointer', fontSize: '18px', lineHeight: 1
+            }}>&times;</button>
           </div>
           <input
             autoFocus
@@ -381,7 +378,7 @@ export default function RightRail() {
           />
           <div style={{ fontSize: '10px',
             color: 'var(--text-tertiary)', marginTop: '6px' }}>
-            Enter to save · Esc to cancel
+            Enter to save &middot; Esc to cancel
           </div>
         </div>
       )}

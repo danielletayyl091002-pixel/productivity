@@ -439,7 +439,7 @@ export default function CalendarView({
                     width: '100%', fontSize: '11px',
                     border: '1px solid var(--accent)',
                     borderRadius: '4px', padding: '2px 4px',
-                    background: 'var(--bg-secondary)',
+                    background: 'transparent',
                     color: 'var(--text-primary)',
                     boxSizing: 'border-box',
                     marginBottom: '2px'
@@ -529,9 +529,9 @@ export default function CalendarView({
       {selectedDate && (
         <div style={{
           marginTop: '16px',
-          background: 'var(--bg-primary)',
+          background: 'var(--bg-secondary)',
           borderRadius: '12px',
-          border: '1px solid var(--border)',
+          borderTop: '1px solid var(--border)',
           padding: '16px'
         }}>
           <div style={{ display: 'flex',
