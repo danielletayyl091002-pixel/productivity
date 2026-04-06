@@ -247,7 +247,7 @@ export default function RightRail() {
       width: '280px',
       minWidth: '280px',
       height: '100vh',
-      borderLeft: '1px solid var(--border)',
+      borderLeft: '1px solid var(--border-light, #E5E7EB)',
       background: 'var(--bg-sidebar)',
       display: 'flex',
       flexDirection: 'column',
