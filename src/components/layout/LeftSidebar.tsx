@@ -167,6 +167,9 @@ export default function LeftSidebar() {
         borderTop: '1px solid var(--border)',
         padding: '8px'
       }}>
+        <NavLink onClick={() => router.push('/trackers')}>
+          Trackers
+        </NavLink>
         <NavLink onClick={() => router.push('/finance')}>
           Finance
         </NavLink>

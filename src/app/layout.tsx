@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import LeftSidebar from "@/components/layout/LeftSidebar";
 import RightRail from "@/components/layout/RightRail";
+import ClientLayout from "./ClientLayout";
 
 export const metadata: Metadata = {
   title: "Fluent — Your Productivity System",
@@ -19,9 +20,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           background: 'var(--bg-secondary)'
         }}>
           <LeftSidebar />
-          <main style={{ flex: 1, overflow: 'auto' }}>
-            {children}
-          </main>
+          <ClientLayout>
+            <main style={{ flex: 1, overflow: 'auto' }}>
+              {children}
+            </main>
+          </ClientLayout>
           <RightRail />
         </div>
       </body>
