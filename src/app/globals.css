@@ -87,7 +87,3 @@ body {
 .ProseMirror mark { background: #FEF08A; border-radius: 2px; padding: 0 2px; }
 .ProseMirror p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #D1D5DB; pointer-events: none; float: left; height: 0; }
 
-/* Block drag handle */
-.drag-handle { opacity: 0; }
-.block-wrapper:hover .drag-handle { opacity: 1; }
-.drag-handle:active { cursor: grabbing; }

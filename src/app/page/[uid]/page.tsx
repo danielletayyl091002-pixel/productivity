@@ -289,6 +289,7 @@ interface BlockRowProps {
 }
 
 function SortableBlockRow(props: BlockRowProps & { uid: string }) {
+  const [hovered, setHovered] = useState(false)
   const {
     attributes,
     listeners,
@@ -301,7 +302,8 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
   return (
     <div
       ref={setNodeRef}
-      className="block-wrapper"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
@@ -319,16 +321,15 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
           top: '50%',
           transform: 'translateY(-50%)',
           cursor: 'grab',
-          color: 'var(--text-tertiary)',
+          color: '#9CA3AF',
           fontSize: '14px',
-          opacity: 0,
+          opacity: hovered ? 1 : 0,
           transition: 'opacity 0.15s',
           zIndex: 50,
           userSelect: 'none',
           lineHeight: 1,
           touchAction: 'none'
         }}
-        className="drag-handle"
       >
         ⠿
       </div>
@@ -353,17 +354,16 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
     const text = e.currentTarget.textContent || ''
     if (e.key === 'Enter' && !showSlash) {
       e.preventDefault()
-      // Continue same type for lists and todos
-      // But if block is empty, convert back to text
-      if (text === '') {
+      const continueTypes: Block['type'][] =
+        ['bullet', 'numbered', 'todo']
+
+      if (text === '' && continueTypes.includes(block.type)) {
+        // Empty list item + Enter = exit list, create text
         onConvert('text')
       } else {
-        const continueTypes: Block['type'][] = [
-          'bullet', 'numbered', 'todo'
-        ]
+        // Has content OR is not a list = continue same type
         const nextType = continueTypes.includes(block.type)
-          ? block.type
-          : 'text'
+          ? block.type : 'text'
         onEnter(nextType)
       }
       return
