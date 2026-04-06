@@ -14,17 +14,20 @@ export default function LeftSidebar() {
     async function init() {
       await seedIfEmpty()
 
-      // Load pages first so sidebar is populated before redirect
-      await loadPages()
+      // Load pages FIRST so sidebar populates
+      const all = await db.pages
+        .filter(p => !p.inTrash)
+        .sortBy('order')
+      setPages(all)
+      setLoading(false)
 
-      const homeSetting = await db.settings
-        .where('key').equals('homePageUid').first()
-
-      console.log('homePageUid found:', homeSetting?.value)
-      console.log('pathname:', pathname)
-
-      if (homeSetting?.value && pathname === '/') {
-        router.replace(`/page/${homeSetting.value}`)
+      // THEN redirect if on root
+      if (pathname === '/') {
+        const homeSetting = await db.settings
+          .where('key').equals('homePageUid').first()
+        if (homeSetting?.value) {
+          router.replace(`/page/${homeSetting.value}`)
+        }
       }
     }
     init()
