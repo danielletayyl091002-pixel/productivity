@@ -89,11 +89,6 @@ export default function PageCanvas() {
         margin: '0 auto',
         padding: '60px 40px 0'
       }}>
-        {page.icon && (
-          <div style={{ fontSize: '48px', marginBottom: '12px' }}>
-            {page.icon}
-          </div>
-        )}
         <input
           defaultValue={page.title}
           onChange={e => updateTitle(e.target.value)}

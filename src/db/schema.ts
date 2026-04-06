@@ -97,7 +97,7 @@ export async function seedIfEmpty() {
   await db.pages.add({
     uid: homeUid,
     title: 'Home',
-    icon: '🏠',
+    icon: null,
     parentUid: null,
     isFavorite: true,
     inTrash: false,
