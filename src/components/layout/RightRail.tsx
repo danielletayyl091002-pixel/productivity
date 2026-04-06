@@ -3,27 +3,18 @@ import { useEffect, useState } from 'react'
 import { db, Task } from '@/db/schema'
 
 const MOCK_EVENTS = [
-  { id: '1', title: 'Morning standup', start: 9, end: 10,
-    color: '#3B82F6' },
-  { id: '2', title: 'Deep work block', start: 10, end: 12,
-    color: '#8B5CF6' },
-  { id: '3', title: 'Lunch', start: 12, end: 13,
-    color: '#10B981' },
-  { id: '4', title: 'Client call', start: 14, end: 15,
-    color: '#F59E0B' },
+  { id: '1', title: 'Morning standup', start: 9, end: 10, color: '#3B82F6' },
+  { id: '2', title: 'Deep work', start: 10, end: 12, color: '#8B5CF6' },
+  { id: '3', title: 'Lunch', start: 12, end: 13, color: '#10B981' },
+  { id: '4', title: 'Client call', start: 14, end: 15, color: '#F59E0B' },
 ]
 
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 6)
-// 6AM to 10PM
 
 function formatHour(h: number) {
   if (h === 12) return '12 PM'
   if (h > 12) return `${h - 12} PM`
   return `${h} AM`
-}
-
-function getCurrentHour() {
-  return new Date().getHours() + new Date().getMinutes() / 60
 }
 
 function WeekStrip() {
@@ -33,50 +24,38 @@ function WeekStrip() {
     d.setDate(today.getDate() - today.getDay() + i)
     return d
   })
-  const labels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-
+  const labels = ['Su','Mo','Tu','We','Th','Fr','Sa']
   return (
     <div style={{
       display: 'flex',
       justifyContent: 'space-between',
-      padding: '12px 16px 8px',
-      borderBottom: '1px solid var(--border)'
+      padding: '10px 12px 8px',
+      borderBottom: '1px solid var(--border)',
+      flexShrink: 0
     }}>
       {days.map((d, i) => {
         const isToday = d.toDateString() === today.toDateString()
         return (
           <div key={i} style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '4px'
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', gap: '3px'
           }}>
             <span style={{
-              fontSize: '10px',
-              color: 'var(--text-tertiary)',
-              fontWeight: 500
-            }}>
-              {labels[i]}
-            </span>
+              fontSize: '9px', color: 'var(--text-tertiary)',
+              fontWeight: 500, textTransform: 'uppercase'
+            }}>{labels[i]}</span>
             <div style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
+              width: '26px', height: '26px', borderRadius: '50%',
+              display: 'flex', alignItems: 'center',
               justifyContent: 'center',
               background: isToday ? 'var(--accent)' : 'transparent',
-              boxShadow: isToday
-                ? '0 0 0 3px var(--accent-light)'
-                : 'none'
+              boxShadow: isToday ? '0 0 0 3px var(--accent-light)' : 'none'
             }}>
               <span style={{
-                fontSize: '12px',
+                fontSize: '11px',
                 fontWeight: isToday ? 700 : 400,
                 color: isToday ? 'white' : 'var(--text-primary)'
-              }}>
-                {d.getDate()}
-              </span>
+              }}>{d.getDate()}</span>
             </div>
           </div>
         )
@@ -85,143 +64,95 @@ function WeekStrip() {
   )
 }
 
-function TimelineBlock() {
-  const HOUR_HEIGHT = 56
-  const START_HOUR = 6
-  const currentHour = getCurrentHour()
-  const currentTop = (currentHour - START_HOUR) * HOUR_HEIGHT
+function Timeline() {
+  const HOUR_H = 52
+  const START = 6
+  const now = new Date().getHours() + new Date().getMinutes() / 60
+  const currentTop = (now - START) * HOUR_H
 
   return (
     <div style={{
-      flex: 1,
-      overflowY: 'auto',
-      position: 'relative',
-      padding: '0 0 16px'
+      flex: 1, overflowY: 'auto', position: 'relative'
     }}>
-      {/* Hour rows */}
-      {HOURS.map(hour => (
-        <div key={hour} style={{
-          display: 'flex',
-          height: `${HOUR_HEIGHT}px`,
-          borderBottom: '1px solid var(--border-light)',
-          position: 'relative'
+      {HOURS.map(h => (
+        <div key={h} style={{
+          height: `${HOUR_H}px`,
+          borderBottom: '1px solid var(--border-light, #F1F5F9)',
+          display: 'flex', alignItems: 'flex-start'
         }}>
           <span style={{
-            fontSize: '9px',
-            color: 'var(--text-tertiary)',
-            width: '40px',
-            paddingTop: '4px',
-            paddingLeft: '8px',
-            flexShrink: 0
-          }}>
-            {formatHour(hour)}
-          </span>
+            fontSize: '9px', color: 'var(--text-tertiary)',
+            width: '36px', paddingTop: '4px',
+            paddingLeft: '8px', flexShrink: 0
+          }}>{formatHour(h)}</span>
         </div>
       ))}
 
-      {/* Events */}
-      {MOCK_EVENTS.map(event => {
-        const top = (event.start - START_HOUR) * HOUR_HEIGHT
-        const height = (event.end - event.start) * HOUR_HEIGHT
-        return (
-          <div key={event.id} style={{
-            position: 'absolute',
-            top: `${top}px`,
-            left: '48px',
-            right: '8px',
-            height: `${height - 2}px`,
-            background: event.color + '20',
-            borderLeft: `3px solid ${event.color}`,
-            borderRadius: '4px',
-            padding: '4px 6px',
-            overflow: 'hidden'
-          }}>
-            <span style={{
-              fontSize: '11px',
-              fontWeight: 600,
-              color: event.color
-            }}>
-              {event.title}
-            </span>
-          </div>
-        )
-      })}
+      {MOCK_EVENTS.map(ev => (
+        <div key={ev.id} style={{
+          position: 'absolute',
+          top: `${(ev.start - START) * HOUR_H}px`,
+          left: '44px', right: '8px',
+          height: `${(ev.end - ev.start) * HOUR_H - 2}px`,
+          background: ev.color + '18',
+          borderLeft: `3px solid ${ev.color}`,
+          borderRadius: '4px',
+          padding: '3px 6px', overflow: 'hidden'
+        }}>
+          <span style={{
+            fontSize: '10px', fontWeight: 600, color: ev.color
+          }}>{ev.title}</span>
+        </div>
+      ))}
 
-      {/* Current time line */}
-      {currentHour >= START_HOUR && currentHour <= 22 && (
+      {now >= START && now <= 22 && (
         <div style={{
           position: 'absolute',
           top: `${currentTop}px`,
-          left: '40px',
-          right: '8px',
-          height: '2px',
-          background: '#EF4444',
-          zIndex: 10
+          left: '36px', right: '8px',
+          height: '2px', background: '#EF4444', zIndex: 10
         }}>
           <div style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            background: '#EF4444',
-            position: 'absolute',
-            left: '-4px',
-            top: '-3px'
-          }} />
+            width: '8px', height: '8px', borderRadius: '50%',
+            background: '#EF4444', position: 'absolute',
+            left: '-4px', top: '-3px'
+          }}/>
         </div>
       )}
     </div>
   )
 }
 
-function ProgressRing({
-  value, max, color, label
-}: {
-  value: number, max: number,
-  color: string, label: string
+function Ring({ value, max, color, label }: {
+  value: number, max: number, color: string, label: string
 }) {
-  const r = 20
-  const circumference = 2 * Math.PI * r
-  const progress = Math.min(value / max, 1)
-  const offset = circumference * (1 - progress)
-
+  const r = 18
+  const circ = 2 * Math.PI * r
+  const offset = circ * (1 - Math.min(value / max, 1))
   return (
     <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      gap: '4px'
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', gap: '4px'
     }}>
-      <svg width="52" height="52" viewBox="0 0 52 52">
-        <circle cx="26" cy="26" r={r}
-          fill="none"
-          stroke="var(--border)"
-          strokeWidth="4"
-        />
-        <circle cx="26" cy="26" r={r}
-          fill="none"
-          stroke={color}
-          strokeWidth="4"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
+      <svg width="48" height="48" viewBox="0 0 48 48">
+        <circle cx="24" cy="24" r={r} fill="none"
+          stroke="var(--border)" strokeWidth="4"/>
+        <circle cx="24" cy="24" r={r} fill="none"
+          stroke={color} strokeWidth="4"
+          strokeDasharray={circ} strokeDashoffset={offset}
           strokeLinecap="round"
-          transform="rotate(-90 26 26)"
-          style={{ transition: 'stroke-dashoffset 0.5s ease' }}
-        />
-        <text x="26" y="30"
-          textAnchor="middle"
-          fontSize="10"
-          fontWeight="600"
+          transform="rotate(-90 24 24)"
+          style={{ transition: 'stroke-dashoffset 0.5s' }}/>
+        <text x="24" y="28" textAnchor="middle"
+          fontSize="9" fontWeight="700"
           fill="var(--text-primary)">
-          {Math.round(progress * 100)}%
+          {Math.round(Math.min(value/max,1)*100)}%
         </text>
       </svg>
       <span style={{
-        fontSize: '10px',
-        color: 'var(--text-tertiary)',
+        fontSize: '10px', color: 'var(--text-tertiary)',
         fontWeight: 500
-      }}>
-        {label}
-      </span>
+      }}>{label}</span>
     </div>
   )
 }
@@ -235,7 +166,7 @@ export default function RightRail() {
       const tasks = await db.tasks
         .filter(t => t.status !== 'done' &&
                      t.dueDate !== null &&
-                     t.dueDate >= today)
+                     (t.dueDate ?? '') >= today)
         .sortBy('dueDate')
       setUpcoming(tasks.slice(0, 3))
     }
@@ -244,35 +175,27 @@ export default function RightRail() {
 
   return (
     <aside style={{
-      width: '280px',
-      minWidth: '280px',
+      width: '280px', minWidth: '280px',
       height: '100vh',
-      borderLeft: '1px solid var(--border-light, #E5E7EB)',
+      borderLeft: '1px solid #E5E7EB',
       background: 'var(--bg-sidebar)',
-      display: 'flex',
-      flexDirection: 'column',
+      display: 'flex', flexDirection: 'column',
       overflow: 'hidden'
     }}>
       {/* Header */}
       <div style={{
-        height: '48px',
-        display: 'flex',
-        alignItems: 'center',
+        height: '48px', flexShrink: 0,
+        display: 'flex', alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 16px',
-        borderBottom: '1px solid var(--border)',
-        flexShrink: 0
+        borderBottom: '1px solid var(--border)'
       }}>
         <span style={{
-          fontSize: '13px',
-          fontWeight: 600,
+          fontSize: '13px', fontWeight: 600,
           color: 'var(--text-primary)'
-        }}>
-          Today
-        </span>
+        }}>Today</span>
         <span style={{
-          fontSize: '11px',
-          color: 'var(--text-tertiary)'
+          fontSize: '11px', color: 'var(--text-tertiary)'
         }}>
           {new Date().toLocaleDateString('en-US', {
             weekday: 'short', month: 'short', day: 'numeric'
@@ -280,43 +203,55 @@ export default function RightRail() {
         </span>
       </div>
 
-      {/* 7-day strip */}
       <WeekStrip />
+      <Timeline />
 
-      {/* Timeline */}
-      <TimelineBlock />
-
-      {/* Habit rings */}
+      {/* Progress rings */}
       <div style={{
         borderTop: '1px solid var(--border)',
-        padding: '12px 16px',
-        flexShrink: 0
+        padding: '12px 16px', flexShrink: 0
       }}>
         <div style={{
-          fontSize: '10px',
-          fontWeight: 600,
-          letterSpacing: '0.06em',
-          textTransform: 'uppercase',
-          color: 'var(--text-tertiary)',
-          marginBottom: '12px'
-        }}>
-          Daily Progress
-        </div>
+          fontSize: '10px', fontWeight: 600,
+          letterSpacing: '0.06em', textTransform: 'uppercase',
+          color: 'var(--text-tertiary)', marginBottom: '10px'
+        }}>Daily Progress</div>
         <div style={{
-          display: 'flex',
-          justifyContent: 'space-around'
+          display: 'flex', justifyContent: 'space-around'
         }}>
-          <ProgressRing
-            value={3} max={8}
-            color="#3B82F6" label="Focus" />
-          <ProgressRing
-            value={5} max={8}
-            color="#0EA5E9" label="Water" />
-          <ProgressRing
-            value={20} max={30}
-            color="#10B981" label="Exercise" />
+          <Ring value={3} max={8} color="#3B82F6" label="Focus"/>
+          <Ring value={5} max={8} color="#0EA5E9" label="Water"/>
+          <Ring value={20} max={30} color="#10B981" label="Exercise"/>
         </div>
       </div>
+
+      {/* Upcoming */}
+      {upcoming.length > 0 && (
+        <div style={{
+          borderTop: '1px solid var(--border)',
+          padding: '12px 16px', flexShrink: 0
+        }}>
+          <div style={{
+            fontSize: '10px', fontWeight: 600,
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', marginBottom: '8px'
+          }}>Upcoming</div>
+          {upcoming.map(t => (
+            <div key={t.uid} style={{
+              fontSize: '12px', color: 'var(--text-secondary)',
+              padding: '3px 0', display: 'flex',
+              alignItems: 'center', gap: '6px'
+            }}>
+              <div style={{
+                width: '6px', height: '6px',
+                borderRadius: '50%', background: t.color,
+                flexShrink: 0
+              }}/>
+              {t.title}
+            </div>
+          ))}
+        </div>
+      )}
     </aside>
   )
 }
