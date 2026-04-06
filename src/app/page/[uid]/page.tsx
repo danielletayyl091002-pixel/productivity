@@ -4,6 +4,23 @@ import { useParams } from 'next/navigation'
 import { db, Page, Block } from '@/db/schema'
 import { nanoid } from 'nanoid'
 import SlashMenu from '@/components/blocks/SlashMenu'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 export default function PageCanvas() {
   const { uid } = useParams<{ uid: string }>()
@@ -116,6 +133,31 @@ export default function PageCanvas() {
     }, 50)
   }
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 }
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates
+    })
+  )
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = blocks.findIndex(b => b.uid === active.id)
+    const newIndex = blocks.findIndex(b => b.uid === over.id)
+    const newBlocks = arrayMove(blocks, oldIndex, newIndex)
+
+    setBlocks(newBlocks)
+
+    for (let i = 0; i < newBlocks.length; i++) {
+      const b = newBlocks[i]
+      if (b.id) await db.blocks.update(b.id, { order: i })
+    }
+  }
+
   if (loading) return <div style={{ padding: '40px', color: 'var(--text-tertiary)' }}>Loading...</div>
   if (!page) return <div style={{ padding: '40px', color: 'var(--text-tertiary)' }}>Page not found</div>
 
@@ -130,21 +172,33 @@ export default function PageCanvas() {
         />
       </div>
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 80px 120px' }}>
-        {blocks.map(block => (
-          <BlockRow
-            key={block.uid}
-            block={block}
-            onChange={content => updateBlockContent(block.uid, content)}
-            onDelete={() => deleteBlock(block.uid)}
-            onEnter={(type) => addBlock(block.uid, type)}
-            onSlash={(query, pos) => setSlashMenu({ blockUid: block.uid, query, position: pos })}
-            onSlashClose={() => setSlashMenu(null)}
-            showSlash={slashMenu?.blockUid === block.uid}
-            slashQuery={slashMenu?.blockUid === block.uid ? slashMenu.query : ''}
-            slashPos={slashMenu?.position || { top: 0, left: 0 }}
-            onConvert={(type) => convertBlock(block.uid, type)}
-          />
-        ))}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={blocks.map(b => b.uid)}
+            strategy={verticalListSortingStrategy}
+          >
+            {blocks.map(block => (
+              <SortableBlockRow
+                key={block.uid}
+                uid={block.uid}
+                block={block}
+                onChange={content => updateBlockContent(block.uid, content)}
+                onDelete={() => deleteBlock(block.uid)}
+                onEnter={(type) => addBlock(block.uid, type)}
+                onSlash={(query, pos) => setSlashMenu({ blockUid: block.uid, query, position: pos })}
+                onSlashClose={() => setSlashMenu(null)}
+                showSlash={slashMenu?.blockUid === block.uid}
+                slashQuery={slashMenu?.blockUid === block.uid ? slashMenu.query : ''}
+                slashPos={slashMenu?.position || { top: 0, left: 0 }}
+                onConvert={(type) => convertBlock(block.uid, type)}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
         <div onClick={() => addBlock('text')}
           style={{ padding: '8px 0', color: 'var(--text-tertiary)', fontSize: '14px', cursor: 'text', minHeight: '40px' }}>
           {blocks.length === 0 && "Click here or type '/' to start writing..."}
@@ -154,7 +208,7 @@ export default function PageCanvas() {
   )
 }
 
-function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, showSlash, slashQuery, slashPos, onConvert }: {
+interface BlockRowProps {
   block: Block
   onChange: (content: string) => void
   onDelete: () => void
@@ -165,7 +219,52 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
   slashQuery: string
   slashPos: { top: number; left: number }
   onConvert: (type: Block['type']) => void
-}) {
+}
+
+function SortableBlockRow(props: BlockRowProps & { uid: string }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: props.uid })
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        position: 'relative'
+      }}
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        style={{
+          position: 'absolute',
+          left: '-24px',
+          top: '4px',
+          cursor: 'grab',
+          color: 'var(--text-tertiary)',
+          fontSize: '14px',
+          opacity: 0,
+          transition: 'opacity 0.15s',
+          userSelect: 'none'
+        }}
+        className="drag-handle"
+      >
+        ⠿
+      </div>
+      <BlockRow {...props} />
+    </div>
+  )
+}
+
+function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, showSlash, slashQuery, slashPos, onConvert }: BlockRowProps) {
   const divRef = useRef<HTMLDivElement>(null)
   const saveTimer = useRef<NodeJS.Timeout>(undefined)
   const style = getBlockStyle(block.type)

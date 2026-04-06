@@ -109,3 +109,7 @@ body {
 .ProseMirror ul[data-type="taskList"] li input[type="checkbox"] { width: 16px; height: 16px; margin-top: 4px; accent-color: #3B82F6; cursor: pointer; }
 .ProseMirror mark { background: #FEF08A; border-radius: 2px; padding: 0 2px; }
 .ProseMirror p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #D1D5DB; pointer-events: none; float: left; height: 0; }
+
+/* Block drag handle */
+.drag-handle { opacity: 0; }
+div:hover > .drag-handle { opacity: 1; }
