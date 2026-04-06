@@ -174,7 +174,7 @@ export default function PageCanvas() {
           style={{ fontSize: '2.25rem', fontWeight: 700, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-primary)', width: '100%', marginBottom: '24px' }}
         />
       </div>
-      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 80px 120px 100px' }}>
+      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 80px 120px 48px', position: 'relative' }}>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -292,32 +292,29 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
         position: 'relative'
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-        <div
-          {...attributes}
-          {...listeners}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            marginRight: '8px',
-            cursor: 'grab',
-            color: 'var(--text-tertiary)',
-            fontSize: '16px',
-            zIndex: 50,
-            flexShrink: 0,
-            touchAction: 'none',
-            opacity: 0,
-            transition: 'opacity 0.15s',
-            userSelect: 'none'
-          }}
-          className="drag-handle"
-        >
-          ⠿
-        </div>
-        <div style={{ flex: 1 }}>
-          <BlockRow {...props} />
-        </div>
+      <div
+        {...attributes}
+        {...listeners}
+        style={{
+          position: 'absolute',
+          left: '12px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          cursor: 'grab',
+          color: 'var(--text-tertiary)',
+          fontSize: '14px',
+          opacity: 0,
+          transition: 'opacity 0.15s',
+          zIndex: 50,
+          userSelect: 'none',
+          lineHeight: 1,
+          touchAction: 'none'
+        }}
+        className="drag-handle"
+      >
+        ⠿
       </div>
+      <BlockRow {...props} />
     </div>
   )
 }
