@@ -302,8 +302,6 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
   return (
     <div
       ref={setNodeRef}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
@@ -315,6 +313,8 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
       <div
         {...attributes}
         {...listeners}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         style={{
           position: 'absolute',
           left: '8px',
@@ -322,13 +322,17 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
           transform: 'translateY(-50%)',
           cursor: 'grab',
           color: '#9CA3AF',
-          fontSize: '14px',
-          opacity: hovered ? 1 : 0,
-          transition: 'opacity 0.15s',
+          fontSize: '20px',
+          opacity: 1,
           zIndex: 50,
           userSelect: 'none',
           lineHeight: 1,
-          touchAction: 'none'
+          touchAction: 'none',
+          width: '24px',
+          height: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}
       >
         ⠿
@@ -354,18 +358,10 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
     const text = e.currentTarget.textContent || ''
     if (e.key === 'Enter' && !showSlash) {
       e.preventDefault()
-      const continueTypes: Block['type'][] =
-        ['bullet', 'numbered', 'todo']
-
-      if (text === '' && continueTypes.includes(block.type)) {
-        // Empty list item + Enter = exit list, create text
-        onConvert('text')
-      } else {
-        // Has content OR is not a list = continue same type
-        const nextType = continueTypes.includes(block.type)
-          ? block.type : 'text'
-        onEnter(nextType)
-      }
+      onEnter(block.type === 'bullet' ||
+              block.type === 'numbered' ||
+              block.type === 'todo'
+                ? block.type : 'text')
       return
     }
     if (e.key === 'Backspace' && text === '') { e.preventDefault(); onDelete(); return }
