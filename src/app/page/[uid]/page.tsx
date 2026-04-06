@@ -45,36 +45,20 @@ export default function PageCanvas() {
       const allBlocks = await db.blocks
         .where('pageUid').equals(uid)
         .sortBy('order')
-      // Remove excessive empty blocks - keep max 1 empty at a time
-      const cleaned: Block[] = []
-      let emptyCount = 0
-
-      for (const block of allBlocks) {
-        const isEmpty = block.content.trim() === ''
-
-        if (isEmpty) {
-          emptyCount++
-          if (emptyCount <= 1) cleaned.push(block)
-          else {
-            if (block.id) await db.blocks.delete(block.id)
-          }
-        } else {
-          emptyCount = 0
-          cleaned.push(block)
-        }
+      // Delete ALL empty text blocks except one at the very end
+      const toDelete = allBlocks.filter((b, i) => {
+        const isEmpty = b.content.trim() === ''
+        const isLast = i === allBlocks.length - 1
+        return isEmpty && !isLast
+      })
+      for (const b of toDelete) {
+        if (b.id) await db.blocks.delete(b.id)
       }
-
-      // Also strip bullet chars
-      for (const block of cleaned) {
-        if (block.type === 'bullet' &&
-            /^[•·]\s*/.test(block.content) && block.id) {
-          const fix = block.content.replace(/^[•·]\s*/, '').trim()
-          await db.blocks.update(block.id, { content: fix })
-          block.content = fix
-        }
-      }
-
-      setBlocks(cleaned)
+      const remaining = allBlocks.filter(b =>
+        b.content.trim() !== '' ||
+        b === allBlocks[allBlocks.length - 1]
+      )
+      setBlocks(remaining)
 
       setLoading(false)
     }
@@ -324,6 +308,8 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
   return (
     <div
       ref={setNodeRef}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
@@ -335,17 +321,17 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
       <div
         {...attributes}
         {...listeners}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
         style={{
           position: 'absolute',
           left: '8px',
           top: '50%',
           transform: 'translateY(-50%)',
           cursor: 'grab',
-          color: '#9CA3AF',
-          fontSize: '20px',
-          opacity: 1,
+          color: '#CBD5E1',
+          fontSize: '12px',
+          opacity: hovered ? 1 : 0,
+          pointerEvents: hovered ? 'auto' as const : 'none' as const,
+          transition: 'opacity 0.15s ease',
           zIndex: 50,
           userSelect: 'none',
           lineHeight: 1,
