@@ -34,25 +34,21 @@ export default function PageCanvas() {
     setPage(prev => prev ? { ...prev, title } : null)
   }
 
-  async function addBlock(
-    afterUid?: string,
-    type: Block['type'] = 'text'
-  ) {
+  async function addBlock(afterUid?: string, type: Block['type'] = 'text') {
+    console.log('addBlock called, uid param:', uid, 'blocks:', blocks.length)
+
+    const pageUid = uid  // use the uid from useParams directly
+    // NOT blocks[0]?.pageUid — that's the bug
+
     const newUid = nanoid()
     const afterIndex = afterUid
       ? blocks.findIndex(b => b.uid === afterUid)
       : blocks.length - 1
     const newOrder = afterIndex + 1
 
-    // Shift all blocks after insertion point
-    const toUpdate = blocks.slice(newOrder)
-    for (const b of toUpdate) {
-      if (b.id) await db.blocks.update(b.id, { order: b.order + 1 })
-    }
-
     const newBlock: Block = {
       uid: newUid,
-      pageUid: uid || '',
+      pageUid: pageUid,  // fix here
       type,
       content: '',
       checked: false,
@@ -60,17 +56,19 @@ export default function PageCanvas() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
+
+    console.log('adding block:', newBlock)
     await db.blocks.add(newBlock)
 
     const updated = [...blocks]
     updated.splice(newOrder, 0, newBlock)
     setBlocks(updated)
 
-    // Focus the new block after render
     setTimeout(() => {
       const el = document.querySelector(
         `[data-block-uid="${newUid}"]`
       ) as HTMLElement
+      console.log('focusing element:', el)
       el?.focus()
     }, 50)
   }
