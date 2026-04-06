@@ -118,6 +118,7 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
   onConvert: (type: Block['type']) => void
 }) {
   const divRef = useRef<HTMLDivElement>(null)
+  const saveTimer = useRef<NodeJS.Timeout>(undefined)
   const style = getBlockStyle(block.type)
 
   // Set initial content once on mount only — DOM owns content after this
@@ -136,8 +137,12 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
 
   function handleKeyUp(e: React.KeyboardEvent<HTMLDivElement>) {
     const text = e.currentTarget.textContent || ''
-    onChange(text)
 
+    // Always save to DB (debounced to reduce writes)
+    clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => onChange(text), 500)
+
+    // Slash detection
     const slashIndex = text.lastIndexOf('/')
     if (slashIndex !== -1) {
       const query = text.slice(slashIndex + 1)
@@ -149,7 +154,7 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
         })
       }
     } else {
-      onSlashClose()
+      if (showSlash) onSlashClose()
     }
   }
 
