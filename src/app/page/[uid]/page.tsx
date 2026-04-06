@@ -22,21 +22,40 @@ export default function PageCanvas() {
       const p = await db.pages.where('uid').equals(uid).first()
       const b = await db.blocks.where('pageUid').equals(uid).sortBy('order')
       setPage(p || null)
-      // Dev cleanup: wipe junk blocks (remove after one deploy)
-      const cleaned = b.filter(block => {
-        // Keep seeded blocks and any heading blocks
-        if (block.type !== 'text') return true
-        // Keep text blocks with real content (>3 chars)
-        if (block.content.length > 3) return true
-        return false
-      })
-      const junkBlocks = b.filter(block =>
-        block.type === 'text' && block.content.length <= 3
-      )
-      for (const junk of junkBlocks) {
-        if (junk.id) await db.blocks.delete(junk.id)
+      // TEMP CLEANUP - remove after deploy
+      const existingCount = await db.blocks
+        .where('pageUid').equals(uid).count()
+      if (existingCount > 8) {
+        await db.blocks.where('pageUid').equals(uid).delete()
+        await db.blocks.bulkAdd([
+          {
+            uid: nanoid(),
+            pageUid: uid,
+            type: 'heading1',
+            content: 'Welcome to Fluent',
+            checked: false,
+            order: 0,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          },
+          {
+            uid: nanoid(),
+            pageUid: uid,
+            type: 'text',
+            content: "Type / to add a block. Press Enter to create a new line.",
+            checked: false,
+            order: 1,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        ])
+        const fresh = await db.blocks
+          .where('pageUid').equals(uid)
+          .sortBy('order')
+        setBlocks(fresh)
+      } else {
+        setBlocks(b)
       }
-      setBlocks(cleaned)
       setLoading(false)
     }
     load()
@@ -131,7 +150,7 @@ export default function PageCanvas() {
 
   return (
     <div style={{ height: '100vh', overflowY: 'auto', background: 'var(--bg-primary)' }}>
-      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '60px 48px 0' }}>
+      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '80px 80px 0' }}>
         <input
           defaultValue={page.title}
           onChange={e => updateTitle(e.target.value)}
@@ -139,7 +158,7 @@ export default function PageCanvas() {
           style={{ fontSize: '2.25rem', fontWeight: 700, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-primary)', width: '100%', marginBottom: '24px' }}
         />
       </div>
-      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 48px 120px' }}>
+      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 80px 120px' }}>
         {blocks.map(block => (
           <BlockRow
             key={block.uid}
@@ -179,7 +198,6 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
   const divRef = useRef<HTMLDivElement>(null)
   const saveTimer = useRef<NodeJS.Timeout>(undefined)
   const style = getBlockStyle(block.type)
-  console.log('block type:', block.type, 'content:', block.content)
 
   // Set initial content once on mount only — DOM owns content after this
   useEffect(() => {
