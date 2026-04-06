@@ -66,7 +66,11 @@ function WeekStrip({ today }: { today: Date }) {
   )
 }
 
-function Timeline({ now, tasks }: { now: number, tasks: Task[] }) {
+function Timeline({ now, tasks, onAddEvent }: {
+  now: number
+  tasks: Task[]
+  onAddEvent?: (time: string) => void
+}) {
   const HOUR_H = 52
   const START = 6
   const currentTop = (now - START) * HOUR_H
@@ -76,11 +80,25 @@ function Timeline({ now, tasks }: { now: number, tasks: Task[] }) {
       flex: 1, overflowY: 'auto', position: 'relative'
     }}>
       {HOURS.map(h => (
-        <div key={h} style={{
-          height: `${HOUR_H}px`,
-          borderBottom: '1px solid var(--border-light, #F1F5F9)',
-          display: 'flex', alignItems: 'flex-start'
-        }}>
+        <div key={h}
+          onClick={() => {
+            const timeStr = String(h).padStart(2, '0') + ':00'
+            onAddEvent && onAddEvent(timeStr)
+          }}
+          style={{
+            height: `${HOUR_H}px`,
+            borderBottom: '1px solid var(--border-light, #F1F5F9)',
+            display: 'flex', alignItems: 'flex-start',
+            cursor: 'pointer',
+            position: 'relative'
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(99,102,241,0.05)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'transparent'
+          }}
+        >
           <span style={{
             fontSize: '9px', color: 'var(--text-tertiary)',
             width: '36px', paddingTop: '4px',
@@ -192,6 +210,7 @@ export default function RightRail() {
   const [today, setToday] = useState<Date | null>(null)
   const [now, setNow] = useState(0)
   const [dateStr, setDateStr] = useState('')
+  const [newEvent, setNewEvent] = useState<{ time: string, title: string } | null>(null)
 
   useEffect(() => {
     const d = new Date()
@@ -257,7 +276,77 @@ export default function RightRail() {
       </div>
 
       {today && <WeekStrip today={today} />}
-      <Timeline now={now} tasks={todayTasks} />
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        {newEvent && (
+          <div style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0,
+            background: 'var(--bg-primary)',
+            border: '1px solid var(--accent)',
+            borderRadius: '8px',
+            padding: '12px',
+            zIndex: 100,
+            margin: '8px'
+          }}>
+            <div style={{ fontSize: '11px',
+              color: 'var(--text-tertiary)',
+              marginBottom: '6px' }}>
+              {newEvent.time}
+            </div>
+            <input
+              autoFocus
+              placeholder="Event title..."
+              value={newEvent.title}
+              onChange={e => setNewEvent(p =>
+                p ? { ...p, title: e.target.value } : null)}
+              onKeyDown={async e => {
+                if (e.key === 'Enter' && newEvent.title.trim()) {
+                  const { nanoid } = await import('nanoid')
+                  const todayStr = new Date().toISOString().split('T')[0]
+                  const endHour = parseInt(newEvent.time.split(':')[0]) + 1
+                  await db.tasks.add({
+                    uid: nanoid(),
+                    pageUid: 'global',
+                    title: newEvent.title.trim(),
+                    status: 'todo' as const,
+                    priority: null,
+                    dueDate: todayStr,
+                    scheduledDate: todayStr,
+                    startTime: newEvent.time,
+                    endTime: String(endHour).padStart(2, '0') + ':00',
+                    color: '#6366F1',
+                    createdAt: new Date().toISOString()
+                  })
+                  setNewEvent(null)
+                  const t = await db.tasks.filter(task =>
+                    (task.scheduledDate === todayStr || task.dueDate === todayStr) &&
+                    task.startTime !== null
+                  ).toArray()
+                  setTodayTasks(t)
+                }
+                if (e.key === 'Escape') setNewEvent(null)
+              }}
+              style={{
+                width: '100%', padding: '6px 8px',
+                borderRadius: '6px',
+                border: '1px solid var(--border)',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                fontSize: '12px', boxSizing: 'border-box'
+              }}
+            />
+            <div style={{ fontSize: '10px',
+              color: 'var(--text-tertiary)', marginTop: '4px' }}>
+              Enter to save · Esc to cancel
+            </div>
+          </div>
+        )}
+        <Timeline
+          now={now}
+          tasks={todayTasks}
+          onAddEvent={(time) => setNewEvent({ time, title: '' })}
+        />
+      </div>
 
       {/* Progress rings */}
       <div style={{
