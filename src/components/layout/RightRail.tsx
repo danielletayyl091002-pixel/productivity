@@ -42,9 +42,12 @@ function WeekStrip({ today, onDayClick, selectedDay }: {
       {days.map((d, i) => {
         const isToday = d.toDateString() === today.toDateString()
         return (
-          <div key={i} style={{
-            display: 'flex', flexDirection: 'column',
-            alignItems: 'center', gap: '3px'
+          <div key={i}
+            onClick={() => onDayClick && onDayClick(d)}
+            style={{
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', gap: '3px',
+              cursor: 'pointer'
           }}>
             <span style={{
               fontSize: '9px', color: 'var(--text-tertiary)',
@@ -272,7 +275,8 @@ export default function RightRail() {
       borderLeft: '1px solid #E5E7EB',
       background: 'var(--bg-sidebar)',
       display: 'flex', flexDirection: 'column',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      position: 'relative'
     }}>
       {/* Header */}
       <div style={{
@@ -308,13 +312,13 @@ export default function RightRail() {
       {newEvent && (
         <div style={{
           position: 'absolute',
-          top: '60px', left: '8px', right: '8px',
+          top: '56px', left: '8px', right: '8px',
+          zIndex: 300,
           background: 'var(--bg-primary)',
           border: '1px solid var(--accent)',
           borderRadius: '8px',
           padding: '12px',
-          zIndex: 200,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+          boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
         }}>
           <div style={{
             display: 'flex',
