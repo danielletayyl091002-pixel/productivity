@@ -31,13 +31,9 @@ class SmartPointerSensor extends PointerSensor {
         nativeEvent: PointerEvent
       }) => {
         const target = event.target as HTMLElement
-        if (
-          target.isContentEditable ||
-          target.tagName === 'INPUT' ||
-          target.tagName === 'BUTTON' ||
-          target.tagName === 'SELECT' ||
-          target.closest('[contenteditable]')
-        ) {
+
+        // Only activate drag from the drag handle element
+        if (!target.closest('.drag-handle')) {
           return false
         }
         return true
