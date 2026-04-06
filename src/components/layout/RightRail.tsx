@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { db, Task } from '@/db/schema'
 
+
 const MOCK_EVENTS = [
   { id: '1', title: 'Morning standup', start: 9, end: 10, color: '#3B82F6' },
   { id: '2', title: 'Deep work', start: 10, end: 12, color: '#8B5CF6' },
