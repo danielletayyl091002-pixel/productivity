@@ -34,13 +34,8 @@ export default function LeftSidebar() {
       setPages(all)
       setLoading(false)
 
-      // Debug: verify home page exists
       const homeSetting = await db.settings
         .where('key').equals('homePageUid').first()
-      const homePage = await db.pages
-        .where('uid').equals(homeSetting?.value || '')
-        .first()
-      console.log('home page:', homePage)
 
       // THEN redirect if on root
       if (pathname === '/' && homeSetting?.value) {
@@ -49,6 +44,21 @@ export default function LeftSidebar() {
     }
     init()
   }, [pathname])
+
+  useEffect(() => {
+    async function refresh() {
+      const all = await db.pages
+        .filter(p => !p.inTrash)
+        .sortBy('order')
+      setPages(all)
+    }
+    window.addEventListener('page-title-updated', refresh)
+    window.addEventListener('page-created', refresh)
+    return () => {
+      window.removeEventListener('page-title-updated', refresh)
+      window.removeEventListener('page-created', refresh)
+    }
+  }, [])
 
   async function loadPages() {
     const all = await db.pages
@@ -82,6 +92,7 @@ export default function LeftSidebar() {
       .sortBy('order')
     setPages(all)
     router.push(`/page/${uid}`)
+    window.dispatchEvent(new CustomEvent('page-created'))
     creating = false
   }
 

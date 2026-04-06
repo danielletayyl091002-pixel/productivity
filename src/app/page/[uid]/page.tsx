@@ -53,6 +53,7 @@ export default function PageCanvas() {
     if (!page?.id) return
     await db.pages.update(page.id, { title, updatedAt: new Date().toISOString() })
     setPage(prev => prev ? { ...prev, title } : null)
+    window.dispatchEvent(new CustomEvent('page-title-updated'))
   }
 
   async function addBlock(afterUid?: string, type: Block['type'] = 'text') {
