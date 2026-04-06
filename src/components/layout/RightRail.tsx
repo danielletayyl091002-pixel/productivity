@@ -303,83 +303,84 @@ export default function RightRail() {
           tasks={todayTasks}
           onAddEvent={(time) => setNewEvent({ time, title: '' })}
         />
-        {newEvent && (
-          <div style={{
-            position: 'absolute',
-            top: '8px', left: '8px', right: '8px',
-            background: 'var(--bg-primary)',
-            border: '1px solid var(--accent)',
-            borderRadius: '8px',
-            padding: '12px',
-            zIndex: 200,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '8px'
-            }}>
-              <span style={{ fontSize: '12px', fontWeight: 600,
-                color: 'var(--text-primary)' }}>
-                Add event at {newEvent.time}
-              </span>
-              <button onClick={() => setNewEvent(null)} style={{
-                background: 'none', border: 'none',
-                color: 'var(--text-tertiary)',
-                cursor: 'pointer', fontSize: '16px',
-                lineHeight: 1, padding: '0 4px'
-              }}>x</button>
-            </div>
-            <input
-              autoFocus
-              placeholder="Event title..."
-              value={newEvent.title}
-              onChange={e => setNewEvent(p =>
-                p ? { ...p, title: e.target.value } : null)}
-              onKeyDown={async e => {
-                if (e.key === 'Enter' && newEvent.title.trim()) {
-                  const { nanoid } = await import('nanoid')
-                  const todayStr = new Date().toISOString().split('T')[0]
-                  const endHour = parseInt(newEvent.time.split(':')[0]) + 1
-                  await db.tasks.add({
-                    uid: nanoid(),
-                    pageUid: 'global',
-                    title: newEvent.title.trim(),
-                    status: 'todo' as const,
-                    priority: null,
-                    dueDate: todayStr,
-                    scheduledDate: todayStr,
-                    startTime: newEvent.time,
-                    endTime: String(endHour).padStart(2, '0') + ':00',
-                    color: '#6366F1',
-                    createdAt: new Date().toISOString()
-                  })
-                  setNewEvent(null)
-                  const t = await db.tasks.filter(task =>
-                    (task.scheduledDate === todayStr || task.dueDate === todayStr) &&
-                    task.startTime !== null
-                  ).toArray()
-                  setTodayTasks(t)
-                }
-                if (e.key === 'Escape') setNewEvent(null)
-              }}
-              style={{
-                width: '100%', padding: '8px 10px',
-                borderRadius: '6px',
-                border: '1px solid var(--border)',
-                background: 'var(--bg-secondary)',
-                color: 'var(--text-primary)',
-                fontSize: '13px', boxSizing: 'border-box'
-              }}
-            />
-            <div style={{ fontSize: '10px',
-              color: 'var(--text-tertiary)', marginTop: '6px' }}>
-              Enter to save · Esc to cancel
-            </div>
-          </div>
-        )}
       </div>
+
+      {newEvent && (
+        <div style={{
+          position: 'absolute',
+          top: '60px', left: '8px', right: '8px',
+          background: 'var(--bg-primary)',
+          border: '1px solid var(--accent)',
+          borderRadius: '8px',
+          padding: '12px',
+          zIndex: 200,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '8px'
+          }}>
+            <span style={{ fontSize: '12px', fontWeight: 600,
+              color: 'var(--text-primary)' }}>
+              Add event at {newEvent.time}
+            </span>
+            <button onClick={() => setNewEvent(null)} style={{
+              background: 'none', border: 'none',
+              color: 'var(--text-tertiary)',
+              cursor: 'pointer', fontSize: '16px',
+              lineHeight: 1, padding: '0 4px'
+            }}>x</button>
+          </div>
+          <input
+            autoFocus
+            placeholder="Event title..."
+            value={newEvent.title}
+            onChange={e => setNewEvent(p =>
+              p ? { ...p, title: e.target.value } : null)}
+            onKeyDown={async e => {
+              if (e.key === 'Enter' && newEvent.title.trim()) {
+                const { nanoid } = await import('nanoid')
+                const todayStr = new Date().toISOString().split('T')[0]
+                const endHour = parseInt(newEvent.time.split(':')[0]) + 1
+                await db.tasks.add({
+                  uid: nanoid(),
+                  pageUid: 'global',
+                  title: newEvent.title.trim(),
+                  status: 'todo' as const,
+                  priority: null,
+                  dueDate: todayStr,
+                  scheduledDate: todayStr,
+                  startTime: newEvent.time,
+                  endTime: String(endHour).padStart(2, '0') + ':00',
+                  color: '#6366F1',
+                  createdAt: new Date().toISOString()
+                })
+                setNewEvent(null)
+                const t = await db.tasks.filter(task =>
+                  (task.scheduledDate === todayStr || task.dueDate === todayStr) &&
+                  task.startTime !== null
+                ).toArray()
+                setTodayTasks(t)
+              }
+              if (e.key === 'Escape') setNewEvent(null)
+            }}
+            style={{
+              width: '100%', padding: '8px 10px',
+              borderRadius: '6px',
+              border: '1px solid var(--border)',
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
+              fontSize: '13px', boxSizing: 'border-box'
+            }}
+          />
+          <div style={{ fontSize: '10px',
+            color: 'var(--text-tertiary)', marginTop: '6px' }}>
+            Enter to save · Esc to cancel
+          </div>
+        </div>
+      )}
 
       {/* Progress rings */}
       <div style={{
