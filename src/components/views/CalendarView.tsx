@@ -92,6 +92,13 @@ export default function CalendarView({
     )
   }
 
+  async function deleteTask(taskUid: string) {
+    const task = tasks.find(t => t.uid === taskUid)
+    if (!task?.id) return
+    await db.tasks.delete(task.id)
+    setTasks(prev => prev.filter(t => t.uid !== taskUid))
+  }
+
   async function addTaskOnDate(dateStr: string) {
     if (!newTaskTitle.trim()) return
     const { nanoid } = await import('nanoid')
@@ -300,6 +307,8 @@ export default function CalendarView({
                       fontSize: '10px',
                       padding: '2px 6px',
                       borderRadius: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
                       background: task.priority
                         ? PRIORITY_COLORS[task.priority] + '25'
                         : 'var(--accent-light)',
@@ -307,12 +316,27 @@ export default function CalendarView({
                         ? PRIORITY_COLORS[task.priority]
                         : 'var(--accent)',
                       cursor: 'pointer',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
                       fontWeight: 500
                     }}>
-                    {task.title}
+                    <span style={{ flex: 1, overflow: 'hidden',
+                      textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {task.title}
+                    </span>
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        deleteTask(task.uid)
+                      }}
+                      style={{
+                        marginLeft: '4px',
+                        color: 'inherit',
+                        opacity: 0.6,
+                        cursor: 'pointer',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        flexShrink: 0
+                      }}
+                    >&times;</span>
                   </div>
                 ))}
                 {dayTasks.length > 3 && (
@@ -377,7 +401,8 @@ export default function CalendarView({
             </p>
           ) : (
             <div style={{ display: 'flex',
-              flexDirection: 'column', gap: '6px' }}>
+              flexDirection: 'column', gap: '6px',
+              maxHeight: '200px', overflowY: 'auto' }}>
               {getTasksForDate(selectedDate).map(task => (
                 <div key={task.uid} style={{
                   display: 'flex', alignItems: 'center',
@@ -407,6 +432,16 @@ export default function CalendarView({
                   }}>
                     {task.status.replace('_', ' ')}
                   </span>
+                  <button
+                    onClick={() => deleteTask(task.uid)}
+                    style={{
+                      background: 'none', border: 'none',
+                      color: '#EF4444', cursor: 'pointer',
+                      fontSize: '12px', padding: '2px 6px',
+                      opacity: 0.7,
+                      borderRadius: '4px'
+                    }}
+                  >Delete</button>
                 </div>
               ))}
             </div>
