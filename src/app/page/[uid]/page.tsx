@@ -127,7 +127,7 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
     if (e.key === 'Escape' && showSlash) { onSlashClose(); return }
   }
 
-  function handleInput(e: React.FormEvent<HTMLDivElement>) {
+  function handleInput(e: React.KeyboardEvent<HTMLDivElement>) {
     const text = e.currentTarget.textContent || ''
     onChange(text)
 
@@ -161,7 +161,7 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
         <hr style={{ flex: 1, border: 'none', borderTop: '1px solid var(--border)', margin: '12px 0' }} />
       ) : (
         <div ref={divRef} contentEditable suppressContentEditableWarning
-          onInput={handleInput} onKeyDown={handleKeyDown}
+          onKeyUp={handleInput} onKeyDown={handleKeyDown}
           style={{ flex: 1, outline: 'none', color: 'var(--text-primary)', lineHeight: 1.7, minHeight: '28px', wordBreak: 'break-word', ...style }}>
           {block.content}
         </div>
