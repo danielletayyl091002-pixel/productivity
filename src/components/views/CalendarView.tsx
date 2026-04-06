@@ -14,6 +14,160 @@ const PRIORITY_COLORS: Record<string, string> = {
   low: '#10B981'
 }
 
+function WeekView({ currentDate, tasks, onDeleteTask }: {
+  currentDate: Date
+  tasks: Task[]
+  onDeleteTask: (uid: string) => void
+}) {
+  const HOURS = Array.from({ length: 16 }, (_, i) => i + 6)
+  const HOUR_H = 60
+
+  const weekDays = useMemo(() => {
+    const days = []
+    const startOfWeek = new Date(currentDate)
+    const dayOfWeek = currentDate.getDay()
+    startOfWeek.setDate(currentDate.getDate() - dayOfWeek)
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startOfWeek)
+      d.setDate(startOfWeek.getDate() + i)
+      days.push(d)
+    }
+    return days
+  }, [currentDate])
+
+  const todayStr = new Date().toISOString().split('T')[0]
+  const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+  function getTasksForDate(dateStr: string) {
+    return tasks.filter(t =>
+      (t.dueDate === dateStr || t.scheduledDate === dateStr) &&
+      t.startTime
+    )
+  }
+
+  return (
+    <div style={{
+      flex: 1, display: 'flex', flexDirection: 'column',
+      border: '1px solid var(--border)',
+      borderRadius: '12px', overflow: 'hidden'
+    }}>
+      {/* Day headers */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '48px repeat(7, 1fr)',
+        borderBottom: '1px solid var(--border)',
+        background: 'var(--bg-secondary)'
+      }}>
+        <div/>
+        {weekDays.map((d, i) => {
+          const dateStr = d.toISOString().split('T')[0]
+          const isToday = dateStr === todayStr
+          return (
+            <div key={i} style={{
+              padding: '8px 4px', textAlign: 'center',
+              borderLeft: '1px solid var(--border)'
+            }}>
+              <div style={{ fontSize: '10px',
+                color: 'var(--text-tertiary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em' }}>
+                {DAYS_SHORT[i]}
+              </div>
+              <div style={{
+                display: 'inline-flex',
+                width: '28px', height: '28px',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                background: isToday
+                  ? 'var(--accent)' : 'transparent',
+                color: isToday
+                  ? 'white' : 'var(--text-primary)',
+                fontSize: '13px',
+                fontWeight: isToday ? 700 : 400,
+                margin: '2px auto 0'
+              }}>
+                {d.getDate()}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Time grid */}
+      <div style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
+        {HOURS.map(h => (
+          <div key={h} style={{
+            display: 'grid',
+            gridTemplateColumns: '48px repeat(7, 1fr)',
+            height: `${HOUR_H}px`,
+            borderBottom: '1px solid var(--border)'
+          }}>
+            <div style={{
+              fontSize: '10px', color: 'var(--text-tertiary)',
+              padding: '4px 8px', flexShrink: 0
+            }}>
+              {h === 12 ? '12 PM' : h > 12
+                ? `${h - 12} PM` : `${h} AM`}
+            </div>
+            {weekDays.map((d, di) => {
+              const dateStr = d.toISOString().split('T')[0]
+              const dayTasks = getTasksForDate(dateStr).filter(t => {
+                const tHour = t.startTime
+                  ? parseInt(t.startTime.split(':')[0]) : -1
+                return tHour === h
+              })
+              return (
+                <div key={di} style={{
+                  borderLeft: '1px solid var(--border)',
+                  position: 'relative', padding: '2px',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={e =>
+                  e.currentTarget.style.background =
+                    'rgba(99,102,241,0.04)'
+                }
+                onMouseLeave={e =>
+                  e.currentTarget.style.background = 'transparent'
+                }
+                >
+                  {dayTasks.map(task => (
+                    <div key={task.uid} style={{
+                      background: 'var(--accent-light)',
+                      borderLeft: '2px solid var(--accent)',
+                      borderRadius: '3px',
+                      padding: '2px 4px',
+                      fontSize: '10px', fontWeight: 500,
+                      color: 'var(--accent)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <span>{task.title}</span>
+                      <span
+                        onClick={e => {
+                          e.stopPropagation()
+                          onDeleteTask(task.uid)
+                        }}
+                        style={{ cursor: 'pointer',
+                          opacity: 0.6, marginLeft: '4px' }}>
+                        &times;
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function CalendarView({
   pageUid
 }: {
@@ -99,12 +253,13 @@ export default function CalendarView({
     setTasks(prev => prev.filter(t => t.uid !== taskUid))
   }
 
-  async function addTaskOnDate(dateStr: string) {
-    if (!newTaskTitle.trim()) return
+  async function addTaskOnDate(dateStr: string, title?: string) {
+    const taskTitle = title || newTaskTitle
+    if (!taskTitle.trim()) return
     const { nanoid } = await import('nanoid')
     const task: Task = {
       uid: nanoid(),
-      title: newTaskTitle.trim(),
+      title: taskTitle.trim(),
       status: 'todo',
       priority: null,
       dueDate: dateStr,
@@ -212,7 +367,7 @@ export default function CalendarView({
         ))}
       </div>
 
-      {/* Calendar grid */}
+      {viewMode === 'month' ? (
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(7, 1fr)',
@@ -362,6 +517,13 @@ export default function CalendarView({
           )
         })}
       </div>
+      ) : (
+        <WeekView
+          currentDate={currentDate}
+          tasks={tasks}
+          onDeleteTask={deleteTask}
+        />
+      )}
 
       {/* Selected date panel */}
       {selectedDate && (

@@ -11,7 +11,11 @@ function formatHour(h: number) {
   return `${h} AM`
 }
 
-function WeekStrip({ today }: { today: Date }) {
+function WeekStrip({ today, onDayClick, selectedDay }: {
+  today: Date
+  onDayClick?: (date: Date) => void
+  selectedDay?: string | null
+}) {
   const startOnMonday = typeof window !== 'undefined' && localStorage.getItem('week_start') === 'monday'
 
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -46,13 +50,26 @@ function WeekStrip({ today }: { today: Date }) {
               fontSize: '9px', color: 'var(--text-tertiary)',
               fontWeight: 500, textTransform: 'uppercase'
             }}>{labels[i]}</span>
-            <div style={{
-              width: '26px', height: '26px', borderRadius: '50%',
-              display: 'flex', alignItems: 'center',
-              justifyContent: 'center',
-              background: isToday ? 'var(--accent)' : 'transparent',
-              boxShadow: isToday ? '0 0 0 3px var(--accent-light)' : 'none'
-            }}>
+            <div
+              onClick={() => onDayClick && onDayClick(d)}
+              onMouseEnter={e => {
+                if (!isToday) e.currentTarget.style.background = 'var(--bg-hover)'
+              }}
+              onMouseLeave={e => {
+                if (!isToday) e.currentTarget.style.background =
+                  selectedDay === d.toISOString().split('T')[0] ? 'var(--accent-light)' : 'transparent'
+              }}
+              style={{
+                width: '26px', height: '26px', borderRadius: '50%',
+                display: 'flex', alignItems: 'center',
+                justifyContent: 'center', cursor: 'pointer',
+                background: isToday
+                  ? 'var(--accent)'
+                  : selectedDay === d.toISOString().split('T')[0]
+                    ? 'var(--accent-light)'
+                    : 'transparent',
+                boxShadow: isToday ? '0 0 0 3px var(--accent-light)' : 'none'
+              }}>
               <span style={{
                 fontSize: '11px',
                 fontWeight: isToday ? 700 : 400,
@@ -211,6 +228,7 @@ export default function RightRail() {
   const [now, setNow] = useState(0)
   const [dateStr, setDateStr] = useState('')
   const [newEvent, setNewEvent] = useState<{ time: string, title: string } | null>(null)
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
   useEffect(() => {
     const d = new Date()
@@ -275,23 +293,43 @@ export default function RightRail() {
         </span>
       </div>
 
-      {today && <WeekStrip today={today} />}
+      {today && <WeekStrip today={today}
+        selectedDay={selectedDay}
+        onDayClick={(date) => setSelectedDay(date.toISOString().split('T')[0])}
+      />}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        <Timeline
+          now={now}
+          tasks={todayTasks}
+          onAddEvent={(time) => setNewEvent({ time, title: '' })}
+        />
         {newEvent && (
           <div style={{
             position: 'absolute',
-            top: 0, left: 0, right: 0,
+            top: '8px', left: '8px', right: '8px',
             background: 'var(--bg-primary)',
             border: '1px solid var(--accent)',
             borderRadius: '8px',
             padding: '12px',
-            zIndex: 100,
-            margin: '8px'
+            zIndex: 200,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
           }}>
-            <div style={{ fontSize: '11px',
-              color: 'var(--text-tertiary)',
-              marginBottom: '6px' }}>
-              {newEvent.time}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '8px'
+            }}>
+              <span style={{ fontSize: '12px', fontWeight: 600,
+                color: 'var(--text-primary)' }}>
+                Add event at {newEvent.time}
+              </span>
+              <button onClick={() => setNewEvent(null)} style={{
+                background: 'none', border: 'none',
+                color: 'var(--text-tertiary)',
+                cursor: 'pointer', fontSize: '16px',
+                lineHeight: 1, padding: '0 4px'
+              }}>x</button>
             </div>
             <input
               autoFocus
@@ -327,25 +365,20 @@ export default function RightRail() {
                 if (e.key === 'Escape') setNewEvent(null)
               }}
               style={{
-                width: '100%', padding: '6px 8px',
+                width: '100%', padding: '8px 10px',
                 borderRadius: '6px',
                 border: '1px solid var(--border)',
                 background: 'var(--bg-secondary)',
                 color: 'var(--text-primary)',
-                fontSize: '12px', boxSizing: 'border-box'
+                fontSize: '13px', boxSizing: 'border-box'
               }}
             />
             <div style={{ fontSize: '10px',
-              color: 'var(--text-tertiary)', marginTop: '4px' }}>
+              color: 'var(--text-tertiary)', marginTop: '6px' }}>
               Enter to save · Esc to cancel
             </div>
           </div>
         )}
-        <Timeline
-          now={now}
-          tasks={todayTasks}
-          onAddEvent={(time) => setNewEvent({ time, title: '' })}
-        />
       </div>
 
       {/* Progress rings */}
