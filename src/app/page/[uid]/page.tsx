@@ -9,7 +9,8 @@ import {
   DragOverlay,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent
@@ -22,25 +23,6 @@ import {
   arrayMove
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-
-class SmartPointerSensor extends PointerSensor {
-  static activators = [
-    {
-      eventName: 'onPointerDown' as const,
-      handler: ({ nativeEvent: event }: {
-        nativeEvent: PointerEvent
-      }) => {
-        const target = event.target as HTMLElement
-
-        // Only activate drag from the drag handle element
-        if (!target.closest('.drag-handle')) {
-          return false
-        }
-        return true
-      }
-    }
-  ]
-}
 
 export default function PageCanvas() {
   const { uid } = useParams<{ uid: string }>()
@@ -171,11 +153,11 @@ export default function PageCanvas() {
   }
 
   const sensors = useSensors(
-    useSensor(SmartPointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: { distance: 8 }
     }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 }
     })
   )
 
@@ -327,6 +309,12 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
     <div
       ref={setNodeRef}
       className="block-wrapper"
+      onMouseDown={(e) => {
+        const target = e.target as HTMLElement
+        if (!target.closest('.drag-handle')) {
+          e.stopPropagation()
+        }
+      }}
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
@@ -449,6 +437,7 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
           onKeyUp={handleKeyUp}
           onKeyDown={handleKeyDown}
           onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
           style={{ flex: 1, outline: 'none', color: 'var(--text-primary)', lineHeight: 1.7, minHeight: '28px', wordBreak: 'break-word', userSelect: 'text', WebkitUserSelect: 'text', cursor: 'text', ...style }}
         />
       )}
