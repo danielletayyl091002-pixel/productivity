@@ -132,9 +132,11 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
     onChange(text)
 
     const slashIndex = text.lastIndexOf('/')
+    console.log('input:', text, 'slashIndex:', slashIndex)
     if (slashIndex !== -1) {
       const query = text.slice(slashIndex + 1)
       const rect = divRef.current?.getBoundingClientRect()
+      console.log('rect:', rect, 'query:', query)
       if (rect) {
         onSlash(query, {
           top: rect.bottom + window.scrollY + 4,
