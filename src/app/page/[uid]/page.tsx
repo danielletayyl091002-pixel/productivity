@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { db, Page, Block } from '@/db/schema'
 import { nanoid } from 'nanoid'
@@ -45,11 +45,11 @@ export default function PageCanvas() {
     setBlocks(prev => [...prev, newBlock])
   }
 
-  async function updateBlock(blockUid: string, content: string) {
+  // Content-only update: save to DB, do NOT re-render blocks
+  async function updateBlockContent(blockUid: string, content: string) {
     const block = blocks.find(b => b.uid === blockUid)
     if (!block?.id) return
-    await db.blocks.update(block.id, { content })
-    setBlocks(prev => prev.map(b => b.uid === blockUid ? { ...b, content } : b))
+    await db.blocks.update(block.id, { content, updatedAt: new Date().toISOString() })
   }
 
   async function deleteBlock(blockUid: string) {
@@ -85,13 +85,13 @@ export default function PageCanvas() {
           <BlockRow
             key={block.uid}
             block={block}
-            onChange={content => updateBlock(block.uid, content)}
+            onChange={content => updateBlockContent(block.uid, content)}
             onDelete={() => deleteBlock(block.uid)}
             onEnter={() => addBlock('text')}
             onSlash={(query, pos) => setSlashMenu({ blockUid: block.uid, query, position: pos })}
             onSlashClose={() => setSlashMenu(null)}
-            slashQuery={slashMenu?.blockUid === block.uid ? slashMenu.query : ''}
             showSlash={slashMenu?.blockUid === block.uid}
+            slashQuery={slashMenu?.blockUid === block.uid ? slashMenu.query : ''}
             slashPos={slashMenu?.position || { top: 0, left: 0 }}
             onConvert={(type) => convertBlock(block.uid, type)}
           />
@@ -105,20 +105,27 @@ export default function PageCanvas() {
   )
 }
 
-function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, slashQuery, showSlash, slashPos, onConvert }: {
+function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, showSlash, slashQuery, slashPos, onConvert }: {
   block: Block
   onChange: (content: string) => void
   onDelete: () => void
   onEnter: () => void
   onSlash: (query: string, pos: { top: number; left: number }) => void
   onSlashClose: () => void
-  slashQuery: string
   showSlash: boolean
+  slashQuery: string
   slashPos: { top: number; left: number }
   onConvert: (type: Block['type']) => void
 }) {
   const divRef = useRef<HTMLDivElement>(null)
   const style = getBlockStyle(block.type)
+
+  // Set initial content once on mount only — DOM owns content after this
+  useEffect(() => {
+    if (divRef.current && block.content) {
+      divRef.current.textContent = block.content
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
     const text = e.currentTarget.textContent || ''
@@ -127,16 +134,14 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
     if (e.key === 'Escape' && showSlash) { onSlashClose(); return }
   }
 
-  function handleInput(e: React.KeyboardEvent<HTMLDivElement>) {
+  function handleKeyUp(e: React.KeyboardEvent<HTMLDivElement>) {
     const text = e.currentTarget.textContent || ''
     onChange(text)
 
     const slashIndex = text.lastIndexOf('/')
-    console.log('input:', text, 'slashIndex:', slashIndex)
     if (slashIndex !== -1) {
       const query = text.slice(slashIndex + 1)
       const rect = divRef.current?.getBoundingClientRect()
-      console.log('rect:', rect, 'query:', query)
       if (rect) {
         onSlash(query, {
           top: rect.bottom + window.scrollY + 4,
@@ -160,11 +165,14 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
       {block.type === 'divider' ? (
         <hr style={{ flex: 1, border: 'none', borderTop: '1px solid var(--border)', margin: '12px 0' }} />
       ) : (
-        <div ref={divRef} contentEditable suppressContentEditableWarning
-          onKeyUp={handleInput} onKeyDown={handleKeyDown}
-          style={{ flex: 1, outline: 'none', color: 'var(--text-primary)', lineHeight: 1.7, minHeight: '28px', wordBreak: 'break-word', ...style }}>
-          {block.content}
-        </div>
+        <div
+          ref={divRef}
+          contentEditable
+          suppressContentEditableWarning
+          onKeyUp={handleKeyUp}
+          onKeyDown={handleKeyDown}
+          style={{ flex: 1, outline: 'none', color: 'var(--text-primary)', lineHeight: 1.7, minHeight: '28px', wordBreak: 'break-word', ...style }}
+        />
       )}
       {showSlash && (
         <SlashMenu query={slashQuery} position={slashPos}
