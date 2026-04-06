@@ -6,6 +6,7 @@ import { nanoid } from 'nanoid'
 import SlashMenu from '@/components/blocks/SlashMenu'
 import {
   DndContext,
+  DragOverlay,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
@@ -32,6 +33,7 @@ export default function PageCanvas() {
     query: string
     position: { top: number; left: number }
   } | null>(null)
+  const [activeBlock, setActiveBlock] = useState<Block | null>(null)
 
   useEffect(() => {
     if (!uid) return
@@ -172,11 +174,18 @@ export default function PageCanvas() {
           style={{ fontSize: '2.25rem', fontWeight: 700, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-primary)', width: '100%', marginBottom: '24px' }}
         />
       </div>
-      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 80px 120px' }}>
+      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 80px 120px 24px' }}>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
+          onDragStart={(e) => {
+            const block = blocks.find(b => b.uid === e.active.id)
+            setActiveBlock(block || null)
+          }}
+          onDragEnd={(e) => {
+            setActiveBlock(null)
+            handleDragEnd(e)
+          }}
         >
           <SortableContext
             items={blocks.map(b => b.uid)}
@@ -220,6 +229,21 @@ export default function PageCanvas() {
               blocks[blocks.length - 1]?.uid, 'text'
             )} />
           </SortableContext>
+          <DragOverlay>
+            {activeBlock ? (
+              <div style={{
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border)',
+                borderRadius: '6px',
+                padding: '4px 8px',
+                fontSize: '14px',
+                color: 'var(--text-primary)',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
+              }}>
+                {activeBlock.content || '...'}
+              </div>
+            ) : null}
+          </DragOverlay>
         </DndContext>
         <div onClick={() => addBlock('text')}
           style={{ padding: '8px 0', color: 'var(--text-tertiary)', fontSize: '14px', cursor: 'text', minHeight: '40px' }}>
@@ -259,7 +283,7 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
     <div
       ref={setNodeRef}
       style={{
-        transform: CSS.Transform.toString(transform),
+        transform: CSS.Translate.toString(transform),
         transition,
         opacity: isDragging ? 0.5 : 1,
         position: 'relative'
@@ -270,7 +294,7 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
         {...listeners}
         style={{
           position: 'absolute',
-          left: '-24px',
+          left: '-20px',
           top: '4px',
           cursor: 'grab',
           color: 'var(--text-tertiary)',
