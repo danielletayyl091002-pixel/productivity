@@ -26,7 +26,24 @@ export default function FinancePage() {
       const s = await db.settings
         .where('key').equals('currency').first()
       setEntries(e)
-      setCategories(c)
+      if (c.length === 0) {
+        const defaults: FinanceCategory[] = [
+          { name: 'Salary', color: '#10B981', type: 'income', isDefault: true },
+          { name: 'Freelance', color: '#3B82F6', type: 'income', isDefault: true },
+          { name: 'Investment', color: '#8B5CF6', type: 'income', isDefault: true },
+          { name: 'Dining Out', color: '#60A5FA', type: 'expense', isDefault: true },
+          { name: 'Groceries', color: '#34D399', type: 'expense', isDefault: true },
+          { name: 'Transport', color: '#FBBF24', type: 'expense', isDefault: true },
+          { name: 'Utilities', color: '#F87171', type: 'expense', isDefault: true },
+          { name: 'Healthcare', color: '#FB923C', type: 'expense', isDefault: true },
+          { name: 'Entertainment', color: '#E879F9', type: 'expense', isDefault: true },
+          { name: 'Retail', color: '#94A3B8', type: 'expense', isDefault: true },
+        ]
+        await db.financeCategories.bulkAdd(defaults)
+        setCategories(defaults)
+      } else {
+        setCategories(c)
+      }
       setCurrency(s?.value || '$')
     }
     load()
