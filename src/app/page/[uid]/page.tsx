@@ -199,6 +199,20 @@ export default function PageCanvas() {
                   slashQuery={slashMenu?.blockUid === block.uid ? slashMenu.query : ''}
                   slashPos={slashMenu?.position || { top: 0, left: 0 }}
                   onConvert={(type) => convertBlock(block.uid, type)}
+                  onFocusNext={() => {
+                    const next = blocks[index + 1]
+                    if (next) {
+                      const el = document.querySelector(`[data-block-uid="${next.uid}"]`) as HTMLElement
+                      el?.focus()
+                    }
+                  }}
+                  onFocusPrev={() => {
+                    const prev = blocks[index - 1]
+                    if (prev) {
+                      const el = document.querySelector(`[data-block-uid="${prev.uid}"]`) as HTMLElement
+                      el?.focus()
+                    }
+                  }}
                 />
               </div>
             ))}
@@ -227,6 +241,8 @@ interface BlockRowProps {
   slashQuery: string
   slashPos: { top: number; left: number }
   onConvert: (type: Block['type']) => void
+  onFocusNext: () => void
+  onFocusPrev: () => void
 }
 
 function SortableBlockRow(props: BlockRowProps & { uid: string }) {
@@ -272,7 +288,7 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
   )
 }
 
-function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, showSlash, slashQuery, slashPos, onConvert }: BlockRowProps) {
+function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, showSlash, slashQuery, slashPos, onConvert, onFocusNext, onFocusPrev }: BlockRowProps) {
   const divRef = useRef<HTMLDivElement>(null)
   const saveTimer = useRef<NodeJS.Timeout>(undefined)
   const style = getBlockStyle(block.type)
@@ -305,6 +321,8 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
     }
     if (e.key === 'Backspace' && text === '') { e.preventDefault(); onDelete(); return }
     if (e.key === 'Escape' && showSlash) { onSlashClose(); return }
+    if (e.key === 'ArrowDown') { e.preventDefault(); onFocusNext(); return }
+    if (e.key === 'ArrowUp') { e.preventDefault(); onFocusPrev(); return }
   }
 
   function handleKeyUp(e: React.KeyboardEvent<HTMLDivElement>) {
@@ -340,8 +358,18 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
         <span style={{ color: 'var(--text-tertiary)', marginTop: '3px', flexShrink: 0 }}>•</span>
       )}
       {block.type === 'divider' ? (
-        <div style={{ flex: 1, padding: '8px 0', cursor: 'pointer' }}
-          onClick={() => onEnter('text')}>
+        <div
+          data-block-uid={block.uid}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { e.preventDefault(); onEnter('text') }
+            if (e.key === 'Backspace') { e.preventDefault(); onDelete() }
+            if (e.key === 'ArrowDown') { e.preventDefault(); onFocusNext() }
+            if (e.key === 'ArrowUp') { e.preventDefault(); onFocusPrev() }
+          }}
+          onClick={() => onEnter('text')}
+          style={{ flex: 1, padding: '8px 0', cursor: 'pointer', outline: 'none' }}
+        >
           <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
         </div>
       ) : (
