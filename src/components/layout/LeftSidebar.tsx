@@ -17,7 +17,9 @@ export default function LeftSidebar() {
       const homeSetting = await db.settings
         .where('key').equals('homePageUid').first()
 
-      if (homeSetting?.value && pathname === '/') {
+      console.log('homePageUid found:', homeSetting?.value)
+
+      if (homeSetting?.value) {
         router.replace(`/page/${homeSetting.value}`)
       }
 
@@ -135,10 +137,10 @@ export default function LeftSidebar() {
         padding: '8px'
       }}>
         <NavLink onClick={() => router.push('/finance')}>
-          💰 Finance
+          Finance
         </NavLink>
         <NavLink onClick={() => router.push('/settings')}>
-          ⚙️ Settings
+          Settings
         </NavLink>
         <ThemeToggle />
       </div>
@@ -186,7 +188,6 @@ function PageItem({ page, active, onClick }: {
         e.currentTarget.style.background = 'transparent'
     }}
     >
-      <span>{page.icon || '📄'}</span>
       <span style={{
         flex: 1,
         overflow: 'hidden',
@@ -258,7 +259,7 @@ function ThemeToggle() {
     onMouseLeave={e =>
       e.currentTarget.style.background = 'transparent'}
     >
-      {theme === 'light' ? '🌙 Dark mode' : '☀️ Light mode'}
+      {theme === 'light' ? 'Dark mode' : 'Light mode'}
     </div>
   )
 }
