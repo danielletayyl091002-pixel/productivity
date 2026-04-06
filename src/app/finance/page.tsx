@@ -5,6 +5,144 @@ import { db, FinanceEntry, FinanceCategory } from '@/db/schema'
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun',
                 'Jul','Aug','Sep','Oct','Nov','Dec']
 
+function MonthDetail({
+  selectedMonth,
+  monthlyData,
+  entries,
+  categories,
+  currency,
+  MONTHS: MonthNames,
+  currentYear,
+  onClose
+}: any) {
+  const m = monthlyData[selectedMonth]
+  const monthEntries = entries.filter((e: any) => {
+    const d = new Date(e.date)
+    return d.getFullYear() === currentYear &&
+           d.getMonth() === selectedMonth
+  })
+  const expenseEntries = monthEntries.filter((e: any) =>
+    e.type === 'expense'
+  )
+  const catBreakdown = expenseEntries.reduce((acc: any, e: any) => {
+    acc[e.category] = (acc[e.category] || 0) + e.amount
+    return acc
+  }, {})
+  const totalExp = expenseEntries.reduce(
+    (s: number, e: any) => s + e.amount, 0
+  )
+
+  return (
+    <div style={{
+      background: 'var(--bg-primary)',
+      borderRadius: '12px',
+      border: '2px solid var(--accent)',
+      padding: '24px',
+      marginBottom: '24px'
+    }}>
+      <div style={{ display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center', marginBottom: '20px' }}>
+        <h3 style={{ margin: 0, fontSize: '15px',
+          fontWeight: 700, color: 'var(--text-primary)' }}>
+          {MonthNames[selectedMonth]} Overview
+        </h3>
+        <button onClick={onClose} style={{
+          background: 'none', border: 'none',
+          color: 'var(--text-tertiary)',
+          cursor: 'pointer', fontSize: '16px'
+        }}>x</button>
+      </div>
+
+      <div style={{ display: 'grid',
+        gridTemplateColumns: 'repeat(3,1fr)',
+        gap: '12px', marginBottom: '20px' }}>
+        {[
+          { label: 'Income', value: m.income, color: '#10B981' },
+          { label: 'Expenses', value: m.expenses, color: '#EF4444' },
+          { label: 'Net', value: m.net,
+            color: m.net >= 0 ? '#10B981' : '#EF4444' }
+        ].map(stat => (
+          <div key={stat.label} style={{
+            background: 'var(--bg-secondary)',
+            borderRadius: '8px', padding: '16px',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '11px',
+              color: 'var(--text-tertiary)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em', marginBottom: '4px' }}>
+              {stat.label}
+            </div>
+            <div style={{ fontSize: '18px', fontWeight: 700,
+              color: stat.color }}>
+              {currency}{Math.abs(stat.value).toFixed(2)}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ fontSize: '11px', fontWeight: 600,
+        color: 'var(--text-tertiary)',
+        textTransform: 'uppercase',
+        letterSpacing: '0.06em', marginBottom: '12px' }}>
+        Spending by Category
+      </div>
+
+      {Object.keys(catBreakdown).length === 0 ? (
+        <div style={{ textAlign: 'center',
+          color: 'var(--text-tertiary)', fontSize: '13px',
+          padding: '16px' }}>
+          No expenses for {MonthNames[selectedMonth]}
+        </div>
+      ) : Object.entries(catBreakdown)
+          .sort((a: any, b: any) => b[1] - a[1])
+          .map(([catName, amount]: any) => {
+            const cat = categories.find(
+              (c: any) => c.name === catName
+            )
+            const pct = totalExp > 0
+              ? (amount / totalExp * 100) : 0
+            return (
+              <div key={catName} style={{ marginBottom: '10px' }}>
+                <div style={{ display: 'flex',
+                  justifyContent: 'space-between',
+                  marginBottom: '4px' }}>
+                  <div style={{ display: 'flex',
+                    alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                      width: '10px', height: '10px',
+                      borderRadius: '50%',
+                      background: cat?.color || '#6B7280',
+                      flexShrink: 0
+                    }}/>
+                    <span style={{ fontSize: '13px',
+                      color: 'var(--text-primary)' }}>
+                      {catName}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '13px',
+                    color: 'var(--text-secondary)' }}>
+                    {currency}{amount.toFixed(2)} ({pct.toFixed(1)}%)
+                  </span>
+                </div>
+                <div style={{ height: '6px', borderRadius: '3px',
+                  background: 'var(--bg-hover)',
+                  overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', width: `${pct}%`,
+                    background: cat?.color || '#6B7280',
+                    borderRadius: '3px',
+                    transition: 'width 0.5s ease'
+                  }}/>
+                </div>
+              </div>
+            )
+          })}
+    </div>
+  )
+}
+
 export default function FinancePage() {
   const [entries, setEntries] = useState<FinanceEntry[]>([])
   const [categories, setCategories] = useState<FinanceCategory[]>([])
@@ -209,140 +347,18 @@ export default function FinancePage() {
       </div>
 
       {/* MONTHLY DETAIL PANEL */}
-      {selectedMonth !== null && (() => {
-        const m = monthlyData[selectedMonth]
-        const monthEntries = entries.filter(e => {
-          const d = new Date(e.date)
-          return d.getFullYear() === currentYear &&
-                 d.getMonth() === selectedMonth
-        })
-        const expEntries = monthEntries.filter(e => e.type === 'expense')
-
-        const catBreakdown = expEntries.reduce((acc, e) => {
-          acc[e.category] = (acc[e.category] || 0) + e.amount
-          return acc
-        }, {} as Record<string, number>)
-
-        const totalExp = expEntries.reduce((s, e) => s + e.amount, 0)
-
-        return (
-          <div style={{
-            background: 'var(--bg-primary)',
-            borderRadius: '12px',
-            border: '1px solid var(--accent)',
-            padding: '24px',
-            marginBottom: '24px'
-          }}>
-            <div style={{ display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '15px',
-                fontWeight: 700, color: 'var(--text-primary)' }}>
-                {MONTHS[selectedMonth]} Overview
-              </h3>
-              <button onClick={() => setSelectedMonth(null)}
-                style={{ background: 'none', border: 'none',
-                  color: 'var(--text-tertiary)', cursor: 'pointer',
-                  fontSize: '16px' }}>
-                x
-              </button>
-            </div>
-
-            {/* Summary row */}
-            <div style={{ display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '12px', marginBottom: '24px' }}>
-              {[
-                { label: 'Income', value: m.income, color: '#10B981' },
-                { label: 'Expenses', value: m.expenses, color: '#EF4444' },
-                { label: 'Net', value: m.net,
-                  color: m.net >= 0 ? '#10B981' : '#EF4444' }
-              ].map(stat => (
-                <div key={stat.label} style={{
-                  background: 'var(--bg-secondary)',
-                  borderRadius: '8px', padding: '16px',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontSize: '11px',
-                    color: 'var(--text-tertiary)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                    marginBottom: '4px' }}>
-                    {stat.label}
-                  </div>
-                  <div style={{ fontSize: '18px', fontWeight: 700,
-                    color: stat.color }}>
-                    {currency}{Math.abs(stat.value).toFixed(2)}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Category breakdown chart */}
-            {Object.keys(catBreakdown).length > 0 ? (
-              <div>
-                <div style={{ fontSize: '11px', fontWeight: 600,
-                  color: 'var(--text-tertiary)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em', marginBottom: '12px' }}>
-                  Spending by Category
-                </div>
-                {Object.entries(catBreakdown)
-                  .sort((a, b) => b[1] - a[1])
-                  .map(([catName, amount]) => {
-                    const cat = categories.find(c => c.name === catName)
-                    const pct = totalExp > 0
-                      ? (amount / totalExp * 100) : 0
-                    return (
-                      <div key={catName} style={{ marginBottom: '10px' }}>
-                        <div style={{ display: 'flex',
-                          justifyContent: 'space-between',
-                          marginBottom: '4px' }}>
-                          <div style={{ display: 'flex',
-                            alignItems: 'center', gap: '8px' }}>
-                            <div style={{
-                              width: '10px', height: '10px',
-                              borderRadius: '50%',
-                              background: cat?.color || '#6B7280',
-                              flexShrink: 0
-                            }}/>
-                            <span style={{ fontSize: '13px',
-                              color: 'var(--text-primary)' }}>
-                              {catName}
-                            </span>
-                          </div>
-                          <span style={{ fontSize: '13px',
-                            color: 'var(--text-secondary)' }}>
-                            {currency}{amount.toFixed(2)} ({pct.toFixed(1)}%)
-                          </span>
-                        </div>
-                        <div style={{
-                          height: '6px', borderRadius: '3px',
-                          background: 'var(--bg-hover)',
-                          overflow: 'hidden'
-                        }}>
-                          <div style={{
-                            height: '100%',
-                            width: `${pct}%`,
-                            background: cat?.color || '#6B7280',
-                            borderRadius: '3px',
-                            transition: 'width 0.5s ease'
-                          }}/>
-                        </div>
-                      </div>
-                    )
-                  })}
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center',
-                color: 'var(--text-tertiary)', fontSize: '13px',
-                padding: '20px' }}>
-                No expenses recorded for {MONTHS[selectedMonth]}
-              </div>
-            )}
-          </div>
-        )
-      })()}
+      {selectedMonth !== null && (
+        <MonthDetail
+          selectedMonth={selectedMonth}
+          monthlyData={monthlyData}
+          entries={entries}
+          categories={categories}
+          currency={currency}
+          MONTHS={MONTHS}
+          currentYear={currentYear}
+          onClose={() => setSelectedMonth(null)}
+        />
+      )}
 
       {/* TWO COLUMN TABLES */}
       <div style={{
