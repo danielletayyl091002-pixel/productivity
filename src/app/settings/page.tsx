@@ -93,6 +93,7 @@ export default function SettingsPage() {
   const [currentPalette, setCurrentPalette] = useState('Default')
   const [currentFont, setCurrentFont] = useState('System Default')
   const [fontsLoaded, setFontsLoaded] = useState(false)
+  const [weekStart, setWeekStart] = useState('sunday')
 
   useEffect(() => {
     // Load saved settings
@@ -103,6 +104,10 @@ export default function SettingsPage() {
       if (font?.value) setCurrentFont(font.value)
     }
     loadSettings()
+
+    // Load week start preference
+    const savedWeekStart = localStorage.getItem('week_start')
+    if (savedWeekStart) setWeekStart(savedWeekStart)
 
     // Load Google Fonts
     if (!document.querySelector('link[data-fluent-fonts]')) {
@@ -187,6 +192,34 @@ export default function SettingsPage() {
                   ))}
                 </div>
                 <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)' }}>{p.name}</div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Week starts on */}
+        <section style={{ marginBottom: '40px' }}>
+          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Week starts on</h2>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {['sunday', 'monday'].map(day => (
+              <button
+                key={day}
+                onClick={() => {
+                  localStorage.setItem('week_start', day)
+                  setWeekStart(day)
+                }}
+                style={{
+                  padding: '6px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  background: weekStart === day ? 'var(--accent)' : 'transparent',
+                  color: weekStart === day ? 'white' : 'var(--text-secondary)',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  textTransform: 'capitalize'
+                }}
+              >
+                {day}
               </button>
             ))}
           </div>

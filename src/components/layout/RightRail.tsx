@@ -19,12 +19,21 @@ function formatHour(h: number) {
 
 function WeekStrip() {
   const today = new Date()
+  const startOnMonday = typeof window !== 'undefined' && localStorage.getItem('week_start') === 'monday'
+
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today)
-    d.setDate(today.getDate() - today.getDay() + i)
+    const dayOfWeek = today.getDay()
+    const startOffset = startOnMonday
+      ? (dayOfWeek === 0 ? -6 : 1 - dayOfWeek)
+      : -dayOfWeek
+    d.setDate(today.getDate() + startOffset + i)
     return d
   })
-  const labels = ['Su','Mo','Tu','We','Th','Fr','Sa']
+
+  const labels = startOnMonday
+    ? ['Mo','Tu','We','Th','Fr','Sa','Su']
+    : ['Su','Mo','Tu','We','Th','Fr','Sa']
   return (
     <div style={{
       display: 'flex',
