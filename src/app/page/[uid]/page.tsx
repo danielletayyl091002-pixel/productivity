@@ -295,7 +295,6 @@ interface BlockRowProps {
 }
 
 function SortableBlockRow(props: BlockRowProps & { uid: string }) {
-  const [hovered, setHovered] = useState(false)
   const {
     attributes,
     listeners,
@@ -308,8 +307,7 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
   return (
     <div
       ref={setNodeRef}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      className="block-wrapper"
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
@@ -319,6 +317,7 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
       }}
     >
       <div
+        className="drag-handle"
         {...attributes}
         {...listeners}
         style={{
@@ -329,18 +328,10 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
           cursor: 'grab',
           color: '#CBD5E1',
           fontSize: '12px',
-          opacity: hovered ? 1 : 0,
-          pointerEvents: hovered ? 'auto' as const : 'none' as const,
-          transition: 'opacity 0.15s ease',
           zIndex: 50,
           userSelect: 'none',
           lineHeight: 1,
-          touchAction: 'none',
-          width: '24px',
-          height: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
+          touchAction: 'none'
         }}
       >
         ⠿
