@@ -31,6 +31,18 @@ function MonthDetail({
   const totalExp = expenseEntries.reduce(
     (s: number, e: any) => s + e.amount, 0
   )
+  const incomeEntries2 = monthEntries.filter(
+    (e: any) => e.type === 'income'
+  )
+  const incomeCatBreakdown = incomeEntries2.reduce(
+    (acc: any, e: any) => {
+      acc[e.category] = (acc[e.category] || 0) + e.amount
+      return acc
+    }, {}
+  )
+  const totalInc = incomeEntries2.reduce(
+    (s: number, e: any) => s + e.amount, 0
+  )
 
   return (
     <div style={{
@@ -132,6 +144,65 @@ function MonthDetail({
                   <div style={{
                     height: '100%', width: `${pct}%`,
                     background: cat?.color || '#6B7280',
+                    borderRadius: '3px',
+                    transition: 'width 0.5s ease'
+                  }}/>
+                </div>
+              </div>
+            )
+          })}
+
+      <div style={{ fontSize: '11px', fontWeight: 600,
+        color: 'var(--text-tertiary)',
+        textTransform: 'uppercase',
+        letterSpacing: '0.06em', marginBottom: '12px',
+        marginTop: '24px' }}>
+        Income by Category
+      </div>
+
+      {Object.keys(incomeCatBreakdown).length === 0 ? (
+        <div style={{ textAlign: 'center',
+          color: 'var(--text-tertiary)', fontSize: '13px',
+          padding: '16px' }}>
+          No income for {MonthNames[selectedMonth]}
+        </div>
+      ) : Object.entries(incomeCatBreakdown)
+          .sort((a: any, b: any) => b[1] - a[1])
+          .map(([catName, amount]: any) => {
+            const cat = categories.find(
+              (c: any) => c.name === catName
+            )
+            const pct = totalInc > 0
+              ? (amount / totalInc * 100) : 0
+            return (
+              <div key={catName} style={{ marginBottom: '10px' }}>
+                <div style={{ display: 'flex',
+                  justifyContent: 'space-between',
+                  marginBottom: '4px' }}>
+                  <div style={{ display: 'flex',
+                    alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                      width: '10px', height: '10px',
+                      borderRadius: '50%',
+                      background: cat?.color || '#10B981',
+                      flexShrink: 0
+                    }}/>
+                    <span style={{ fontSize: '13px',
+                      color: 'var(--text-primary)' }}>
+                      {catName}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '13px',
+                    color: 'var(--text-secondary)' }}>
+                    {currency}{amount.toFixed(2)} ({pct.toFixed(1)}%)
+                  </span>
+                </div>
+                <div style={{ height: '6px', borderRadius: '3px',
+                  background: 'var(--bg-hover)',
+                  overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', width: `${pct}%`,
+                    background: cat?.color || '#10B981',
                     borderRadius: '3px',
                     transition: 'width 0.5s ease'
                   }}/>
@@ -378,9 +449,9 @@ export default function FinancePage() {
             await db.financeEntries.delete(id)
             setEntries(prev => prev.filter(e => e.id !== id))
           }}
-          onEdit={(id, note, amount) => {
+          onEdit={(id, note, amount, category) => {
             setEntries(prev => prev.map(e =>
-              e.id === id ? { ...e, note, amount } : e
+              e.id === id ? { ...e, note, amount, category } : e
             ))
           }}
         />
@@ -396,9 +467,9 @@ export default function FinancePage() {
             await db.financeEntries.delete(id)
             setEntries(prev => prev.filter(e => e.id !== id))
           }}
-          onEdit={(id, note, amount) => {
+          onEdit={(id, note, amount, category) => {
             setEntries(prev => prev.map(e =>
-              e.id === id ? { ...e, note, amount } : e
+              e.id === id ? { ...e, note, amount, category } : e
             ))
           }}
         />
@@ -440,10 +511,10 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
   type: 'income' | 'expense'
   onAdd: () => void
   onDelete: (id: number) => void
-  onEdit: (id: number, note: string, amount: number) => void
+  onEdit: (id: number, note: string, amount: number, category: string) => void
 }) {
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [editForm, setEditForm] = useState({ note: '', amount: '' })
+  const [editForm, setEditForm] = useState({ note: '', amount: '', category: '' })
 
   const getCat = (catName: string) =>
     categories.find(c => c.name === catName)
@@ -507,7 +578,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
             onClick={() => {
               if (isEditing) return
               setEditingId(entry.id ?? null)
-              setEditForm({ note: entry.note, amount: entry.amount.toString() })
+              setEditForm({ note: entry.note, amount: entry.amount.toString(), category: entry.category || '' })
             }}
             onMouseEnter={e =>
               e.currentTarget.style.background = 'var(--bg-hover)'}
@@ -548,7 +619,27 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                   {currency}{entry.amount.toFixed(2)}
                 </span>
               )}
-              {cat ? (
+              {isEditing ? (
+                <select
+                  value={editForm.category}
+                  onClick={e => e.stopPropagation()}
+                  onChange={e => setEditForm(p => ({ ...p, category: e.target.value }))}
+                  style={{
+                    padding: '2px 6px', borderRadius: '4px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg-hover)',
+                    color: 'var(--text-primary)',
+                    fontSize: '12px'
+                  }}
+                >
+                  <option value="">No category</option>
+                  {categories
+                    .filter(c => c.type === type || c.type === 'both')
+                    .map(c => (
+                      <option key={c.id} value={c.name}>{c.name}</option>
+                    ))}
+                </select>
+              ) : cat ? (
                 <span style={{
                   display: 'inline-block',
                   padding: '2px 8px', borderRadius: '12px',
@@ -573,9 +664,10 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                     const newAmount = parseFloat(editForm.amount)
                     await db.financeEntries.update(entry.id, {
                       note: editForm.note,
-                      amount: newAmount
+                      amount: newAmount,
+                      category: editForm.category
                     })
-                    onEdit(entry.id, editForm.note, newAmount)
+                    onEdit(entry.id, editForm.note, newAmount, editForm.category)
                     setEditingId(null)
                   }} style={{
                     background: '#10B981', color: 'white',
