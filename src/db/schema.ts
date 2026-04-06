@@ -112,6 +112,16 @@ class FluentDB extends Dexie {
     this.version(2).stores({
       pages: '++id, uid, parentUid, isFavorite',
       blocks: '++id, uid, pageUid, type, order',
+      tasks: '++id, uid, status, dueDate, scheduledDate',
+      settings: '++id, key',
+      financeEntries: '++id, type, category, date',
+      financeCategories: '++id, type',
+      trackerDefinitions: '++id, uid, type, order',
+      trackerLogs: '++id, trackerUid, date'
+    })
+    this.version(3).stores({
+      pages: '++id, uid, parentUid, isFavorite',
+      blocks: '++id, uid, pageUid, type, order',
       tasks: '++id, uid, pageUid, status, dueDate, scheduledDate',
       settings: '++id, key',
       financeEntries: '++id, type, category, date',
