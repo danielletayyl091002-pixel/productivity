@@ -146,7 +146,6 @@ export default function FinancePage() {
       }}>
         {monthlyData.map((m, i) => {
           const isCurrentMonth = i === currentMonth
-          const isFuture = i > currentMonth
           return (
             <div key={m.month} style={{
               background: 'var(--bg-primary)',
@@ -154,8 +153,7 @@ export default function FinancePage() {
               padding: '16px',
               border: isCurrentMonth
                 ? '2px solid var(--accent)'
-                : '1px solid var(--border)',
-              opacity: isFuture ? 0.5 : 1
+                : '1px solid var(--border)'
             }}>
               <div style={{
                 display: 'flex', justifyContent: 'space-between',
@@ -204,6 +202,11 @@ export default function FinancePage() {
             await db.financeEntries.delete(id)
             setEntries(prev => prev.filter(e => e.id !== id))
           }}
+          onEdit={(id, note, amount) => {
+            setEntries(prev => prev.map(e =>
+              e.id === id ? { ...e, note, amount } : e
+            ))
+          }}
         />
         <FinanceTable
           title="Expenses"
@@ -216,6 +219,11 @@ export default function FinancePage() {
           onDelete={async (id) => {
             await db.financeEntries.delete(id)
             setEntries(prev => prev.filter(e => e.id !== id))
+          }}
+          onEdit={(id, note, amount) => {
+            setEntries(prev => prev.map(e =>
+              e.id === id ? { ...e, note, amount } : e
+            ))
           }}
         />
       </div>
@@ -247,7 +255,7 @@ export default function FinancePage() {
   )
 }
 
-function FinanceTable({ title, entries, categories, total, currency, type, onAdd, onDelete }: {
+function FinanceTable({ title, entries, categories, total, currency, type, onAdd, onDelete, onEdit }: {
   title: string
   entries: FinanceEntry[]
   categories: FinanceCategory[]
@@ -256,7 +264,11 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
   type: 'income' | 'expense'
   onAdd: () => void
   onDelete: (id: number) => void
+  onEdit: (id: number, note: string, amount: number) => void
 }) {
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editForm, setEditForm] = useState({ note: '', amount: '' })
+
   const getCat = (catName: string) =>
     categories.find(c => c.name === catName)
 
@@ -306,29 +318,60 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
           </div>
         ) : entries.map(entry => {
           const cat = getCat(entry.category)
+          const isEditing = editingId === entry.id
           return (
             <div key={entry.id} style={{
               display: 'grid',
               gridTemplateColumns: '1fr 80px 100px 80px',
               padding: '10px 20px',
               borderBottom: '1px solid var(--border)',
-              alignItems: 'center'
+              alignItems: 'center',
+              cursor: 'pointer'
+            }}
+            onClick={() => {
+              if (isEditing) return
+              setEditingId(entry.id ?? null)
+              setEditForm({ note: entry.note, amount: entry.amount.toString() })
             }}
             onMouseEnter={e =>
               e.currentTarget.style.background = 'var(--bg-hover)'}
             onMouseLeave={e =>
               e.currentTarget.style.background = 'transparent'}
             >
-              <span style={{ fontSize: '13px',
-                color: 'var(--text-primary)',
-                overflow: 'hidden', textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap' }}>
-                {entry.note}
-              </span>
-              <span style={{ fontSize: '13px', fontWeight: 600,
-                color: type === 'income' ? '#10B981' : '#EF4444' }}>
-                {currency}{entry.amount.toFixed(2)}
-              </span>
+              {isEditing ? (
+                <input value={editForm.note}
+                  onClick={e => e.stopPropagation()}
+                  onChange={e => setEditForm(p => ({ ...p, note: e.target.value }))}
+                  autoFocus
+                  style={{ width: '100%', border: 'none',
+                    background: 'var(--bg-hover)',
+                    borderRadius: '4px', padding: '2px 6px',
+                    color: 'var(--text-primary)', fontSize: '13px' }}
+                />
+              ) : (
+                <span style={{ fontSize: '13px',
+                  color: 'var(--text-primary)',
+                  overflow: 'hidden', textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap' }}>
+                  {entry.note}
+                </span>
+              )}
+              {isEditing ? (
+                <input type="number" value={editForm.amount}
+                  onClick={e => e.stopPropagation()}
+                  onChange={e => setEditForm(p => ({ ...p, amount: e.target.value }))}
+                  style={{ width: '70px', border: 'none',
+                    background: 'var(--bg-hover)',
+                    borderRadius: '4px', padding: '2px 6px',
+                    color: type === 'income' ? '#10B981' : '#EF4444',
+                    fontSize: '13px' }}
+                />
+              ) : (
+                <span style={{ fontSize: '13px', fontWeight: 600,
+                  color: type === 'income' ? '#10B981' : '#EF4444' }}>
+                  {currency}{entry.amount.toFixed(2)}
+                </span>
+              )}
               {cat ? (
                 <span style={{
                   display: 'inline-block',
@@ -346,11 +389,39 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                   {entry.category}
                 </span>
               )}
-              <span style={{ fontSize: '11px',
-                color: 'var(--text-tertiary)' }}>
-                {new Date(entry.date).toLocaleDateString('en-US',
-                  { month: 'short', day: 'numeric' })}
-              </span>
+              {isEditing ? (
+                <div style={{ display: 'flex', gap: '4px' }}
+                  onClick={e => e.stopPropagation()}>
+                  <button onClick={async () => {
+                    if (!entry.id) return
+                    const newAmount = parseFloat(editForm.amount)
+                    await db.financeEntries.update(entry.id, {
+                      note: editForm.note,
+                      amount: newAmount
+                    })
+                    onEdit(entry.id, editForm.note, newAmount)
+                    setEditingId(null)
+                  }} style={{
+                    background: '#10B981', color: 'white',
+                    border: 'none', borderRadius: '4px',
+                    fontSize: '11px', padding: '2px 8px',
+                    cursor: 'pointer', fontWeight: 600
+                  }}>Save</button>
+                  <button onClick={() => setEditingId(null)} style={{
+                    background: 'var(--bg-hover)',
+                    color: 'var(--text-secondary)',
+                    border: 'none', borderRadius: '4px',
+                    fontSize: '11px', padding: '2px 8px',
+                    cursor: 'pointer'
+                  }}>Cancel</button>
+                </div>
+              ) : (
+                <span style={{ fontSize: '11px',
+                  color: 'var(--text-tertiary)' }}>
+                  {new Date(entry.date).toLocaleDateString('en-US',
+                    { month: 'short', day: 'numeric' })}
+                </span>
+              )}
             </div>
           )
         })}
@@ -397,6 +468,8 @@ function AddEntryModal({ type, categories, currency, onClose, onSave }: {
   const filteredCats = categories.filter(c =>
     c.type === type || c.type === 'both'
   )
+
+  console.log('categories:', categories, 'filtered:', filteredCats)
 
   return (
     <div style={{
