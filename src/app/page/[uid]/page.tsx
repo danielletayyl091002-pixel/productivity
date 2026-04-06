@@ -168,17 +168,14 @@ export default function PageCanvas() {
     }
   }
 
-  // Pre-calculate display numbers
-  let counter = 0
-  const blockDisplayNumbers = blocks.map(block => {
-    if (block.type === 'numbered') {
-      counter++
-      return counter
-    } else {
-      counter = 0
+  const blockDisplayNumbers = (() => {
+    let c = 0
+    return blocks.map(block => {
+      if (block.type === 'numbered') return ++c
+      c = 0
       return 0
-    }
-  })
+    })
+  })()
 
   if (loading) return <div style={{ padding: '40px', color: 'var(--text-tertiary)' }}>Loading...</div>
   if (!page) return <div style={{ padding: '40px', color: 'var(--text-tertiary)' }}>Page not found</div>
