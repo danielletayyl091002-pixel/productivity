@@ -5,6 +5,7 @@ import { db, Page, Block } from '@/db/schema'
 import { nanoid } from 'nanoid'
 import SlashMenu from '@/components/blocks/SlashMenu'
 import BoardView from '@/components/views/BoardView'
+import CalendarView from '@/components/views/CalendarView'
 import {
   DndContext,
   DragOverlay,
@@ -60,7 +61,7 @@ export default function PageCanvas() {
     position: { top: number; left: number }
   } | null>(null)
   const [activeBlock, setActiveBlock] = useState<Block | null>(null)
-  const [view, setView] = useState<'page' | 'board'>('page')
+  const [view, setView] = useState<'page' | 'board' | 'calendar'>('page')
 
   useEffect(() => {
     if (!uid) return
@@ -216,7 +217,7 @@ export default function PageCanvas() {
           style={{ fontSize: '2.25rem', fontWeight: 700, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-primary)', width: '100%', marginBottom: '12px' }}
         />
         <div style={{ display: 'flex', gap: '4px', marginBottom: '16px' }}>
-          {(['page', 'board'] as const).map(v => (
+          {(['page', 'board', 'calendar'] as const).map(v => (
             <button key={v} onClick={() => setView(v)}
               style={{
                 padding: '4px 12px', borderRadius: '6px',
@@ -225,13 +226,15 @@ export default function PageCanvas() {
                 background: view === v ? 'var(--accent-light)' : 'transparent',
                 color: view === v ? 'var(--accent)' : 'var(--text-tertiary)'
               }}>
-              {v === 'page' ? 'Page' : 'Board'}
+              {v === 'page' ? 'Page' : v === 'board' ? 'Board' : 'Calendar'}
             </button>
           ))}
         </div>
       </div>
       {view === 'board' ? (
         <BoardView pageUid={uid} />
+      ) : view === 'calendar' ? (
+        <CalendarView pageUid={uid} />
       ) : (
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 80px 120px 48px', position: 'relative' }}>
         <DndContext

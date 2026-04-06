@@ -3,13 +3,6 @@ import { useEffect, useState } from 'react'
 import { db, Task } from '@/db/schema'
 
 
-const MOCK_EVENTS = [
-  { id: '1', title: 'Morning standup', start: 9, end: 10, color: '#3B82F6' },
-  { id: '2', title: 'Deep work', start: 10, end: 12, color: '#8B5CF6' },
-  { id: '3', title: 'Lunch', start: 12, end: 13, color: '#10B981' },
-  { id: '4', title: 'Client call', start: 14, end: 15, color: '#F59E0B' },
-]
-
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 6)
 
 function formatHour(h: number) {
@@ -73,7 +66,7 @@ function WeekStrip({ today }: { today: Date }) {
   )
 }
 
-function Timeline({ now }: { now: number }) {
+function Timeline({ now, tasks }: { now: number, tasks: Task[] }) {
   const HOUR_H = 52
   const START = 6
   const currentTop = (now - START) * HOUR_H
@@ -96,22 +89,50 @@ function Timeline({ now }: { now: number }) {
         </div>
       ))}
 
-      {MOCK_EVENTS.map(ev => (
-        <div key={ev.id} style={{
+      {tasks.length === 0 && (
+        <div style={{
           position: 'absolute',
-          top: `${(ev.start - START) * HOUR_H}px`,
+          top: `${(9 - START) * HOUR_H}px`,
           left: '44px', right: '8px',
-          height: `${(ev.end - ev.start) * HOUR_H - 2}px`,
-          background: ev.color + '18',
-          borderLeft: `3px solid ${ev.color}`,
-          borderRadius: '4px',
-          padding: '3px 6px', overflow: 'hidden'
+          textAlign: 'center',
+          fontSize: '11px',
+          color: 'var(--text-tertiary)',
+          padding: '8px'
         }}>
-          <span style={{
-            fontSize: '10px', fontWeight: 600, color: ev.color
-          }}>{ev.title}</span>
+          No scheduled tasks today
         </div>
-      ))}
+      )}
+
+      {tasks.map(task => {
+        const startHour = task.startTime
+          ? parseInt(task.startTime.split(':')[0])
+          : 9
+        const startMin = task.startTime
+          ? parseInt(task.startTime.split(':')[1])
+          : 0
+        const endHour = task.endTime
+          ? parseInt(task.endTime.split(':')[0])
+          : startHour + 1
+
+        return (
+          <div key={task.uid} style={{
+            position: 'absolute',
+            top: `${(startHour - START + startMin / 60) * HOUR_H}px`,
+            left: '44px', right: '8px',
+            height: `${(endHour - startHour) * HOUR_H - 2}px`,
+            background: (task.color || '#3B82F6') + '20',
+            borderLeft: `3px solid ${task.color || '#3B82F6'}`,
+            borderRadius: '4px',
+            padding: '3px 6px', overflow: 'hidden',
+            minHeight: '20px'
+          }}>
+            <span style={{
+              fontSize: '10px', fontWeight: 600,
+              color: task.color || '#3B82F6'
+            }}>{task.title}</span>
+          </div>
+        )
+      })}
 
       {now >= START && now <= 22 && (
         <div style={{
@@ -167,6 +188,7 @@ function Ring({ value, max, color, label }: {
 
 export default function RightRail() {
   const [upcoming, setUpcoming] = useState<Task[]>([])
+  const [todayTasks, setTodayTasks] = useState<Task[]>([])
   const [today, setToday] = useState<Date | null>(null)
   const [now, setNow] = useState(0)
   const [dateStr, setDateStr] = useState('')
@@ -194,6 +216,14 @@ export default function RightRail() {
                      (t.dueDate ?? '') >= todayStr)
         .sortBy('dueDate')
       setUpcoming(tasks.slice(0, 3))
+
+      const scheduled = await db.tasks
+        .filter(t =>
+          (t.scheduledDate === todayStr || t.dueDate === todayStr) &&
+          t.startTime !== null
+        )
+        .toArray()
+      setTodayTasks(scheduled)
     }
     load()
   }, [])
@@ -227,7 +257,7 @@ export default function RightRail() {
       </div>
 
       {today && <WeekStrip today={today} />}
-      <Timeline now={now} />
+      <Timeline now={now} tasks={todayTasks} />
 
       {/* Progress rings */}
       <div style={{
