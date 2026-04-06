@@ -47,11 +47,25 @@ export default function PageCanvas() {
         .sortBy('order')
       // Clean bullet content
       const cleaned = allBlocks.map(block => {
-        if (block.type === 'bullet' && block.content.startsWith('•')) {
-          return { ...block, content: block.content.slice(1).trim() }
+        if (block.type === 'bullet') {
+          return {
+            ...block,
+            content: block.content
+              .replace(/^[•·\-\*\s]+/, '')
+              .trim()
+          }
         }
         return block
       })
+
+      // Persist cleaned content to DB
+      for (const block of cleaned) {
+        const original = allBlocks.find(b => b.id === block.id)
+        if (original && original.content !== block.content && block.id) {
+          await db.blocks.update(block.id, { content: block.content })
+        }
+      }
+
       setBlocks(cleaned)
 
       setLoading(false)
