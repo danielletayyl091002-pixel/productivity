@@ -170,6 +170,9 @@ export default function LeftSidebar() {
         <NavLink onClick={() => router.push('/finance')}>
           Finance
         </NavLink>
+        <NavLink onClick={() => router.push('/board')}>
+          Board
+        </NavLink>
         <NavLink onClick={() => router.push('/settings')}>
           Settings
         </NavLink>

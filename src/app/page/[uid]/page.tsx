@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation'
 import { db, Page, Block } from '@/db/schema'
 import { nanoid } from 'nanoid'
 import SlashMenu from '@/components/blocks/SlashMenu'
+import BoardView from '@/components/views/BoardView'
 import {
   DndContext,
   DragOverlay,
@@ -59,6 +60,7 @@ export default function PageCanvas() {
     position: { top: number; left: number }
   } | null>(null)
   const [activeBlock, setActiveBlock] = useState<Block | null>(null)
+  const [view, setView] = useState<'page' | 'board'>('page')
 
   useEffect(() => {
     if (!uid) return
@@ -211,9 +213,26 @@ export default function PageCanvas() {
           defaultValue={page.title}
           onChange={e => updateTitle(e.target.value)}
           placeholder="Untitled"
-          style={{ fontSize: '2.25rem', fontWeight: 700, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-primary)', width: '100%', marginBottom: '24px' }}
+          style={{ fontSize: '2.25rem', fontWeight: 700, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-primary)', width: '100%', marginBottom: '12px' }}
         />
+        <div style={{ display: 'flex', gap: '4px', marginBottom: '16px' }}>
+          {(['page', 'board'] as const).map(v => (
+            <button key={v} onClick={() => setView(v)}
+              style={{
+                padding: '4px 12px', borderRadius: '6px',
+                border: 'none', fontSize: '12px',
+                fontWeight: 500, cursor: 'pointer',
+                background: view === v ? 'var(--accent-light)' : 'transparent',
+                color: view === v ? 'var(--accent)' : 'var(--text-tertiary)'
+              }}>
+              {v === 'page' ? 'Page' : 'Board'}
+            </button>
+          ))}
+        </div>
       </div>
+      {view === 'board' ? (
+        <BoardView pageUid={uid} />
+      ) : (
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 80px 120px 48px', position: 'relative' }}>
         <DndContext
           sensors={sensors}
@@ -292,6 +311,7 @@ export default function PageCanvas() {
           {blocks.length === 0 && "Click here or type '/' to start writing..."}
         </div>
       </div>
+      )}
     </div>
   )
 }
