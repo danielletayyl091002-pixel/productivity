@@ -147,8 +147,9 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
         {COLUMNS.map(col => {
           const colTasks = tasks.filter(t => t.status === col.id)
           return (
-            <div key={col.id} id={col.id} style={{
+            <div key={col.id} id={col.id} className="board-column" style={{
               minWidth: '280px', width: '280px',
+              minHeight: 'calc(100vh - 200px)',
               background: 'var(--bg-secondary)',
               borderRadius: '12px',
               padding: '16px',
@@ -197,7 +198,7 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
               >
                 <div style={{
                   display: 'flex', flexDirection: 'column',
-                  gap: '8px', minHeight: '40px'
+                  gap: '8px', minHeight: '200px'
                 }}>
                   {colTasks.map(task => (
                     <TaskCard key={task.uid} task={task}

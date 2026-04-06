@@ -262,7 +262,8 @@ export default function RightRail() {
       {/* Progress rings */}
       <div style={{
         borderTop: '1px solid var(--border)',
-        padding: '12px 16px', flexShrink: 0
+        padding: '12px 16px', paddingBottom: '24px',
+        marginBottom: '8px', flexShrink: 0
       }}>
         <div style={{
           fontSize: '10px', fontWeight: 600,
