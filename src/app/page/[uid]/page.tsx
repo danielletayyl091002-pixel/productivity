@@ -45,23 +45,32 @@ export default function PageCanvas() {
       const allBlocks = await db.blocks
         .where('pageUid').equals(uid)
         .sortBy('order')
-      // Clean bullet content
-      const cleaned = allBlocks.map(block => {
-        if (block.type === 'bullet' &&
-            /^[•·\-\*]\s*/.test(block.content)) {
-          return {
-            ...block,
-            content: block.content.replace(/^[•·\-\*]\s*/, '').trim()
-          }
-        }
-        return block
-      })
+      // Remove excessive empty blocks - keep max 1 empty at a time
+      const cleaned: Block[] = []
+      let emptyCount = 0
 
-      // Persist cleaned content to DB
+      for (const block of allBlocks) {
+        const isEmpty = block.content.trim() === ''
+
+        if (isEmpty) {
+          emptyCount++
+          if (emptyCount <= 1) cleaned.push(block)
+          else {
+            if (block.id) await db.blocks.delete(block.id)
+          }
+        } else {
+          emptyCount = 0
+          cleaned.push(block)
+        }
+      }
+
+      // Also strip bullet chars
       for (const block of cleaned) {
-        const original = allBlocks.find(b => b.id === block.id)
-        if (original && original.content !== block.content && block.id) {
-          await db.blocks.update(block.id, { content: block.content })
+        if (block.type === 'bullet' &&
+            /^[•·]\s*/.test(block.content) && block.id) {
+          const fix = block.content.replace(/^[•·]\s*/, '').trim()
+          await db.blocks.update(block.id, { content: fix })
+          block.content = fix
         }
       }
 
