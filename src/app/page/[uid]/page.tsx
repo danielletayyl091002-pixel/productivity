@@ -332,6 +332,12 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
           e.stopPropagation()
         }
       }}
+      onPointerDown={(e) => {
+        const target = e.target as HTMLElement
+        if (!target.closest('.drag-handle')) {
+          e.stopPropagation()
+        }
+      }}
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
