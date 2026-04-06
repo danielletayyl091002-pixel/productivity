@@ -9,8 +9,7 @@ import {
   DragOverlay,
   closestCenter,
   KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
+  PointerSensor,
   useSensor,
   useSensors,
   DragEndEvent
@@ -153,11 +152,8 @@ export default function PageCanvas() {
   }
 
   const sensors = useSensors(
-    useSensor(MouseSensor, {
+    useSensor(PointerSensor, {
       activationConstraint: { distance: 8 }
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 250, tolerance: 5 }
     })
   )
 
