@@ -34,15 +34,45 @@ export default function PageCanvas() {
     setPage(prev => prev ? { ...prev, title } : null)
   }
 
-  async function addBlock(type: Block['type'] = 'text') {
-    if (!uid) return
+  async function addBlock(
+    afterUid?: string,
+    type: Block['type'] = 'text'
+  ) {
+    const newUid = nanoid()
+    const afterIndex = afterUid
+      ? blocks.findIndex(b => b.uid === afterUid)
+      : blocks.length - 1
+    const newOrder = afterIndex + 1
+
+    // Shift all blocks after insertion point
+    const toUpdate = blocks.slice(newOrder)
+    for (const b of toUpdate) {
+      if (b.id) await db.blocks.update(b.id, { order: b.order + 1 })
+    }
+
     const newBlock: Block = {
-      uid: nanoid(), pageUid: uid, type, content: '',
-      checked: false, order: blocks.length,
-      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+      uid: newUid,
+      pageUid: uid || '',
+      type,
+      content: '',
+      checked: false,
+      order: newOrder,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
     await db.blocks.add(newBlock)
-    setBlocks(prev => [...prev, newBlock])
+
+    const updated = [...blocks]
+    updated.splice(newOrder, 0, newBlock)
+    setBlocks(updated)
+
+    // Focus the new block after render
+    setTimeout(() => {
+      const el = document.querySelector(
+        `[data-block-uid="${newUid}"]`
+      ) as HTMLElement
+      el?.focus()
+    }, 50)
   }
 
   // Content-only update: save to DB, do NOT re-render blocks
@@ -65,6 +95,22 @@ export default function PageCanvas() {
     await db.blocks.update(block.id, { type })
     setBlocks(prev => prev.map(b => b.uid === blockUid ? { ...b, type } : b))
     setSlashMenu(null)
+
+    setTimeout(() => {
+      const el = document.querySelector(
+        `[data-block-uid="${blockUid}"]`
+      ) as HTMLElement
+      if (el) {
+        el.focus()
+        // Move cursor to end
+        const range = document.createRange()
+        const sel = window.getSelection()
+        range.selectNodeContents(el)
+        range.collapse(false)
+        sel?.removeAllRanges()
+        sel?.addRange(range)
+      }
+    }, 50)
   }
 
   if (loading) return <div style={{ padding: '40px', color: 'var(--text-tertiary)' }}>Loading...</div>
@@ -87,7 +133,7 @@ export default function PageCanvas() {
             block={block}
             onChange={content => updateBlockContent(block.uid, content)}
             onDelete={() => deleteBlock(block.uid)}
-            onEnter={() => addBlock('text')}
+            onEnter={() => addBlock(block.uid)}
             onSlash={(query, pos) => setSlashMenu({ blockUid: block.uid, query, position: pos })}
             onSlashClose={() => setSlashMenu(null)}
             showSlash={slashMenu?.blockUid === block.uid}
@@ -174,6 +220,7 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
           ref={divRef}
           contentEditable
           suppressContentEditableWarning
+          data-block-uid={block.uid}
           onKeyUp={handleKeyUp}
           onKeyDown={handleKeyDown}
           style={{ flex: 1, outline: 'none', color: 'var(--text-primary)', lineHeight: 1.7, minHeight: '28px', wordBreak: 'break-word', ...style }}
