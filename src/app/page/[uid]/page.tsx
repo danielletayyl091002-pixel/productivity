@@ -192,40 +192,52 @@ export default function PageCanvas() {
             items={blocks.map(b => b.uid)}
             strategy={verticalListSortingStrategy}
           >
-            {blocks.map((block, index) => (
-              <div key={block.uid}>
-                <InsertZone onClick={() => addBlock(
-                  index === 0 ? undefined : blocks[index - 1].uid, 'text'
-                )} />
-                <SortableBlockRow
-                  uid={block.uid}
-                  block={block}
-                  onChange={content => updateBlockContent(block.uid, content)}
-                  onDelete={() => deleteBlock(block.uid)}
-                  onEnter={(type) => addBlock(block.uid, type)}
-                  onSlash={(query, pos) => setSlashMenu({ blockUid: block.uid, query, position: pos })}
-                  onSlashClose={() => setSlashMenu(null)}
-                  showSlash={slashMenu?.blockUid === block.uid}
-                  slashQuery={slashMenu?.blockUid === block.uid ? slashMenu.query : ''}
-                  slashPos={slashMenu?.position || { top: 0, left: 0 }}
-                  onConvert={(type) => convertBlock(block.uid, type)}
-                  onFocusNext={() => {
-                    const next = blocks[index + 1]
-                    if (next) {
-                      const el = document.querySelector(`[data-block-uid="${next.uid}"]`) as HTMLElement
-                      el?.focus()
-                    }
-                  }}
-                  onFocusPrev={() => {
-                    const prev = blocks[index - 1]
-                    if (prev) {
-                      const el = document.querySelector(`[data-block-uid="${prev.uid}"]`) as HTMLElement
-                      el?.focus()
-                    }
-                  }}
-                />
-              </div>
-            ))}
+            {(() => {
+              let numberedCounter = 0
+              return blocks.map((block, index) => {
+                if (block.type === 'numbered') {
+                  numberedCounter++
+                } else {
+                  numberedCounter = 0
+                }
+                const displayNumber = numberedCounter
+                return (
+                  <div key={block.uid}>
+                    <InsertZone onClick={() => addBlock(
+                      index === 0 ? undefined : blocks[index - 1].uid, 'text'
+                    )} />
+                    <SortableBlockRow
+                      uid={block.uid}
+                      block={block}
+                      displayNumber={displayNumber}
+                      onChange={content => updateBlockContent(block.uid, content)}
+                      onDelete={() => deleteBlock(block.uid)}
+                      onEnter={(type) => addBlock(block.uid, type)}
+                      onSlash={(query, pos) => setSlashMenu({ blockUid: block.uid, query, position: pos })}
+                      onSlashClose={() => setSlashMenu(null)}
+                      showSlash={slashMenu?.blockUid === block.uid}
+                      slashQuery={slashMenu?.blockUid === block.uid ? slashMenu.query : ''}
+                      slashPos={slashMenu?.position || { top: 0, left: 0 }}
+                      onConvert={(type) => convertBlock(block.uid, type)}
+                      onFocusNext={() => {
+                        const next = blocks[index + 1]
+                        if (next) {
+                          const el = document.querySelector(`[data-block-uid="${next.uid}"]`) as HTMLElement
+                          el?.focus()
+                        }
+                      }}
+                      onFocusPrev={() => {
+                        const prev = blocks[index - 1]
+                        if (prev) {
+                          const el = document.querySelector(`[data-block-uid="${prev.uid}"]`) as HTMLElement
+                          el?.focus()
+                        }
+                      }}
+                    />
+                  </div>
+                )
+              })
+            })()}
             <InsertZone onClick={() => addBlock(
               blocks[blocks.length - 1]?.uid, 'text'
             )} />
@@ -269,6 +281,7 @@ interface BlockRowProps {
   onConvert: (type: Block['type']) => void
   onFocusNext: () => void
   onFocusPrev: () => void
+  displayNumber?: number
 }
 
 function SortableBlockRow(props: BlockRowProps & { uid: string }) {
@@ -319,7 +332,7 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
   )
 }
 
-function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, showSlash, slashQuery, slashPos, onConvert, onFocusNext, onFocusPrev }: BlockRowProps) {
+function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, showSlash, slashQuery, slashPos, onConvert, onFocusNext, onFocusPrev, displayNumber }: BlockRowProps) {
   const divRef = useRef<HTMLDivElement>(null)
   const saveTimer = useRef<NodeJS.Timeout>(undefined)
   const style = getBlockStyle(block.type)
@@ -387,6 +400,9 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
       )}
       {block.type === 'bullet' && (
         <span style={{ color: 'var(--text-tertiary)', marginTop: '3px', flexShrink: 0 }}>•</span>
+      )}
+      {block.type === 'numbered' && (
+        <span style={{ color: 'var(--text-tertiary)', marginTop: '3px', flexShrink: 0, fontSize: '14px', minWidth: '18px' }}>{displayNumber || 1}.</span>
       )}
       {block.type === 'divider' ? (
         <div

@@ -40,10 +40,8 @@ export default function LeftSidebar() {
       setPages(all)
     }
     window.addEventListener('page-title-updated', refresh)
-    window.addEventListener('page-created', refresh)
     return () => {
       window.removeEventListener('page-title-updated', refresh)
-      window.removeEventListener('page-created', refresh)
     }
   }, [])
 
@@ -77,9 +75,8 @@ export default function LeftSidebar() {
     const all = await db.pages
       .filter(p => !p.inTrash)
       .sortBy('order')
-    setPages(all)
+    setPages([...all])
     router.push(`/page/${uid}`)
-    window.dispatchEvent(new CustomEvent('page-created'))
     creating = false
   }
 
