@@ -47,12 +47,11 @@ export default function PageCanvas() {
         .sortBy('order')
       // Clean bullet content
       const cleaned = allBlocks.map(block => {
-        if (block.type === 'bullet') {
+        if (block.type === 'bullet' &&
+            /^[•·\-\*]\s*/.test(block.content)) {
           return {
             ...block,
-            content: block.content
-              .replace(/^[•·\-\*\s]+/, '')
-              .trim()
+            content: block.content.replace(/^[•·\-\*]\s*/, '').trim()
           }
         }
         return block
