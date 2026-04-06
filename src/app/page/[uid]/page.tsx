@@ -44,7 +44,14 @@ export default function PageCanvas() {
       const allBlocks = await db.blocks
         .where('pageUid').equals(uid)
         .sortBy('order')
-      setBlocks(allBlocks)
+      // Clean bullet content
+      const cleaned = allBlocks.map(block => {
+        if (block.type === 'bullet' && block.content.startsWith('•')) {
+          return { ...block, content: block.content.slice(1).trim() }
+        }
+        return block
+      })
+      setBlocks(cleaned)
 
       setLoading(false)
     }
@@ -161,6 +168,18 @@ export default function PageCanvas() {
     }
   }
 
+  // Pre-calculate display numbers
+  let counter = 0
+  const blockDisplayNumbers = blocks.map(block => {
+    if (block.type === 'numbered') {
+      counter++
+      return counter
+    } else {
+      counter = 0
+      return 0
+    }
+  })
+
   if (loading) return <div style={{ padding: '40px', color: 'var(--text-tertiary)' }}>Loading...</div>
   if (!page) return <div style={{ padding: '40px', color: 'var(--text-tertiary)' }}>Page not found</div>
 
@@ -179,7 +198,6 @@ export default function PageCanvas() {
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragStart={(e) => {
-            console.log('DRAG STARTED', e.active.id)
             const block = blocks.find(b => b.uid === e.active.id)
             setActiveBlock(block || null)
           }}
@@ -192,52 +210,41 @@ export default function PageCanvas() {
             items={blocks.map(b => b.uid)}
             strategy={verticalListSortingStrategy}
           >
-            {(() => {
-              let numberedCounter = 0
-              return blocks.map((block, index) => {
-                if (block.type === 'numbered') {
-                  numberedCounter++
-                } else {
-                  numberedCounter = 0
-                }
-                const displayNumber = numberedCounter
-                return (
-                  <div key={block.uid}>
-                    <InsertZone onClick={() => addBlock(
-                      index === 0 ? undefined : blocks[index - 1].uid, 'text'
-                    )} />
-                    <SortableBlockRow
-                      uid={block.uid}
-                      block={block}
-                      displayNumber={displayNumber}
-                      onChange={content => updateBlockContent(block.uid, content)}
-                      onDelete={() => deleteBlock(block.uid)}
-                      onEnter={(type) => addBlock(block.uid, type)}
-                      onSlash={(query, pos) => setSlashMenu({ blockUid: block.uid, query, position: pos })}
-                      onSlashClose={() => setSlashMenu(null)}
-                      showSlash={slashMenu?.blockUid === block.uid}
-                      slashQuery={slashMenu?.blockUid === block.uid ? slashMenu.query : ''}
-                      slashPos={slashMenu?.position || { top: 0, left: 0 }}
-                      onConvert={(type) => convertBlock(block.uid, type)}
-                      onFocusNext={() => {
-                        const next = blocks[index + 1]
-                        if (next) {
-                          const el = document.querySelector(`[data-block-uid="${next.uid}"]`) as HTMLElement
-                          el?.focus()
-                        }
-                      }}
-                      onFocusPrev={() => {
-                        const prev = blocks[index - 1]
-                        if (prev) {
-                          const el = document.querySelector(`[data-block-uid="${prev.uid}"]`) as HTMLElement
-                          el?.focus()
-                        }
-                      }}
-                    />
-                  </div>
-                )
-              })
-            })()}
+            {blocks.map((block, index) => (
+              <div key={block.uid}>
+                <InsertZone onClick={() => addBlock(
+                  index === 0 ? undefined : blocks[index - 1].uid, 'text'
+                )} />
+                <SortableBlockRow
+                  uid={block.uid}
+                  block={block}
+                  displayNumber={blockDisplayNumbers[index]}
+                  onChange={content => updateBlockContent(block.uid, content)}
+                  onDelete={() => deleteBlock(block.uid)}
+                  onEnter={(type) => addBlock(block.uid, type)}
+                  onSlash={(query, pos) => setSlashMenu({ blockUid: block.uid, query, position: pos })}
+                  onSlashClose={() => setSlashMenu(null)}
+                  showSlash={slashMenu?.blockUid === block.uid}
+                  slashQuery={slashMenu?.blockUid === block.uid ? slashMenu.query : ''}
+                  slashPos={slashMenu?.position || { top: 0, left: 0 }}
+                  onConvert={(type) => convertBlock(block.uid, type)}
+                  onFocusNext={() => {
+                    const next = blocks[index + 1]
+                    if (next) {
+                      const el = document.querySelector(`[data-block-uid="${next.uid}"]`) as HTMLElement
+                      el?.focus()
+                    }
+                  }}
+                  onFocusPrev={() => {
+                    const prev = blocks[index - 1]
+                    if (prev) {
+                      const el = document.querySelector(`[data-block-uid="${prev.uid}"]`) as HTMLElement
+                      el?.focus()
+                    }
+                  }}
+                />
+              </div>
+            ))}
             <InsertZone onClick={() => addBlock(
               blocks[blocks.length - 1]?.uid, 'text'
             )} />
@@ -302,7 +309,8 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
         transform: CSS.Translate.toString(transform),
         transition,
         opacity: isDragging ? 0.5 : 1,
-        position: 'relative'
+        position: 'relative',
+        paddingLeft: '32px'
       }}
     >
       <div
@@ -310,7 +318,7 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
         {...listeners}
         style={{
           position: 'absolute',
-          left: '12px',
+          left: '8px',
           top: '50%',
           transform: 'translateY(-50%)',
           cursor: 'grab',
