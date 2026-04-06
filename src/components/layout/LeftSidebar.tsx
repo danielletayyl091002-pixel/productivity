@@ -40,8 +40,10 @@ export default function LeftSidebar() {
       setPages(all)
     }
     window.addEventListener('page-title-updated', refresh)
+    window.addEventListener('page-created', refresh)
     return () => {
       window.removeEventListener('page-title-updated', refresh)
+      window.removeEventListener('page-created', refresh)
     }
   }, [])
 
@@ -195,36 +197,75 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 function PageItem({ page, active, onClick }: {
   page: Page, active: boolean, onClick: () => void
 }) {
+  const [hovered, setHovered] = useState(false)
+
+  async function deletePage() {
+    if (!page.id) return
+    await db.pages.update(page.id, { inTrash: true })
+    window.dispatchEvent(new CustomEvent('page-created'))
+  }
+
   return (
-    <div onClick={onClick} style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      padding: '5px 8px',
-      borderRadius: '6px',
-      cursor: 'pointer',
-      fontSize: '13px',
-      color: active ? 'var(--accent)' : 'var(--text-primary)',
-      background: active ? 'var(--accent-light)' : 'transparent',
-      marginBottom: '1px'
-    }}
-    onMouseEnter={e => {
-      if (!active)
-        e.currentTarget.style.background = 'var(--bg-hover)'
-    }}
-    onMouseLeave={e => {
-      if (!active)
-        e.currentTarget.style.background = 'transparent'
-    }}
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        position: 'relative',
+        borderRadius: '6px',
+        marginBottom: '1px',
+        background: active ? 'var(--accent-light)' : 'transparent'
+      }}
     >
-      <span style={{
+      <div onClick={onClick} style={{
         flex: 1,
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap'
-      }}>
-        {page.title || 'Untitled'}
-      </span>
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '5px 8px',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: '13px',
+        color: active ? 'var(--accent)' : 'var(--text-primary)'
+      }}
+      onMouseEnter={e => {
+        if (!active)
+          e.currentTarget.parentElement!.style.background = 'var(--bg-hover)'
+      }}
+      onMouseLeave={e => {
+        if (!active)
+          e.currentTarget.parentElement!.style.background = 'transparent'
+      }}
+      >
+        <span style={{
+          flex: 1,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {page.title || 'Untitled'}
+        </span>
+      </div>
+      {hovered && !page.isFavorite && (
+        <button
+          onClick={(e) => { e.stopPropagation(); deletePage() }}
+          style={{
+            position: 'absolute', right: '8px',
+            background: 'none', border: 'none',
+            color: 'var(--text-tertiary)',
+            cursor: 'pointer', fontSize: '14px',
+            padding: '2px 4px',
+            borderRadius: '4px'
+          }}
+          onMouseEnter={e =>
+            e.currentTarget.style.color = '#EF4444'}
+          onMouseLeave={e =>
+            e.currentTarget.style.color = 'var(--text-tertiary)'}
+        >
+          x
+        </button>
+      )}
     </div>
   )
 }
