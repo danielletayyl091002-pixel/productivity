@@ -1,12 +1,11 @@
 'use client'
-
 export default function Home() {
   return (
     <div style={{
+      flex: 1,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      height: '100%',
       color: 'var(--text-tertiary)',
       fontSize: '14px'
     }}>

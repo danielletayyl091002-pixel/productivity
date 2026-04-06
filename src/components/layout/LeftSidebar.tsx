@@ -13,18 +13,18 @@ export default function LeftSidebar() {
   useEffect(() => {
     async function init() {
       await seedIfEmpty()
-      await loadPages()
-      // Navigate to home page if on root
-      if (pathname === '/') {
-        const homeSetting = await db.settings
-          .where('key').equals('homePageUid').first()
-        if (homeSetting) {
-          router.replace(`/page/${homeSetting.value}`)
-        }
+
+      const homeSetting = await db.settings
+        .where('key').equals('homePageUid').first()
+
+      if (homeSetting?.value && pathname === '/') {
+        router.replace(`/page/${homeSetting.value}`)
       }
+
+      await loadPages()
     }
     init()
-  }, [])
+  }, [pathname])
 
   async function loadPages() {
     const all = await db.pages
