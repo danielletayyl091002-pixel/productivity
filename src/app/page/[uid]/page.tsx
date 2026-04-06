@@ -182,22 +182,29 @@ export default function PageCanvas() {
             items={blocks.map(b => b.uid)}
             strategy={verticalListSortingStrategy}
           >
-            {blocks.map(block => (
-              <SortableBlockRow
-                key={block.uid}
-                uid={block.uid}
-                block={block}
-                onChange={content => updateBlockContent(block.uid, content)}
-                onDelete={() => deleteBlock(block.uid)}
-                onEnter={(type) => addBlock(block.uid, type)}
-                onSlash={(query, pos) => setSlashMenu({ blockUid: block.uid, query, position: pos })}
-                onSlashClose={() => setSlashMenu(null)}
-                showSlash={slashMenu?.blockUid === block.uid}
-                slashQuery={slashMenu?.blockUid === block.uid ? slashMenu.query : ''}
-                slashPos={slashMenu?.position || { top: 0, left: 0 }}
-                onConvert={(type) => convertBlock(block.uid, type)}
-              />
+            {blocks.map((block, index) => (
+              <div key={block.uid}>
+                <InsertZone onClick={() => addBlock(
+                  index === 0 ? undefined : blocks[index - 1].uid, 'text'
+                )} />
+                <SortableBlockRow
+                  uid={block.uid}
+                  block={block}
+                  onChange={content => updateBlockContent(block.uid, content)}
+                  onDelete={() => deleteBlock(block.uid)}
+                  onEnter={(type) => addBlock(block.uid, type)}
+                  onSlash={(query, pos) => setSlashMenu({ blockUid: block.uid, query, position: pos })}
+                  onSlashClose={() => setSlashMenu(null)}
+                  showSlash={slashMenu?.blockUid === block.uid}
+                  slashQuery={slashMenu?.blockUid === block.uid ? slashMenu.query : ''}
+                  slashPos={slashMenu?.position || { top: 0, left: 0 }}
+                  onConvert={(type) => convertBlock(block.uid, type)}
+                />
+              </div>
             ))}
+            <InsertZone onClick={() => addBlock(
+              blocks[blocks.length - 1]?.uid, 'text'
+            )} />
           </SortableContext>
         </DndContext>
         <div onClick={() => addBlock('text')}
@@ -363,6 +370,30 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
           }}
           onClose={onSlashClose}
         />
+      )}
+    </div>
+  )
+}
+
+function InsertZone({ onClick }: { onClick: () => void }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <div
+      style={{ height: '8px', position: 'relative', margin: '1px 0' }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={onClick}
+    >
+      {hovered && (
+        <div style={{
+          position: 'absolute',
+          left: '-8px', right: 0,
+          top: '50%', transform: 'translateY(-50%)',
+          height: '2px',
+          background: 'var(--accent)',
+          borderRadius: '1px',
+          cursor: 'pointer'
+        }} />
       )}
     </div>
   )

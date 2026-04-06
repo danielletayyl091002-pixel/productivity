@@ -14,19 +14,6 @@ export default function LeftSidebar() {
     async function init() {
       await seedIfEmpty()
 
-      // One-time cleanup of duplicate untitled pages
-      const allPages = await db.pages.toArray()
-      const seen = new Set<string>()
-      for (const p of allPages) {
-        if (p.title === 'Untitled' && !p.isFavorite) {
-          if (seen.has('untitled')) {
-            if (p.id) await db.pages.delete(p.id)
-          } else {
-            seen.add('untitled')
-          }
-        }
-      }
-
       // Load pages FIRST so sidebar populates
       const all = await db.pages
         .filter(p => !p.inTrash)
