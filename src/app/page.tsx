@@ -1,28 +1,16 @@
 'use client'
-import LeftSidebar from '@/components/layout/LeftSidebar'
-import RightRail from '@/components/layout/RightRail'
 
 export default function Home() {
   return (
     <div style={{
       display: 'flex',
-      height: '100vh',
-      overflow: 'hidden',
-      background: 'var(--bg-secondary)'
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+      color: 'var(--text-tertiary)',
+      fontSize: '14px'
     }}>
-      <LeftSidebar />
-      <main style={{
-        flex: 1,
-        overflow: 'auto',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--text-tertiary)',
-        fontSize: '14px'
-      }}>
-        Canvas coming in Step 4
-      </main>
-      <RightRail />
+      Select a page from the sidebar
     </div>
   )
 }
