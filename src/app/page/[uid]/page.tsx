@@ -35,10 +35,7 @@ export default function PageCanvas() {
   }
 
   async function addBlock(afterUid?: string, type: Block['type'] = 'text') {
-    console.log('addBlock called, uid param:', uid, 'blocks:', blocks.length)
-
-    const pageUid = uid  // use the uid from useParams directly
-    // NOT blocks[0]?.pageUid — that's the bug
+    const pageUid = uid
 
     const newUid = nanoid()
     const afterIndex = afterUid
@@ -48,7 +45,7 @@ export default function PageCanvas() {
 
     const newBlock: Block = {
       uid: newUid,
-      pageUid: pageUid,  // fix here
+      pageUid: pageUid,
       type,
       content: '',
       checked: false,
@@ -57,7 +54,6 @@ export default function PageCanvas() {
       updatedAt: new Date().toISOString()
     }
 
-    console.log('adding block:', newBlock)
     await db.blocks.add(newBlock)
 
     const updated = [...blocks]
@@ -68,7 +64,6 @@ export default function PageCanvas() {
       const el = document.querySelector(
         `[data-block-uid="${newUid}"]`
       ) as HTMLElement
-      console.log('focusing element:', el)
       el?.focus()
     }, 50)
   }
@@ -91,7 +86,9 @@ export default function PageCanvas() {
     const block = blocks.find(b => b.uid === blockUid)
     if (!block?.id) return
     await db.blocks.update(block.id, { type })
-    setBlocks(prev => prev.map(b => b.uid === blockUid ? { ...b, type } : b))
+    setBlocks(prev => prev.map(b =>
+      b.uid === blockUid ? { ...b, type } : b
+    ))
     setSlashMenu(null)
 
     setTimeout(() => {
@@ -99,8 +96,12 @@ export default function PageCanvas() {
         `[data-block-uid="${blockUid}"]`
       ) as HTMLElement
       if (el) {
+        // Restore content after re-render wipes it
+        const currentContent = block.content
+        if (el.textContent === '' && currentContent) {
+          el.textContent = currentContent
+        }
         el.focus()
-        // Move cursor to end
         const range = document.createRange()
         const sel = window.getSelection()
         range.selectNodeContents(el)
