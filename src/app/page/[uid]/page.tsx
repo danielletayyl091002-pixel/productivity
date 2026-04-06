@@ -20,14 +20,18 @@ export default function PageCanvas() {
     if (!uid) return
     async function load() {
       const p = await db.pages.where('uid').equals(uid).first()
-      const b = await db.blocks.where('pageUid').equals(uid).sortBy('order')
       setPage(p || null)
-      // TEMP CLEANUP - remove after deploy
-      const existingCount = await db.blocks
-        .where('pageUid').equals(uid).count()
-      if (existingCount > 8) {
-        await db.blocks.where('pageUid').equals(uid).delete()
-        await db.blocks.bulkAdd([
+
+      const allBlocks = await db.blocks
+        .where('pageUid').equals(uid)
+        .sortBy('order')
+
+      // TEMP CLEANUP - remove after one deploy
+      if (allBlocks.length > 5) {
+        for (const b of allBlocks) {
+          if (b.id) await db.blocks.delete(b.id)
+        }
+        const freshBlocks: Block[] = [
           {
             uid: nanoid(),
             pageUid: uid,
@@ -42,20 +46,19 @@ export default function PageCanvas() {
             uid: nanoid(),
             pageUid: uid,
             type: 'text',
-            content: "Type / to add a block. Press Enter to create a new line.",
+            content: 'Type / to add a block.',
             checked: false,
             order: 1,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           }
-        ])
-        const fresh = await db.blocks
-          .where('pageUid').equals(uid)
-          .sortBy('order')
-        setBlocks(fresh)
+        ]
+        await db.blocks.bulkAdd(freshBlocks)
+        setBlocks(freshBlocks)
       } else {
-        setBlocks(b)
+        setBlocks(allBlocks)
       }
+
       setLoading(false)
     }
     load()
