@@ -171,6 +171,19 @@ export async function seedIfEmpty() {
     { uid: nanoid(), name: 'No Caffeine', icon: '☕', unit: '', target: 1, color: '#78716C', type: 'habit', options: null, order: 8, createdAt: new Date().toISOString() },
   ])
 
+  await db.financeCategories.bulkAdd([
+    { name: 'Salary', color: '#10B981', type: 'income', isDefault: true },
+    { name: 'Freelance', color: '#3B82F6', type: 'income', isDefault: true },
+    { name: 'Investments', color: '#8B5CF6', type: 'income', isDefault: true },
+    { name: 'Food', color: '#F59E0B', type: 'expense', isDefault: true },
+    { name: 'Transport', color: '#EF4444', type: 'expense', isDefault: true },
+    { name: 'Shopping', color: '#EC4899', type: 'expense', isDefault: true },
+    { name: 'Bills', color: '#6366F1', type: 'expense', isDefault: true },
+    { name: 'Entertainment', color: '#14B8A6', type: 'expense', isDefault: true },
+    { name: 'Health', color: '#22C55E', type: 'expense', isDefault: true },
+    { name: 'Other', color: '#78716C', type: 'both', isDefault: true },
+  ])
+
   await db.settings.add({ key: 'seeded', value: 'true' })
   await db.settings.add({ key: 'theme', value: 'light' })
   await db.settings.add({ key: 'homePageUid', value: homeUid })
