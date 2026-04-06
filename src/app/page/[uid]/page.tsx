@@ -25,39 +25,7 @@ export default function PageCanvas() {
       const allBlocks = await db.blocks
         .where('pageUid').equals(uid)
         .sortBy('order')
-
-      // TEMP CLEANUP - remove after one deploy
-      if (allBlocks.length > 5) {
-        for (const b of allBlocks) {
-          if (b.id) await db.blocks.delete(b.id)
-        }
-        const freshBlocks: Block[] = [
-          {
-            uid: nanoid(),
-            pageUid: uid,
-            type: 'heading1',
-            content: 'Welcome to Fluent',
-            checked: false,
-            order: 0,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          },
-          {
-            uid: nanoid(),
-            pageUid: uid,
-            type: 'text',
-            content: 'Type / to add a block.',
-            checked: false,
-            order: 1,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        ]
-        await db.blocks.bulkAdd(freshBlocks)
-        setBlocks(freshBlocks)
-      } else {
-        setBlocks(allBlocks)
-      }
+      setBlocks(allBlocks)
 
       setLoading(false)
     }
