@@ -179,6 +179,7 @@ export default function PageCanvas() {
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragStart={(e) => {
+            console.log('DRAG STARTED', e.active.id)
             const block = blocks.find(b => b.uid === e.active.id)
             setActiveBlock(block || null)
           }}
@@ -291,31 +292,32 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
         position: 'relative'
       }}
     >
-      <div
-        {...attributes}
-        {...listeners}
-        style={{
-          position: 'absolute',
-          left: '-28px',
-          top: '4px',
-          width: '20px',
-          height: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'grab',
-          color: 'var(--text-tertiary)',
-          fontSize: '16px',
-          touchAction: 'none',
-          opacity: 0,
-          transition: 'opacity 0.15s',
-          userSelect: 'none'
-        }}
-        className="drag-handle"
-      >
-        ⠿
+      <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+        <div
+          {...attributes}
+          {...listeners}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            marginRight: '8px',
+            cursor: 'grab',
+            color: 'var(--text-tertiary)',
+            fontSize: '16px',
+            zIndex: 50,
+            flexShrink: 0,
+            touchAction: 'none',
+            opacity: 0,
+            transition: 'opacity 0.15s',
+            userSelect: 'none'
+          }}
+          className="drag-handle"
+        >
+          ⠿
+        </div>
+        <div style={{ flex: 1 }}>
+          <BlockRow {...props} />
+        </div>
       </div>
-      <BlockRow {...props} />
     </div>
   )
 }
