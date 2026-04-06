@@ -22,21 +22,21 @@ export default function PageCanvas() {
       const p = await db.pages.where('uid').equals(uid).first()
       const b = await db.blocks.where('pageUid').equals(uid).sortBy('order')
       setPage(p || null)
-      // Dev cleanup: remove empty text blocks if too many accumulated
-      if (b.length > 10) {
-        const toDelete = b.filter(block =>
-          block.content === '' && block.type === 'text'
-        )
-        for (const block of toDelete) {
-          if (block.id) await db.blocks.delete(block.id)
-        }
-        const cleaned = b.filter(block =>
-          !(block.content === '' && block.type === 'text')
-        )
-        setBlocks(cleaned)
-      } else {
-        setBlocks(b)
+      // Dev cleanup: wipe junk blocks (remove after one deploy)
+      const cleaned = b.filter(block => {
+        // Keep seeded blocks and any heading blocks
+        if (block.type !== 'text') return true
+        // Keep text blocks with real content (>3 chars)
+        if (block.content.length > 3) return true
+        return false
+      })
+      const junkBlocks = b.filter(block =>
+        block.type === 'text' && block.content.length <= 3
+      )
+      for (const junk of junkBlocks) {
+        if (junk.id) await db.blocks.delete(junk.id)
       }
+      setBlocks(cleaned)
       setLoading(false)
     }
     load()
@@ -131,7 +131,7 @@ export default function PageCanvas() {
 
   return (
     <div style={{ height: '100vh', overflowY: 'auto', background: 'var(--bg-primary)' }}>
-      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '60px 40px 0' }}>
+      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '60px 48px 0' }}>
         <input
           defaultValue={page.title}
           onChange={e => updateTitle(e.target.value)}
@@ -139,7 +139,7 @@ export default function PageCanvas() {
           style={{ fontSize: '2.25rem', fontWeight: 700, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-primary)', width: '100%', marginBottom: '24px' }}
         />
       </div>
-      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 40px 120px' }}>
+      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 48px 120px' }}>
         {blocks.map(block => (
           <BlockRow
             key={block.uid}
@@ -179,6 +179,7 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
   const divRef = useRef<HTMLDivElement>(null)
   const saveTimer = useRef<NodeJS.Timeout>(undefined)
   const style = getBlockStyle(block.type)
+  console.log('block type:', block.type, 'content:', block.content)
 
   // Set initial content once on mount only — DOM owns content after this
   useEffect(() => {
