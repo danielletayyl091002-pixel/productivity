@@ -167,22 +167,21 @@ function Ring({ value, max, color, label }: {
 
 export default function RightRail() {
   const [upcoming, setUpcoming] = useState<Task[]>([])
-  const [dateStr, setDateStr] = useState('')
   const [today, setToday] = useState<Date | null>(null)
   const [now, setNow] = useState(0)
+  const [dateStr, setDateStr] = useState('')
 
   useEffect(() => {
-    setDateStr(new Date().toLocaleDateString('en-US', {
+    const d = new Date()
+    setToday(d)
+    setNow(d.getHours() + d.getMinutes() / 60)
+    setDateStr(d.toLocaleDateString('en-US', {
       weekday: 'short', month: 'short', day: 'numeric'
     }))
-    setToday(new Date())
-
-    const update = () => {
-      const d = new Date()
-      setNow(d.getHours() + d.getMinutes() / 60)
-    }
-    update()
-    const interval = setInterval(update, 60000)
+    const interval = setInterval(() => {
+      const n = new Date()
+      setNow(n.getHours() + n.getMinutes() / 60)
+    }, 60000)
     return () => clearInterval(interval)
   }, [])
 

@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { db, Page, Block } from '@/db/schema'
 import { nanoid } from 'nanoid'
@@ -40,6 +40,7 @@ export default function PageCanvas() {
     async function load() {
       const p = await db.pages.where('uid').equals(uid).first()
       setPage(p || null)
+      if (p?.title) document.title = p.title
 
       const allBlocks = await db.blocks
         .where('pageUid').equals(uid)
@@ -62,6 +63,7 @@ export default function PageCanvas() {
     if (!page?.id) return
     await db.pages.update(page.id, { title, updatedAt: new Date().toISOString() })
     setPage(prev => prev ? { ...prev, title } : null)
+    document.title = title
     window.dispatchEvent(new CustomEvent('page-title-updated'))
   }
 
@@ -168,14 +170,12 @@ export default function PageCanvas() {
     }
   }
 
-  const blockDisplayNumbers = (() => {
-    let c = 0
-    return blocks.map(block => {
-      if (block.type === 'numbered') return ++c
-      c = 0
-      return 0
-    })
-  })()
+  const blockDisplayNumbers = useMemo(() => {
+    let counter = 0
+    return blocks.map(b =>
+      b.type === 'numbered' ? ++counter : (counter = 0, 0)
+    )
+  }, [blocks])
 
   if (loading) return <div style={{ padding: '40px', color: 'var(--text-tertiary)' }}>Loading...</div>
   if (!page) return <div style={{ padding: '40px', color: 'var(--text-tertiary)' }}>Page not found</div>
