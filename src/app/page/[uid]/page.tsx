@@ -22,7 +22,21 @@ export default function PageCanvas() {
       const p = await db.pages.where('uid').equals(uid).first()
       const b = await db.blocks.where('pageUid').equals(uid).sortBy('order')
       setPage(p || null)
-      setBlocks(b)
+      // Dev cleanup: remove empty text blocks if too many accumulated
+      if (b.length > 10) {
+        const toDelete = b.filter(block =>
+          block.content === '' && block.type === 'text'
+        )
+        for (const block of toDelete) {
+          if (block.id) await db.blocks.delete(block.id)
+        }
+        const cleaned = b.filter(block =>
+          !(block.content === '' && block.type === 'text')
+        )
+        setBlocks(cleaned)
+      } else {
+        setBlocks(b)
+      }
       setLoading(false)
     }
     load()
@@ -204,7 +218,7 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '1px 0', position: 'relative' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '1px 0', position: 'relative', userSelect: 'text', WebkitUserSelect: 'text' }}>
       {block.type === 'todo' && (
         <input type="checkbox" defaultChecked={block.checked}
           style={{ marginTop: '4px', accentColor: 'var(--accent)', flexShrink: 0 }} />
@@ -222,7 +236,7 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
           data-block-uid={block.uid}
           onKeyUp={handleKeyUp}
           onKeyDown={handleKeyDown}
-          style={{ flex: 1, outline: 'none', color: 'var(--text-primary)', lineHeight: 1.7, minHeight: '28px', wordBreak: 'break-word', ...style }}
+          style={{ flex: 1, outline: 'none', color: 'var(--text-primary)', lineHeight: 1.7, minHeight: '28px', wordBreak: 'break-word', userSelect: 'text', WebkitUserSelect: 'text', cursor: 'text', ...style }}
         />
       )}
       {showSlash && (
