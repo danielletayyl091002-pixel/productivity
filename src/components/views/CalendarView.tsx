@@ -230,12 +230,11 @@ export default function CalendarView({
               }}
               onMouseEnter={() => setHoveredDate(dateStr)}
               onMouseLeave={() => setHoveredDate(null)}
+              data-today={isToday ? 'true' : undefined}
               style={{
                 background: isSelected
                   ? 'var(--accent-light)'
-                  : isToday
-                    ? 'var(--accent-light)'
-                    : isCurrentMonth ? 'var(--bg-primary)' : 'var(--bg-hover)',
+                  : isCurrentMonth ? 'var(--bg-primary)' : 'var(--bg-hover)',
                 padding: '8px',
                 minHeight: '80px',
                 cursor: 'pointer',

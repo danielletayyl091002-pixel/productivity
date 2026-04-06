@@ -105,3 +105,11 @@ body {
   opacity: 1;
 }
 
+[data-today="true"] {
+  background: var(--accent-light) !important;
+}
+
+[data-theme="dark"] [data-today="true"] {
+  background: rgba(96, 165, 250, 0.15) !important;
+}
+
