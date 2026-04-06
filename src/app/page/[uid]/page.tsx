@@ -313,7 +313,8 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
         transition,
         opacity: isDragging ? 0.5 : 1,
         position: 'relative',
-        paddingLeft: '32px'
+        paddingLeft: '32px',
+        userSelect: 'text'
       }}
     >
       <div
