@@ -60,7 +60,7 @@ function WeekStrip({ today, onDayClick, selectedDay }: {
               }}
               onMouseLeave={e => {
                 if (!isToday) e.currentTarget.style.background =
-                  selectedDay === d.toISOString().split('T')[0] ? 'var(--accent-light)' : 'transparent'
+                  selectedDay === d.toISOString().split('T')[0] ? 'rgba(99, 102, 241, 0.2)' : 'transparent'
               }}
               style={{
                 width: '26px', height: '26px', borderRadius: '50%',
@@ -69,7 +69,7 @@ function WeekStrip({ today, onDayClick, selectedDay }: {
                 background: isToday
                   ? 'var(--accent)'
                   : selectedDay === d.toISOString().split('T')[0]
-                    ? 'var(--accent-light)'
+                    ? 'rgba(99, 102, 241, 0.2)'
                     : 'transparent',
                 boxShadow: isToday ? '0 0 0 3px var(--accent-light)' : 'none'
               }}>
@@ -89,34 +89,66 @@ function WeekStrip({ today, onDayClick, selectedDay }: {
 function Timeline({ now, tasks, onAddEvent }: {
   now: number
   tasks: Task[]
-  onAddEvent?: (time: string) => void
+  onAddEvent?: (startTime: string, endTime: string) => void
 }) {
   const HOUR_H = 52
   const START = 6
   const currentTop = (now - START) * HOUR_H
+  const [dragStart, setDragStart] = useState<number | null>(null)
+  const [dragEnd, setDragEnd] = useState<number | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+
+  function yToHour(y: number, containerTop: number): number {
+    const relY = y - containerTop
+    const hour = START + relY / HOUR_H
+    return Math.max(START, Math.min(22, Math.round(hour * 4) / 4))
+  }
+
+  function fmt(h: number) {
+    const hrs = Math.floor(h)
+    const mins = Math.round((h - hrs) * 60)
+    return String(hrs).padStart(2, '0') + ':' + String(mins).padStart(2, '0')
+  }
 
   return (
-    <div style={{
-      flex: 1, overflowY: 'auto', position: 'relative'
-    }}>
+    <div
+      style={{
+        flex: 1, overflowY: 'auto', position: 'relative',
+        cursor: 'crosshair', userSelect: 'none'
+      }}
+      onMouseDown={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect()
+        const hour = yToHour(e.clientY, rect.top + e.currentTarget.scrollTop)
+        setDragStart(hour)
+        setDragEnd(hour)
+        setIsDragging(true)
+      }}
+      onMouseMove={(e) => {
+        if (!isDragging) return
+        const rect = e.currentTarget.getBoundingClientRect()
+        const hour = yToHour(e.clientY, rect.top + e.currentTarget.scrollTop)
+        setDragEnd(hour)
+      }}
+      onMouseUp={() => {
+        if (isDragging && dragStart !== null && dragEnd !== null) {
+          const start = Math.min(dragStart, dragEnd)
+          const end = Math.max(dragStart, dragEnd)
+          if (end - start >= 0.25) {
+            onAddEvent && onAddEvent(fmt(start), fmt(end))
+          }
+        }
+        setIsDragging(false)
+        setDragStart(null)
+        setDragEnd(null)
+      }}
+    >
       {HOURS.map(h => (
         <div key={h}
-          onClick={() => {
-            const timeStr = String(h).padStart(2, '0') + ':00'
-            onAddEvent && onAddEvent(timeStr)
-          }}
           style={{
             height: `${HOUR_H}px`,
             borderBottom: '1px solid var(--border-light, #F1F5F9)',
             display: 'flex', alignItems: 'flex-start',
-            cursor: 'pointer',
             position: 'relative'
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(99,102,241,0.05)'
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'transparent'
           }}
         >
           <span style={{
@@ -135,7 +167,8 @@ function Timeline({ now, tasks, onAddEvent }: {
           textAlign: 'center',
           fontSize: '11px',
           color: 'var(--text-tertiary)',
-          padding: '8px'
+          padding: '8px',
+          pointerEvents: 'none'
         }}>
           No scheduled tasks today
         </div>
@@ -162,7 +195,8 @@ function Timeline({ now, tasks, onAddEvent }: {
             borderLeft: `3px solid ${task.color || 'var(--accent)'}`,
             borderRadius: '4px',
             padding: '3px 6px', overflow: 'hidden',
-            minHeight: '20px'
+            minHeight: '20px',
+            pointerEvents: 'none'
           }}>
             <span style={{
               fontSize: '10px', fontWeight: 600,
@@ -172,12 +206,27 @@ function Timeline({ now, tasks, onAddEvent }: {
         )
       })}
 
+      {isDragging && dragStart !== null && dragEnd !== null && (
+        <div style={{
+          position: 'absolute',
+          top: `${(Math.min(dragStart, dragEnd) - START) * HOUR_H}px`,
+          left: '44px', right: '8px',
+          height: `${Math.abs(dragEnd - dragStart) * HOUR_H}px`,
+          background: 'rgba(99,102,241,0.2)',
+          borderLeft: '3px solid var(--accent)',
+          borderRadius: '4px',
+          pointerEvents: 'none',
+          minHeight: '4px'
+        }}/>
+      )}
+
       {now >= START && now <= 22 && (
         <div style={{
           position: 'absolute',
           top: `${currentTop}px`,
           left: '36px', right: '8px',
-          height: '2px', background: '#EF4444', zIndex: 10
+          height: '2px', background: '#EF4444', zIndex: 10,
+          pointerEvents: 'none'
         }}>
           <div style={{
             width: '8px', height: '8px', borderRadius: '50%',
@@ -230,7 +279,7 @@ export default function RightRail() {
   const [today, setToday] = useState<Date | null>(null)
   const [now, setNow] = useState(0)
   const [dateStr, setDateStr] = useState('')
-  const [newEvent, setNewEvent] = useState<{ time: string, title: string } | null>(null)
+  const [newEvent, setNewEvent] = useState<{ startTime: string, endTime: string, title: string } | null>(null)
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
   useEffect(() => {
@@ -305,7 +354,7 @@ export default function RightRail() {
         <Timeline
           now={now}
           tasks={todayTasks}
-          onAddEvent={(time) => setNewEvent({ time, title: '' })}
+          onAddEvent={(startTime, endTime) => setNewEvent({ startTime, endTime, title: '' })}
         />
       </div>
 
@@ -326,7 +375,7 @@ export default function RightRail() {
           }}>
             <span style={{ fontSize: '12px', fontWeight: 600,
               color: 'var(--text-primary)' }}>
-              Add at {newEvent.time}
+              Add at {newEvent.startTime} → {newEvent.endTime}
             </span>
             <button onClick={() => setNewEvent(null)} style={{
               background: 'none', border: 'none',
@@ -344,7 +393,6 @@ export default function RightRail() {
               if (e.key === 'Enter' && newEvent.title.trim()) {
                 const { nanoid } = await import('nanoid')
                 const todayStr = new Date().toISOString().split('T')[0]
-                const endHour = parseInt(newEvent.time.split(':')[0]) + 1
                 await db.tasks.add({
                   uid: nanoid(),
                   pageUid: 'global',
@@ -353,8 +401,8 @@ export default function RightRail() {
                   priority: null,
                   dueDate: todayStr,
                   scheduledDate: todayStr,
-                  startTime: newEvent.time,
-                  endTime: String(endHour).padStart(2, '0') + ':00',
+                  startTime: newEvent.startTime,
+                  endTime: newEvent.endTime,
                   color: '#6366F1',
                   createdAt: new Date().toISOString()
                 })
