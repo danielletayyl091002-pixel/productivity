@@ -32,6 +32,7 @@ function parseData(content: string): TableData {
 export default function TableBlock({ block, onChange, onFocusNext }: TableBlockProps) {
   const [data, setData] = useState<TableData>(() => parseData(block.content))
   const [hoveredRow, setHoveredRow] = useState<number | null>(null)
+  const [hoveredCol, setHoveredCol] = useState<number | null>(null)
   const [hoveredBtn, setHoveredBtn] = useState<string | null>(null)
   const [focusedCell, setFocusedCell] = useState<string | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -77,6 +78,14 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
   function deleteRow(ri: number) {
     if (data.rows.length <= 1) return
     save({ ...data, rows: data.rows.filter((_, r) => r !== ri) })
+  }
+
+  function deleteColumn(ci: number) {
+    if (data.columns.length <= 1) return
+    save({
+      columns: data.columns.filter((_, c) => c !== ci),
+      rows: data.rows.map(row => row.filter((_, c) => c !== ci))
+    })
   }
 
   function focusCell(ri: number, ci: number) {
@@ -129,13 +138,16 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
         <thead>
           <tr style={{ background: 'var(--bg-secondary)' }}>
             {data.columns.map((col, ci) => (
-              <th key={ci} style={{
-                borderBottom: '2px solid var(--border)',
-                padding: '2px 0',
-                textAlign: 'left',
-                width: `${Math.floor(100 / data.columns.length)}%`,
-                borderRadius: 0
-              }}>
+              <th key={ci}
+                onMouseEnter={() => setHoveredCol(ci)}
+                onMouseLeave={() => setHoveredCol(null)}
+                style={{
+                  borderBottom: '2px solid var(--border)',
+                  padding: '2px 0',
+                  textAlign: 'left',
+                  width: `${Math.floor(100 / data.columns.length)}%`,
+                  borderRadius: 0
+                }}>
                 <input
                   value={col}
                   onChange={e => updateColumn(ci, e.target.value)}
@@ -154,6 +166,25 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
                     boxSizing: 'border-box'
                   }}
                 />
+                {data.columns.length > 1 && hoveredCol === ci && (
+                  <button
+                    onClick={() => deleteColumn(ci)}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-tertiary)',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      padding: '2px 8px 4px',
+                      textAlign: 'left',
+                      opacity: 0.6
+                    }}
+                  >
+                    Delete column
+                  </button>
+                )}
               </th>
             ))}
             <th style={{
