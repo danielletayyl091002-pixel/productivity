@@ -3,30 +3,88 @@ import { useEffect, useState } from 'react'
 import {
   Droplets, Activity, BookOpen, Brain, Target, Dumbbell,
   Music, Apple, Pill, PenLine, Flame, Moon, Coffee, Heart,
-  Footprints, CheckCircle, Circle, Check
+  Footprints, CheckCircle,
+  Sun, Cloud, Zap, Star, Trophy, Medal,
+  Bike, Wind, Timer,
+  Salad, Pizza, Wine, Utensils,
+  Bed, Eye, Smile, Frown, Meh,
+  DollarSign, TrendingUp, BarChart2,
+  Leaf, Flower2, TreePine,
+  Gamepad2, Tv, Headphones, Camera
 } from 'lucide-react'
 import { useTrackerStore } from '@/stores/trackers'
 import { TrackerDefinition } from '@/db/schema'
 import TrackerLogModal from './TrackerLogModal'
 
-// Icon registry — stored by name in DB
-const ICONS: { name: string; icon: React.ComponentType<{ size?: number; color?: string }> }[] = [
-  { name: 'droplets', icon: Droplets },
-  { name: 'activity', icon: Activity },
-  { name: 'book-open', icon: BookOpen },
-  { name: 'brain', icon: Brain },
-  { name: 'target', icon: Target },
-  { name: 'dumbbell', icon: Dumbbell },
-  { name: 'music', icon: Music },
-  { name: 'apple', icon: Apple },
-  { name: 'pill', icon: Pill },
-  { name: 'pen-line', icon: PenLine },
-  { name: 'flame', icon: Flame },
-  { name: 'moon', icon: Moon },
-  { name: 'coffee', icon: Coffee },
-  { name: 'heart', icon: Heart },
-  { name: 'footprints', icon: Footprints },
+// Categorized icon registry
+const ICON_CATEGORIES: { label: string; icons: { name: string; icon: React.ComponentType<{ size?: number; color?: string }> }[] }[] = [
+  {
+    label: 'Health',
+    icons: [
+      { name: 'droplets', icon: Droplets },
+      { name: 'heart', icon: Heart },
+      { name: 'pill', icon: Pill },
+      { name: 'apple', icon: Apple },
+      { name: 'moon', icon: Moon },
+      { name: 'bed', icon: Bed },
+      { name: 'eye', icon: Eye },
+      { name: 'smile', icon: Smile },
+      { name: 'frown', icon: Frown },
+      { name: 'meh', icon: Meh },
+      { name: 'salad', icon: Salad },
+      { name: 'utensils', icon: Utensils },
+    ]
+  },
+  {
+    label: 'Focus',
+    icons: [
+      { name: 'brain', icon: Brain },
+      { name: 'target', icon: Target },
+      { name: 'book-open', icon: BookOpen },
+      { name: 'pen-line', icon: PenLine },
+      { name: 'coffee', icon: Coffee },
+      { name: 'flame', icon: Flame },
+      { name: 'timer', icon: Timer },
+      { name: 'headphones', icon: Headphones },
+      { name: 'zap', icon: Zap },
+    ]
+  },
+  {
+    label: 'Fitness',
+    icons: [
+      { name: 'activity', icon: Activity },
+      { name: 'dumbbell', icon: Dumbbell },
+      { name: 'footprints', icon: Footprints },
+      { name: 'bike', icon: Bike },
+      { name: 'wind', icon: Wind },
+      { name: 'trophy', icon: Trophy },
+      { name: 'medal', icon: Medal },
+      { name: 'star', icon: Star },
+    ]
+  },
+  {
+    label: 'Lifestyle',
+    icons: [
+      { name: 'music', icon: Music },
+      { name: 'tv', icon: Tv },
+      { name: 'camera', icon: Camera },
+      { name: 'gamepad2', icon: Gamepad2 },
+      { name: 'sun', icon: Sun },
+      { name: 'cloud', icon: Cloud },
+      { name: 'leaf', icon: Leaf },
+      { name: 'flower2', icon: Flower2 },
+      { name: 'tree-pine', icon: TreePine },
+      { name: 'pizza', icon: Pizza },
+      { name: 'wine', icon: Wine },
+      { name: 'dollar-sign', icon: DollarSign },
+      { name: 'trending-up', icon: TrendingUp },
+      { name: 'bar-chart-2', icon: BarChart2 },
+    ]
+  },
 ]
+
+// Flat list for renderIcon lookup
+const ICONS = ICON_CATEGORIES.flatMap(c => c.icons)
 
 function renderIcon(iconStr: string, size = 16, color = 'currentColor') {
   const found = ICONS.find(i => i.name === iconStr)
@@ -315,30 +373,42 @@ function AddTrackerModal({ onClose }: { onClose: () => void }) {
           }}>
             Icon
           </label>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {ICONS.map(({ name: iconName, icon: IconComp }) => (
-              <button
-                key={iconName}
-                onClick={() => setIcon(iconName)}
-                style={{
-                  width: '36px', height: '36px',
-                  borderRadius: '8px',
-                  border: icon === iconName
-                    ? `2px solid ${color}`
-                    : '1px solid var(--border)',
-                  background: icon === iconName
-                    ? `${color}18`
-                    : 'transparent',
-                  cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: icon === iconName ? color : 'var(--text-tertiary)',
-                  transition: 'border-color 0.1s, background 0.1s, color 0.1s'
-                }}
-              >
-                <IconComp size={16} />
-              </button>
-            ))}
-          </div>
+          {ICON_CATEGORIES.map(category => (
+            <div key={category.label} style={{ marginBottom: '10px' }}>
+              <div style={{
+                fontSize: '10px', fontWeight: 600,
+                color: 'var(--text-tertiary)',
+                marginBottom: '6px', letterSpacing: '0.04em'
+              }}>
+                {category.label}
+              </div>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {category.icons.map(({ name: iconName, icon: IconComp }) => (
+                  <button
+                    key={iconName}
+                    onClick={() => setIcon(iconName)}
+                    style={{
+                      width: '34px', height: '34px',
+                      borderRadius: '8px',
+                      border: icon === iconName
+                        ? `2px solid ${color}`
+                        : '1px solid var(--border)',
+                      background: icon === iconName
+                        ? `${color}18`
+                        : 'transparent',
+                      cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: icon === iconName ? color : 'var(--text-tertiary)',
+                      transition: 'all 0.1s',
+                      flexShrink: 0
+                    }}
+                  >
+                    <IconComp size={15} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Name */}
