@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   DndContext, DragOverlay, closestCenter,
   PointerSensor, useSensor, useSensors,
@@ -61,6 +61,7 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [addingTo, setAddingTo] = useState<string | null>(null)
   const [newTaskTitle, setNewTaskTitle] = useState('')
+  const pendingStatus = useRef<{ uid: string; status: Task['status'] } | null>(null)
 
   const sensors = useSensors(
     useSensor(SmartPointerSensor, {
@@ -109,36 +110,27 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
     const aId = active.id as string
     const overId = over.id as string
     if (aId === overId) return
-    const aTask = tasks.find(t => t.uid === aId)
-    if (!aTask) return
     const overColumn = COLUMNS.find(c => c.id === overId)
-    if (overColumn && aTask.status !== overColumn.id) {
-      setTasks(prev => prev.map(t =>
-        t.uid === aId ? { ...t, status: overColumn.id as Task['status'] } : t
-      ))
-      return
-    }
     const overTask = tasks.find(t => t.uid === overId)
-    if (overTask && aTask.status !== overTask.status) {
-      setTasks(prev => prev.map(t =>
-        t.uid === aId ? { ...t, status: overTask.status } : t
-      ))
-    }
+    const newStatus = overColumn
+      ? overColumn.id as Task['status']
+      : overTask?.status
+    if (!newStatus) return
+    pendingStatus.current = { uid: aId, status: newStatus }
+    setTasks(prev => prev.map(t =>
+      t.uid === aId ? { ...t, status: newStatus } : t
+    ))
   }
 
   async function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
+    const { active } = event
     setActiveTask(null)
-    if (!over) {
-      const t = pageUid === 'global'
-        ? await db.tasks.toArray()
-        : await db.tasks.where('pageUid').equals(pageUid).toArray()
-      setTasks(t)
-      return
-    }
-    const movedTask = tasks.find(t => t.uid === active.id)
-    if (movedTask?.id) {
-      await db.tasks.update(movedTask.id, { status: movedTask.status })
+    if (pendingStatus.current && pendingStatus.current.uid === active.id) {
+      const task = tasks.find(t => t.uid === active.id)
+      if (task?.id) {
+        await db.tasks.update(task.id, { status: pendingStatus.current.status })
+      }
+      pendingStatus.current = null
     }
   }
 
