@@ -1,8 +1,42 @@
 'use client'
 import { useEffect, useState } from 'react'
+import {
+  Droplets, Activity, BookOpen, Brain, Target, Dumbbell,
+  Music, Apple, Pill, PenLine, Flame, Moon, Coffee, Heart,
+  Footprints, CheckCircle, Circle, Check
+} from 'lucide-react'
 import { useTrackerStore } from '@/stores/trackers'
 import { TrackerDefinition } from '@/db/schema'
 import TrackerLogModal from './TrackerLogModal'
+
+// Icon registry — stored by name in DB
+const ICONS: { name: string; icon: React.ComponentType<{ size?: number; color?: string }> }[] = [
+  { name: 'droplets', icon: Droplets },
+  { name: 'activity', icon: Activity },
+  { name: 'book-open', icon: BookOpen },
+  { name: 'brain', icon: Brain },
+  { name: 'target', icon: Target },
+  { name: 'dumbbell', icon: Dumbbell },
+  { name: 'music', icon: Music },
+  { name: 'apple', icon: Apple },
+  { name: 'pill', icon: Pill },
+  { name: 'pen-line', icon: PenLine },
+  { name: 'flame', icon: Flame },
+  { name: 'moon', icon: Moon },
+  { name: 'coffee', icon: Coffee },
+  { name: 'heart', icon: Heart },
+  { name: 'footprints', icon: Footprints },
+]
+
+function renderIcon(iconStr: string, size = 16, color = 'currentColor') {
+  const found = ICONS.find(i => i.name === iconStr)
+  if (found) {
+    const Icon = found.icon
+    return <Icon size={size} color={color} />
+  }
+  // Legacy emoji fallback
+  return <span style={{ fontSize: size * 1.2 }}>{iconStr}</span>
+}
 
 export default function TrackerGrid() {
   const { definitions, loaded, load, getTodayValue, getWeekData, addLog } = useTrackerStore()
@@ -13,17 +47,24 @@ export default function TrackerGrid() {
     if (!loaded) load()
   }, [loaded, load])
 
-  if (!loaded) return <div style={{ color: 'var(--text-tertiary)', padding: '20px', fontSize: '13px' }}>Loading trackers...</div>
+  if (!loaded) return (
+    <div style={{ color: 'var(--text-tertiary)', padding: '20px', fontSize: '13px' }}>
+      Loading trackers...
+    </div>
+  )
 
   if (definitions.length === 0) return (
     <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '13px' }}>
-      No trackers yet. Click &quot;Add Tracker&quot; to get started.
+      No trackers yet.
       <div style={{ marginTop: '12px' }}>
         <button onClick={() => setShowAdd(true)} style={{
-          padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border)',
-          background: 'transparent', color: 'var(--accent)', fontSize: '13px',
-          cursor: 'pointer', fontWeight: 500
-        }}>+ Add Tracker</button>
+          padding: '8px 16px', borderRadius: '8px',
+          border: '1px solid var(--border)',
+          background: 'transparent', color: 'var(--accent)',
+          fontSize: '13px', cursor: 'pointer', fontWeight: 500
+        }}>
+          + Add Tracker
+        </button>
       </div>
       {showAdd && <AddTrackerModal onClose={() => setShowAdd(false)} />}
     </div>
@@ -31,14 +72,26 @@ export default function TrackerGrid() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Trackers</h2>
+      <div style={{
+        display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', marginBottom: '16px'
+      }}>
+        <h2 style={{
+          fontSize: '16px', fontWeight: 700,
+          color: 'var(--text-primary)', margin: 0
+        }}>
+          Trackers
+        </h2>
         <button onClick={() => setShowAdd(true)} style={{
-          padding: '5px 12px', borderRadius: '8px', border: '1px solid var(--border)',
-          background: 'transparent', color: 'var(--text-secondary)', fontSize: '12px',
-          cursor: 'pointer'
-        }}>+ Add</button>
+          padding: '5px 12px', borderRadius: '8px',
+          border: '1px solid var(--border)',
+          background: 'transparent', color: 'var(--text-secondary)',
+          fontSize: '12px', cursor: 'pointer'
+        }}>
+          + Add
+        </button>
       </div>
+
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
@@ -78,47 +131,80 @@ function TrackerCard({ tracker, todayValue, weekData, onClick }: {
   const maxWeek = Math.max(...weekData, 1)
   const isComplete = todayValue >= tracker.target
 
-  // For select type (mood), show the emoji instead of number
   let displayValue: string
   if (tracker.type === 'select' && tracker.options) {
     const opts: string[] = JSON.parse(tracker.options)
     displayValue = todayValue > 0 ? opts[todayValue - 1] || String(todayValue) : '--'
   } else if (tracker.type === 'habit') {
-    displayValue = todayValue > 0 ? '✓' : '○'
+    displayValue = todayValue > 0 ? 'Done' : '--'
   } else {
     displayValue = String(todayValue)
   }
 
   return (
-    <div onClick={onClick} style={{
-      padding: '16px',
-      borderRadius: '12px',
-      border: '1px solid var(--border)',
-      background: 'var(--bg-primary)',
-      cursor: 'pointer',
-      transition: 'box-shadow 0.15s, border-color 0.15s',
-      position: 'relative',
-      overflow: 'hidden'
-    }}
-    onMouseEnter={e => {
-      e.currentTarget.style.borderColor = tracker.color
-      e.currentTarget.style.boxShadow = `0 0 0 1px ${tracker.color}20`
-    }}
-    onMouseLeave={e => {
-      e.currentTarget.style.borderColor = 'var(--border)'
-      e.currentTarget.style.boxShadow = 'none'
-    }}
+    <div
+      onClick={onClick}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = tracker.color
+        e.currentTarget.style.boxShadow = `0 0 0 1px ${tracker.color}30, 0 4px 12px ${tracker.color}15`
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = 'var(--border)'
+        e.currentTarget.style.boxShadow = 'none'
+      }}
+      style={{
+        padding: '16px',
+        borderRadius: '12px',
+        border: '1px solid var(--border)',
+        background: 'var(--bg-primary)',
+        cursor: 'pointer',
+        transition: 'box-shadow 0.15s, border-color 0.15s',
+        position: 'relative',
+        overflow: 'hidden'
+      }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+      {/* Color accent bar at top */}
+      <div style={{
+        position: 'absolute',
+        top: 0, left: 0, right: 0,
+        height: '3px',
+        background: tracker.color,
+        opacity: isComplete ? 1 : 0.4,
+        borderRadius: '12px 12px 0 0'
+      }} />
+
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', marginBottom: '10px'
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '20px' }}>{tracker.icon}</span>
-          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{tracker.name}</span>
+          <div style={{ color: tracker.color }}>
+            {renderIcon(tracker.icon, 16, tracker.color)}
+          </div>
+          <span style={{
+            fontSize: '13px', fontWeight: 600,
+            color: 'var(--text-primary)'
+          }}>
+            {tracker.name}
+          </span>
         </div>
-        {isComplete && <span style={{ fontSize: '14px' }}>✅</span>}
+        {isComplete && (
+          <CheckCircle size={14} color={tracker.color} />
+        )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '8px' }}>
-        <span style={{ fontSize: tracker.type === 'select' ? '24px' : '22px', fontWeight: 700, color: 'var(--text-primary)' }}>
+      {/* Value */}
+      <div style={{
+        display: 'flex', alignItems: 'baseline',
+        gap: '4px', marginBottom: '10px'
+      }}>
+        <span style={{
+          fontSize: '22px', fontWeight: 700,
+          color: isComplete ? tracker.color : 'var(--text-primary)',
+          transition: 'color 0.2s',
+          fontVariantNumeric: 'tabular-nums'
+        }}>
           {displayValue}
         </span>
         {tracker.type !== 'select' && tracker.type !== 'habit' && (
@@ -131,7 +217,8 @@ function TrackerCard({ tracker, todayValue, weekData, onClick }: {
       {/* Progress bar */}
       {tracker.type !== 'select' && tracker.type !== 'habit' && (
         <div style={{
-          height: '4px', borderRadius: '2px', background: 'var(--bg-hover)',
+          height: '3px', borderRadius: '2px',
+          background: 'var(--bg-hover)',
           marginBottom: '10px', overflow: 'hidden'
         }}>
           <div style={{
@@ -143,16 +230,19 @@ function TrackerCard({ tracker, todayValue, weekData, onClick }: {
         </div>
       )}
 
-      {/* Mini 7-day chart */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '24px' }}>
+      {/* 7-day mini chart */}
+      <div style={{
+        display: 'flex', alignItems: 'flex-end',
+        gap: '3px', height: '20px'
+      }}>
         {weekData.map((v, i) => (
           <div key={i} style={{
-            flex: 1,
-            borderRadius: '2px',
+            flex: 1, borderRadius: '2px',
             background: v > 0 ? tracker.color : 'var(--bg-hover)',
-            opacity: v > 0 ? 0.4 + (v / maxWeek) * 0.6 : 0.3,
-            height: `${Math.max(v > 0 ? (v / maxWeek) * 100 : 8, 8)}%`,
-            minHeight: '3px'
+            opacity: v > 0 ? 0.3 + (v / maxWeek) * 0.7 : 0.25,
+            height: `${Math.max(v > 0 ? (v / maxWeek) * 100 : 10, 10)}%`,
+            minHeight: '2px',
+            transition: 'height 0.2s'
           }} />
         ))}
       </div>
@@ -163,14 +253,22 @@ function TrackerCard({ tracker, todayValue, weekData, onClick }: {
 function AddTrackerModal({ onClose }: { onClose: () => void }) {
   const addDefinition = useTrackerStore(s => s.addDefinition)
   const [name, setName] = useState('')
-  const [icon, setIcon] = useState('📊')
+  const [icon, setIcon] = useState('droplets')
   const [unit, setUnit] = useState('')
   const [target, setTarget] = useState(1)
   const [type, setType] = useState<'counter' | 'value' | 'habit'>('counter')
   const [color, setColor] = useState('#3B82F6')
 
-  const colors = ['#3B82F6', '#EF4444', '#22C55E', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6', '#6366F1', '#78716C']
-  const icons = ['📊', '💧', '🏃', '📖', '🧘', '💪', '🎯', '✍️', '🍎', '💊', '🎵', '🧠']
+  const colors = [
+    '#3B82F6', '#EF4444', '#22C55E', '#F59E0B',
+    '#8B5CF6', '#EC4899', '#14B8A6', '#6366F1', '#78716C'
+  ]
+
+  const TYPE_OPTIONS: { value: 'counter' | 'value' | 'habit'; label: string; desc: string }[] = [
+    { value: 'counter', label: 'Counter', desc: '+/- buttons' },
+    { value: 'value', label: 'Value', desc: 'manual entry' },
+    { value: 'habit', label: 'Habit', desc: 'yes / no' },
+  ]
 
   async function handleCreate() {
     if (!name.trim()) return
@@ -179,93 +277,267 @@ function AddTrackerModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 2000,
-      background: 'rgba(0,0,0,0.4)', display: 'flex',
-      alignItems: 'center', justifyContent: 'center'
-    }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        background: 'var(--bg-primary)', borderRadius: '14px',
-        padding: '24px', width: '380px', maxWidth: '90vw',
-        boxShadow: '0 16px 48px rgba(0,0,0,0.2)',
-        border: '1px solid var(--border)'
-      }}>
-        <h3 style={{ margin: '0 0 20px', fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 2000,
+        background: 'rgba(0,0,0,0.4)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: 'var(--bg-primary)',
+          borderRadius: '14px',
+          padding: '24px',
+          width: '400px',
+          maxWidth: '90vw',
+          boxShadow: '0 16px 48px rgba(0,0,0,0.15)',
+          border: '1px solid var(--border)'
+        }}
+      >
+        <h3 style={{
+          margin: '0 0 20px',
+          fontSize: '15px', fontWeight: 700,
+          color: 'var(--text-primary)'
+        }}>
           New Tracker
         </h3>
 
-        <div style={{ marginBottom: '14px' }}>
-          <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Icon</label>
+        {/* Icon picker */}
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{
+            fontSize: '11px', fontWeight: 600,
+            color: 'var(--text-tertiary)',
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+            display: 'block', marginBottom: '8px'
+          }}>
+            Icon
+          </label>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {icons.map(ic => (
-              <button key={ic} onClick={() => setIcon(ic)} style={{
-                fontSize: '20px', width: '36px', height: '36px', borderRadius: '8px',
-                border: icon === ic ? `2px solid ${color}` : '1px solid var(--border)',
-                background: icon === ic ? 'var(--accent-light)' : 'transparent',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>{ic}</button>
+            {ICONS.map(({ name: iconName, icon: IconComp }) => (
+              <button
+                key={iconName}
+                onClick={() => setIcon(iconName)}
+                style={{
+                  width: '36px', height: '36px',
+                  borderRadius: '8px',
+                  border: icon === iconName
+                    ? `2px solid ${color}`
+                    : '1px solid var(--border)',
+                  background: icon === iconName
+                    ? `${color}18`
+                    : 'transparent',
+                  cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: icon === iconName ? color : 'var(--text-tertiary)',
+                  transition: 'border-color 0.1s, background 0.1s, color 0.1s'
+                }}
+              >
+                <IconComp size={16} />
+              </button>
             ))}
           </div>
         </div>
 
-        <div style={{ marginBottom: '14px' }}>
-          <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Name</label>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Water intake"
-            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-hover)', color: 'var(--text-primary)', fontSize: '14px', outline: 'none' }}
+        {/* Name */}
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{
+            fontSize: '11px', fontWeight: 600,
+            color: 'var(--text-tertiary)',
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+            display: 'block', marginBottom: '8px'
+          }}>
+            Name
+          </label>
+          <input
+            value={name}
+            onChange={e => setName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleCreate()}
+            placeholder="e.g. Water intake"
             autoFocus
+            style={{
+              width: '100%',
+              padding: '8px 0',
+              border: 'none',
+              borderBottom: `2px solid ${name ? color : 'var(--border)'}`,
+              background: 'transparent',
+              color: 'var(--text-primary)',
+              fontSize: '14px',
+              outline: 'none',
+              transition: 'border-color 0.15s',
+              boxSizing: 'border-box'
+            }}
           />
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Type</label>
-            <select value={type} onChange={e => setType(e.target.value as typeof type)}
-              style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-hover)', color: 'var(--text-primary)', fontSize: '13px' }}>
-              <option value="counter">Counter (+/- buttons)</option>
-              <option value="value">Value (manual entry)</option>
-              <option value="habit">Habit (yes/no)</option>
-            </select>
-          </div>
-          {type !== 'habit' && (
-            <div style={{ width: '80px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Target</label>
-              <input type="number" value={target} onChange={e => setTarget(Number(e.target.value))}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-hover)', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }}
-              />
-            </div>
-          )}
-        </div>
-
-        {type !== 'habit' && (
-          <div style={{ marginBottom: '14px' }}>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Unit</label>
-            <input value={unit} onChange={e => setUnit(e.target.value)} placeholder="e.g. cups, min, pages"
-              style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-hover)', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }}
-            />
-          </div>
-        )}
-
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Color</label>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            {colors.map(c => (
-              <button key={c} onClick={() => setColor(c)} style={{
-                width: '28px', height: '28px', borderRadius: '50%', border: color === c ? '2px solid var(--text-primary)' : '2px solid transparent',
-                background: c, cursor: 'pointer', padding: 0
-              }} />
+        {/* Type */}
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{
+            fontSize: '11px', fontWeight: 600,
+            color: 'var(--text-tertiary)',
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+            display: 'block', marginBottom: '8px'
+          }}>
+            Type
+          </label>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {TYPE_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setType(opt.value)}
+                style={{
+                  flex: 1,
+                  padding: '8px 4px',
+                  borderRadius: '8px',
+                  border: type === opt.value
+                    ? `2px solid ${color}`
+                    : '1px solid var(--border)',
+                  background: type === opt.value ? `${color}18` : 'transparent',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  transition: 'all 0.1s'
+                }}
+              >
+                <div style={{
+                  fontSize: '12px', fontWeight: 600,
+                  color: type === opt.value ? color : 'var(--text-primary)'
+                }}>
+                  {opt.label}
+                </div>
+                <div style={{
+                  fontSize: '10px',
+                  color: 'var(--text-tertiary)',
+                  marginTop: '2px'
+                }}>
+                  {opt.desc}
+                </div>
+              </button>
             ))}
           </div>
         </div>
 
+        {/* Target + Unit */}
+        {type !== 'habit' && (
+          <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+            <div style={{ width: '80px' }}>
+              <label style={{
+                fontSize: '11px', fontWeight: 600,
+                color: 'var(--text-tertiary)',
+                letterSpacing: '0.06em', textTransform: 'uppercase',
+                display: 'block', marginBottom: '8px'
+              }}>
+                Target
+              </label>
+              <input
+                type="number"
+                value={target}
+                onChange={e => setTarget(Number(e.target.value))}
+                style={{
+                  width: '100%',
+                  padding: '8px 0',
+                  border: 'none',
+                  borderBottom: '2px solid var(--border)',
+                  background: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  fontVariantNumeric: 'tabular-nums',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{
+                fontSize: '11px', fontWeight: 600,
+                color: 'var(--text-tertiary)',
+                letterSpacing: '0.06em', textTransform: 'uppercase',
+                display: 'block', marginBottom: '8px'
+              }}>
+                Unit
+              </label>
+              <input
+                value={unit}
+                onChange={e => setUnit(e.target.value)}
+                placeholder="cups, min, pages"
+                style={{
+                  width: '100%',
+                  padding: '8px 0',
+                  border: 'none',
+                  borderBottom: '2px solid var(--border)',
+                  background: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Color */}
+        <div style={{ marginBottom: '24px' }}>
+          <label style={{
+            fontSize: '11px', fontWeight: 600,
+            color: 'var(--text-tertiary)',
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+            display: 'block', marginBottom: '8px'
+          }}>
+            Color
+          </label>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {colors.map(c => (
+              <button
+                key={c}
+                onClick={() => setColor(c)}
+                style={{
+                  width: '24px', height: '24px',
+                  borderRadius: '50%',
+                  border: color === c
+                    ? '2px solid var(--text-primary)'
+                    : '2px solid transparent',
+                  background: c,
+                  cursor: 'pointer',
+                  padding: 0,
+                  transition: 'transform 0.1s',
+                  transform: color === c ? 'scale(1.2)' : 'scale(1)'
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Actions */}
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={{
-            padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border)',
-            background: 'transparent', color: 'var(--text-secondary)', fontSize: '13px', cursor: 'pointer'
-          }}>Cancel</button>
-          <button onClick={handleCreate} style={{
-            padding: '8px 16px', borderRadius: '8px', border: 'none',
-            background: color, color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer'
-          }}>Create Tracker</button>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '8px 16px', borderRadius: '8px',
+              border: '1px solid var(--border)',
+              background: 'transparent',
+              color: 'var(--text-secondary)',
+              fontSize: '13px', cursor: 'pointer'
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleCreate}
+            disabled={!name.trim()}
+            style={{
+              padding: '8px 20px', borderRadius: '8px',
+              border: 'none',
+              background: name.trim() ? color : 'var(--bg-hover)',
+              color: name.trim() ? '#fff' : 'var(--text-tertiary)',
+              fontSize: '13px', fontWeight: 600,
+              cursor: name.trim() ? 'pointer' : 'not-allowed',
+              transition: 'background 0.15s'
+            }}
+          >
+            Create Tracker
+          </button>
         </div>
       </div>
     </div>
