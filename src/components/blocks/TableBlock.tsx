@@ -274,7 +274,7 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
                     onChange={e => updateColumnName(ci, e.target.value)}
                     style={{
                       flex: 1,
-                      padding: '6px 0',
+                      padding: '6px 4px',
                       border: 'none',
                       background: 'transparent',
                       color: 'var(--text-secondary)',
@@ -284,7 +284,7 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
                       textTransform: 'uppercase',
                       outline: 'none',
                       cursor: 'text',
-                      minWidth: 0,
+                      minWidth: '40px',
                       boxSizing: 'border-box'
                     }}
                   />
