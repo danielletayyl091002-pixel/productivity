@@ -110,6 +110,14 @@ function Timeline({ now, tasks, onAddEvent }: {
     return String(hrs).padStart(2, '0') + ':' + String(mins).padStart(2, '0')
   }
 
+  function fmtDisplay(h: number) {
+    const hrs = Math.floor(h)
+    const mins = Math.round((h - hrs) * 60)
+    const period = hrs >= 12 ? 'PM' : 'AM'
+    const displayHr = hrs > 12 ? hrs - 12 : hrs === 0 ? 12 : hrs
+    return `${displayHr}:${String(mins).padStart(2, '0')} ${period}`
+  }
+
   return (
     <div
       style={{
@@ -216,8 +224,29 @@ function Timeline({ now, tasks, onAddEvent }: {
           borderLeft: '3px solid var(--accent)',
           borderRadius: '4px',
           pointerEvents: 'none',
-          minHeight: '4px'
-        }}/>
+          minHeight: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          padding: '2px 4px',
+          overflow: 'hidden'
+        }}>
+          <span style={{
+            fontSize: '9px', fontWeight: 700,
+            color: 'var(--accent)', lineHeight: 1
+          }}>
+            {fmtDisplay(Math.min(dragStart, dragEnd))}
+          </span>
+          {Math.abs(dragEnd - dragStart) >= 0.5 && (
+            <span style={{
+              fontSize: '9px', fontWeight: 700,
+              color: 'var(--accent)', lineHeight: 1,
+              alignSelf: 'flex-end'
+            }}>
+              {fmtDisplay(Math.max(dragStart, dragEnd))}
+            </span>
+          )}
+        </div>
       )}
 
       {now >= START && now <= 22 && (
