@@ -6,6 +6,7 @@ import { nanoid } from 'nanoid'
 import SlashMenu from '@/components/blocks/SlashMenu'
 import BoardView from '@/components/views/BoardView'
 import CalendarView from '@/components/views/CalendarView'
+import TableBlock from '@/components/blocks/TableBlock'
 import {
   DndContext,
   DragOverlay,
@@ -122,7 +123,7 @@ export default function PageCanvas() {
       uid: newUid,
       pageUid: pageUid,
       type,
-      content: '',
+      content: type === 'table' ? JSON.stringify({ columns: ['Column 1', 'Column 2', 'Column 3'], rows: [['', '', ''], ['', '', '']] }) : '',
       checked: false,
       order: newOrder,
       createdAt: new Date().toISOString(),
@@ -312,7 +313,7 @@ export default function PageCanvas() {
                 boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
                 zIndex: 1000
               }}>
-                {activeBlock.content || '...'}
+                {activeBlock.type === 'table' ? 'Table' : activeBlock.content || '...'}
               </div>
             ) : null}
           </DragOverlay>
@@ -467,7 +468,15 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
       {block.type === 'numbered' && (
         <span style={{ color: 'var(--text-tertiary)', marginTop: '3px', flexShrink: 0, fontSize: '14px', minWidth: '18px' }}>{displayNumber || 1}.</span>
       )}
-      {block.type === 'divider' ? (
+      {block.type === 'table' ? (
+        <div style={{ flex: 1 }}>
+          <TableBlock
+            block={block}
+            onChange={onChange}
+            onFocusNext={onFocusNext}
+          />
+        </div>
+      ) : block.type === 'divider' ? (
         <div
           data-block-uid={block.uid}
           tabIndex={0}
