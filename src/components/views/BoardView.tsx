@@ -153,7 +153,9 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
               background: 'var(--bg-secondary)',
               borderRadius: '12px',
               padding: '16px',
-              flexShrink: 0
+              flexShrink: 0,
+              display: 'flex',
+              flexDirection: 'column'
             }}>
               {/* Column header */}
               <div style={{
@@ -198,7 +200,7 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
               >
                 <div style={{
                   display: 'flex', flexDirection: 'column',
-                  gap: '8px', minHeight: '200px'
+                  gap: '8px', flex: 1
                 }}>
                   {colTasks.map(task => (
                     <TaskCard key={task.uid} task={task}
