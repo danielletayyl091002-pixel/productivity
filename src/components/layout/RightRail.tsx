@@ -199,7 +199,7 @@ function Timeline({ now, tasks, onAddEvent }: {
             top: `${(startHour - START + startMin / 60) * HOUR_H}px`,
             left: '44px', right: '8px',
             height: `${(endHour - startHour) * HOUR_H - 2}px`,
-            background: 'var(--accent-light)',
+            background: `${task.color || '#6366F1'}20`,
             borderLeft: `3px solid ${task.color || 'var(--accent)'}`,
             borderRadius: '4px',
             padding: '3px 6px', overflow: 'hidden',
