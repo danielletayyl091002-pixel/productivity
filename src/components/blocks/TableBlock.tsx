@@ -223,8 +223,6 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
     if (e.key === 'Escape') onFocusNext()
   }
 
-  console.log('TABLE DATA:', JSON.stringify(data, null, 2))
-
   return (
     <div style={{ margin: '4px 0', overflowX: 'auto' }}>
 
