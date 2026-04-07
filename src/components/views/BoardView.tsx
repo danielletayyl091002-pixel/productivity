@@ -8,7 +8,7 @@ import {
 } from '@dnd-kit/core'
 import {
   SortableContext, verticalListSortingStrategy,
-  useSortable
+  useSortable, arrayMove
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { db, Task } from '@/db/schema'
@@ -110,16 +110,34 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
     const aId = active.id as string
     const overId = over.id as string
     if (aId === overId) return
+
     const overColumn = COLUMNS.find(c => c.id === overId)
     const overTask = tasks.find(t => t.uid === overId)
+    const activeTask = tasks.find(t => t.uid === aId)
+    if (!activeTask) return
+
+    // Cross-column move
     const newStatus = overColumn
       ? overColumn.id as Task['status']
       : overTask?.status
     if (!newStatus) return
-    pendingStatus.current = { uid: aId, status: newStatus }
-    setTasks(prev => prev.map(t =>
-      t.uid === aId ? { ...t, status: newStatus } : t
-    ))
+
+    if (activeTask.status !== newStatus) {
+      pendingStatus.current = { uid: aId, status: newStatus }
+      setTasks(prev => prev.map(t =>
+        t.uid === aId ? { ...t, status: newStatus } : t
+      ))
+      return
+    }
+
+    // Same-column reorder
+    if (overTask && activeTask.status === overTask.status) {
+      setTasks(prev => {
+        const oldIndex = prev.findIndex(t => t.uid === aId)
+        const newIndex = prev.findIndex(t => t.uid === overId)
+        return arrayMove(prev, oldIndex, newIndex)
+      })
+    }
   }
 
   async function handleDragEnd(event: DragEndEvent) {
