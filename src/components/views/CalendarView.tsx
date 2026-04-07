@@ -50,6 +50,11 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
     return String(hrs).padStart(2, '0') + ':' + String(mins).padStart(2, '0')
   }
 
+  const toMinutes = (time: string) => {
+    const [h, m] = time.split(':').map(Number)
+    return h * 60 + m
+  }
+
   const weekDays = useMemo(() => {
     const days = []
     const startOfWeek = new Date(currentDate)
@@ -69,9 +74,64 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
   function getTasksForDate(dateStr: string) {
     return tasks.filter(t =>
       (t.dueDate === dateStr || t.scheduledDate === dateStr) &&
-      t.startTime
+      t.startTime && t.endTime
     )
   }
+
+  // Compute non-overlapping columns for events
+  function computeColumns(evts: Task[]): {
+    task: Task; col: number; totalCols: number
+  }[] {
+    if (evts.length === 0) return []
+    const sorted = [...evts].sort((a, b) =>
+      toMinutes(a.startTime!) - toMinutes(b.startTime!)
+    )
+    const assigned: { task: Task; col: number }[] = []
+    const colEnds: number[] = []
+
+    for (const task of sorted) {
+      const start = toMinutes(task.startTime!)
+      const end = toMinutes(task.endTime!)
+      let col = 0
+      while (colEnds[col] !== undefined && colEnds[col] > start) col++
+      colEnds[col] = end
+      assigned.push({ task, col })
+    }
+
+    const maxCol = Math.max(...assigned.map(a => a.col)) + 1
+    return assigned.map(a => ({ ...a, totalCols: maxCol }))
+  }
+
+  // Mouse position to hour within a day column container
+  function getHourFromY(e: React.MouseEvent, container: HTMLElement): number {
+    const rect = container.getBoundingClientRect()
+    const scrollTop = container.closest('.week-time-grid')?.scrollTop || 0
+    const relY = e.clientY - rect.top + scrollTop
+    return snap(START + relY / HOUR_H)
+  }
+
+  // Global mouseup to end drag even if mouse left the column
+  useEffect(() => {
+    function handleGlobalMouseUp() {
+      if (!isDragging || !dragState) return
+      setIsDragging(false)
+      const start = Math.min(dragState.startHour, dragState.endHour)
+      const end = Math.max(dragState.startHour, dragState.endHour)
+      if (end - start >= 0.25) {
+        setPendingEvent({
+          dateStr: dragState.dateStr,
+          startTime: fmtDB(start),
+          endTime: fmtDB(end)
+        })
+      } else {
+        setDragState(null)
+      }
+    }
+    window.addEventListener('mouseup', handleGlobalMouseUp)
+    return () => window.removeEventListener('mouseup', handleGlobalMouseUp)
+  }, [isDragging, dragState])
+
+  const TOTAL_H = HOURS.length * HOUR_H
 
   return (
     <div style={{
@@ -84,9 +144,10 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
         display: 'grid',
         gridTemplateColumns: '48px repeat(7, 1fr)',
         borderBottom: '1px solid var(--border)',
-        background: 'var(--bg-secondary)'
+        background: 'var(--bg-secondary)',
+        flexShrink: 0
       }}>
-        <div/>
+        <div />
         {weekDays.map((d, i) => {
           const dateStr = d.toISOString().split('T')[0]
           const isToday = dateStr === todayStr
@@ -95,24 +156,19 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
               padding: '8px 4px', textAlign: 'center',
               borderLeft: '1px solid var(--border)'
             }}>
-              <div style={{ fontSize: '10px',
-                color: 'var(--text-tertiary)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em' }}>
+              <div style={{
+                fontSize: '10px', color: 'var(--text-tertiary)',
+                textTransform: 'uppercase', letterSpacing: '0.05em'
+              }}>
                 {DAYS_SHORT[i]}
               </div>
               <div style={{
-                display: 'inline-flex',
-                width: '28px', height: '28px',
-                alignItems: 'center',
-                justifyContent: 'center',
+                display: 'inline-flex', width: '28px', height: '28px',
+                alignItems: 'center', justifyContent: 'center',
                 borderRadius: '50%',
-                background: isToday
-                  ? 'var(--accent)' : 'transparent',
-                color: isToday
-                  ? 'white' : 'var(--text-primary)',
-                fontSize: '13px',
-                fontWeight: isToday ? 700 : 400,
+                background: isToday ? 'var(--accent)' : 'transparent',
+                color: isToday ? 'white' : 'var(--text-primary)',
+                fontSize: '13px', fontWeight: isToday ? 700 : 400,
                 margin: '2px auto 0'
               }}>
                 {d.getDate()}
@@ -122,194 +178,275 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
         })}
       </div>
 
-      {/* Time grid */}
-      <div className="week-time-grid"
-        style={{ flex: 1, overflowY: 'auto', position: 'relative', userSelect: 'none' }}>
-        {HOURS.map(h => (
-          <div key={h} style={{
-            display: 'grid',
-            gridTemplateColumns: '48px repeat(7, 1fr)',
-            height: `${HOUR_H}px`,
-            borderBottom: '1px solid var(--border)'
-          }}>
-            <div style={{
-              fontSize: '10px', color: 'var(--text-tertiary)',
-              padding: '4px 8px', flexShrink: 0
-            }}>
-              {h === 12 ? '12 PM' : h > 12
-                ? `${h - 12} PM` : `${h} AM`}
-            </div>
-            {weekDays.map((d, di) => {
-              const dateStr = d.toISOString().split('T')[0]
-              const dayTasks = getTasksForDate(dateStr).filter(t => {
-                const tHour = t.startTime
-                  ? parseInt(t.startTime.split(':')[0]) : -1
-                return tHour === h
-              })
-              return (
-                <div key={di} style={{
+      {/* Scrollable time grid */}
+      <div
+        className="week-time-grid"
+        style={{ flex: 1, overflowY: 'auto', position: 'relative' }}
+      >
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '48px repeat(7, 1fr)',
+          height: `${TOTAL_H}px`,
+          position: 'relative'
+        }}>
+          {/* Hour labels + horizontal lines */}
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            {HOURS.map(h => (
+              <div key={h} style={{
+                position: 'absolute',
+                top: `${(h - START) * HOUR_H}px`,
+                left: 0, right: 0,
+                height: `${HOUR_H}px`,
+                borderBottom: '1px solid var(--border)',
+                padding: '4px 8px',
+                fontSize: '10px',
+                color: 'var(--text-tertiary)'
+              }}>
+                {h === 12 ? '12 PM' : h > 12 ? `${h - 12} PM` : `${h} AM`}
+              </div>
+            ))}
+          </div>
+
+          {/* Day columns */}
+          {weekDays.map((d, di) => {
+            const dateStr = d.toISOString().split('T')[0]
+            const dayTasks = getTasksForDate(dateStr)
+            const positioned = computeColumns(dayTasks)
+            const isDraggingThisDay = isDragging && dragState?.dateStr === dateStr
+
+            return (
+              <div
+                key={di}
+                style={{
                   borderLeft: '1px solid var(--border)',
-                  position: 'relative', padding: '2px',
-                  cursor: 'crosshair'
+                  position: 'relative',
+                  height: '100%',
+                  cursor: 'crosshair',
+                  userSelect: 'none'
                 }}
                 onMouseDown={(e) => {
+                  if ((e.target as HTMLElement).closest('[data-event]')) return
                   e.preventDefault()
-                  const rect = e.currentTarget.closest('.week-time-grid')
-                    ?.getBoundingClientRect()
-                  if (!rect) return
-                  const scrollTop = e.currentTarget.closest('.week-time-grid')?.scrollTop || 0
-                  const hour = snap(START + (e.clientY - rect.top + scrollTop) / HOUR_H)
+                  const hour = getHourFromY(e, e.currentTarget)
                   setDragState({ dateStr, startHour: hour, endHour: hour })
                   setIsDragging(true)
                 }}
                 onMouseMove={(e) => {
                   if (!isDragging || !dragState || dragState.dateStr !== dateStr) return
-                  const rect = e.currentTarget.closest('.week-time-grid')
-                    ?.getBoundingClientRect()
-                  if (!rect) return
-                  const scrollTop = e.currentTarget.closest('.week-time-grid')?.scrollTop || 0
-                  const hour = snap(START + (e.clientY - rect.top + scrollTop) / HOUR_H)
+                  const hour = getHourFromY(e, e.currentTarget)
                   setDragState(p => p ? { ...p, endHour: hour } : null)
                 }}
-                onMouseUp={() => {
-                  if (!isDragging || !dragState || dragState.dateStr !== dateStr) return
-                  setIsDragging(false)
-                  const start = Math.min(dragState.startHour, dragState.endHour)
-                  const end = Math.max(dragState.startHour, dragState.endHour)
-                  if (end - start >= 0.25) {
-                    setPendingEvent({
-                      dateStr,
-                      startTime: fmtDB(start),
-                      endTime: fmtDB(end)
-                    })
-                  } else {
-                    setDragState(null)
-                  }
-                }}
-                >
-                  {dayTasks.map(task => (
-                    <div key={task.uid} style={{
-                      background: 'var(--accent-light)',
-                      borderLeft: '2px solid var(--accent)',
-                      borderRadius: '3px',
-                      padding: '2px 4px',
-                      fontSize: '10px', fontWeight: 500,
-                      color: 'var(--accent)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      pointerEvents: 'auto'
+              >
+                {/* Hour grid lines */}
+                {HOURS.map(h => (
+                  <div key={h} style={{
+                    position: 'absolute',
+                    top: `${(h - START) * HOUR_H}px`,
+                    left: 0, right: 0,
+                    height: `${HOUR_H}px`,
+                    borderBottom: '1px solid var(--border)',
+                    pointerEvents: 'none'
+                  }} />
+                ))}
+
+                {/* Drag preview */}
+                {isDraggingThisDay && dragState && (
+                  <div style={{
+                    position: 'absolute',
+                    top: `${(Math.min(dragState.startHour, dragState.endHour) - START) * HOUR_H}px`,
+                    left: '2px', right: '2px',
+                    height: `${Math.abs(dragState.endHour - dragState.startHour) * HOUR_H}px`,
+                    minHeight: '4px',
+                    background: 'rgba(99,102,241,0.2)',
+                    borderLeft: '3px solid var(--accent)',
+                    borderRadius: '3px',
+                    pointerEvents: 'none',
+                    zIndex: 5,
+                    padding: '2px 4px',
+                    overflow: 'hidden'
+                  }}>
+                    <span style={{
+                      fontSize: '9px', fontWeight: 700,
+                      color: 'var(--accent)'
                     }}>
-                      <span>{task.title}</span>
-                      <span
-                        onClick={e => {
-                          e.stopPropagation()
-                          onDeleteTask(task.uid)
-                        }}
-                        style={{ cursor: 'pointer',
-                          opacity: 0.6, marginLeft: '4px' }}>
-                        &times;
+                      {fmt(Math.min(dragState.startHour, dragState.endHour))}
+                      {' \u2192 '}
+                      {fmt(Math.max(dragState.startHour, dragState.endHour))}
+                    </span>
+                  </div>
+                )}
+
+                {/* Events */}
+                {positioned.map(({ task, col, totalCols }) => {
+                  const startMins = toMinutes(task.startTime!)
+                  const endMins = toMinutes(task.endTime!)
+                  const top = (startMins / 60 - START) * HOUR_H
+                  const height = Math.max(((endMins - startMins) / 60) * HOUR_H, 20)
+                  const colW = 100 / totalCols
+                  const color = task.priority
+                    ? PRIORITY_COLORS[task.priority]
+                    : 'var(--accent)'
+
+                  return (
+                    <div
+                      key={task.uid}
+                      data-event="true"
+                      style={{
+                        position: 'absolute',
+                        top: `${top}px`,
+                        left: `${col * colW + 1}%`,
+                        width: `${colW - 1}%`,
+                        height: `${height}px`,
+                        background: color + '20',
+                        borderLeft: `3px solid ${color}`,
+                        borderRadius: '3px',
+                        padding: '2px 4px',
+                        fontSize: '10px',
+                        fontWeight: 500,
+                        color: color,
+                        overflow: 'hidden',
+                        zIndex: 3,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <span style={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        flex: 1
+                      }}>
+                        {task.title}
                       </span>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <span style={{
+                          fontSize: '9px',
+                          opacity: 0.8
+                        }}>
+                          {task.startTime} - {task.endTime}
+                        </span>
+                        <span
+                          onClick={e => {
+                            e.stopPropagation()
+                            onDeleteTask(task.uid)
+                          }}
+                          style={{
+                            cursor: 'pointer',
+                            opacity: 0.6,
+                            fontSize: '12px',
+                            lineHeight: 1,
+                            padding: '0 2px'
+                          }}
+                        >
+                          &times;
+                        </span>
+                      </div>
                     </div>
-                  ))}
-                  {isDragging && dragState?.dateStr === dateStr && (
-                    <div style={{
-                      position: 'absolute',
-                      top: `${(Math.min(dragState.startHour, dragState.endHour) - h) * HOUR_H}px`,
-                      left: 0, right: 0,
-                      height: `${Math.abs(dragState.endHour - dragState.startHour) * HOUR_H}px`,
-                      background: 'rgba(99,102,241,0.2)',
-                      borderLeft: '3px solid var(--accent)',
-                      borderRadius: '3px',
-                      pointerEvents: 'none',
-                      zIndex: 10,
-                      padding: '2px 4px',
-                      overflow: 'hidden',
-                      minHeight: '4px'
-                    }}>
-                      <span style={{ fontSize: '9px', fontWeight: 700,
-                        color: 'var(--accent)' }}>
-                        {fmt(Math.min(dragState.startHour, dragState.endHour))}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        ))}
+                  )
+                })}
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* Pending event popover */}
       {pendingEvent && (
-        <div style={{
-          position: 'fixed',
-          top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          background: 'var(--bg-primary)',
-          border: '2px solid var(--accent)',
-          borderRadius: '10px',
-          padding: '16px',
-          zIndex: 1000,
-          width: '280px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
-        }}>
-          <div style={{ fontSize: '12px', fontWeight: 600,
-            color: 'var(--text-primary)', marginBottom: '4px' }}>
-            New Event
-          </div>
-          <div style={{ fontSize: '11px',
-            color: 'var(--text-tertiary)', marginBottom: '10px' }}>
-            {pendingEvent.startTime} → {pendingEvent.endTime}
-          </div>
-          <input
-            autoFocus
-            placeholder="Event title..."
-            value={pendingTitle}
-            onChange={e => setPendingTitle(e.target.value)}
-            onKeyDown={async e => {
-              if (e.key === 'Enter' && pendingTitle.trim()) {
-                const { nanoid } = await import('nanoid')
-                const task: Task = {
-                  uid: nanoid(),
-                  title: pendingTitle.trim(),
-                  status: 'todo',
-                  priority: null,
-                  dueDate: pendingEvent.dateStr,
-                  pageUid,
-                  scheduledDate: pendingEvent.dateStr,
-                  startTime: pendingEvent.startTime,
-                  endTime: pendingEvent.endTime,
-                  color: '#6366F1',
-                  createdAt: new Date().toISOString()
-                }
-                await db.tasks.add(task)
-                setTasks(prev => [...prev, task])
-                setPendingEvent(null)
-                setPendingTitle('')
-                setDragState(null)
-              }
-              if (e.key === 'Escape') {
-                setPendingEvent(null)
-                setPendingTitle('')
-                setDragState(null)
-              }
-            }}
+        <div
+          onClick={() => {
+            setPendingEvent(null)
+            setPendingTitle('')
+            setDragState(null)
+          }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 999,
+            background: 'rgba(0,0,0,0.3)'
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
             style={{
-              width: '100%', padding: '8px 10px',
-              borderRadius: '6px',
-              border: '1px solid var(--border)',
-              background: 'var(--bg-secondary)',
-              color: 'var(--text-primary)',
-              fontSize: '13px', boxSizing: 'border-box'
+              position: 'fixed',
+              top: '50%', left: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: 'var(--bg-primary)',
+              border: '2px solid var(--accent)',
+              borderRadius: '10px',
+              padding: '16px',
+              zIndex: 1000,
+              width: '280px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
             }}
-          />
-          <div style={{ fontSize: '10px',
-            color: 'var(--text-tertiary)', marginTop: '6px' }}>
-            Enter to save &middot; Esc to cancel
+          >
+            <div style={{
+              fontSize: '12px', fontWeight: 600,
+              color: 'var(--text-primary)', marginBottom: '4px'
+            }}>
+              New Event
+            </div>
+            <div style={{
+              fontSize: '11px',
+              color: 'var(--text-tertiary)', marginBottom: '10px'
+            }}>
+              {pendingEvent.startTime} → {pendingEvent.endTime}
+            </div>
+            <input
+              autoFocus
+              placeholder="Event title..."
+              value={pendingTitle}
+              onChange={e => setPendingTitle(e.target.value)}
+              onKeyDown={async e => {
+                if (e.key === 'Enter' && pendingTitle.trim()) {
+                  const { nanoid } = await import('nanoid')
+                  const task: Task = {
+                    uid: nanoid(),
+                    title: pendingTitle.trim(),
+                    status: 'todo',
+                    priority: null,
+                    dueDate: pendingEvent.dateStr,
+                    pageUid,
+                    scheduledDate: pendingEvent.dateStr,
+                    startTime: pendingEvent.startTime,
+                    endTime: pendingEvent.endTime,
+                    color: '#6366F1',
+                    createdAt: new Date().toISOString()
+                  }
+                  await db.tasks.add(task)
+                  setTasks(prev => [...prev, task])
+                  setPendingEvent(null)
+                  setPendingTitle('')
+                  setDragState(null)
+                }
+                if (e.key === 'Escape') {
+                  setPendingEvent(null)
+                  setPendingTitle('')
+                  setDragState(null)
+                }
+              }}
+              style={{
+                width: '100%', padding: '8px 10px',
+                borderRadius: '6px',
+                border: '1px solid var(--border)',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                fontSize: '13px',
+                boxSizing: 'border-box',
+                outline: 'none'
+              }}
+            />
+            <div style={{
+              fontSize: '10px',
+              color: 'var(--text-tertiary)', marginTop: '6px'
+            }}>
+              Enter to save · Esc to cancel
+            </div>
           </div>
         </div>
       )}
