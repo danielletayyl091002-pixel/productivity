@@ -14,13 +14,41 @@ const PRIORITY_COLORS: Record<string, string> = {
   low: '#10B981'
 }
 
-function WeekView({ currentDate, tasks, onDeleteTask }: {
+function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
   currentDate: Date
   tasks: Task[]
   onDeleteTask: (uid: string) => void
+  pageUid: string
+  setTasks: React.Dispatch<React.SetStateAction<Task[]>>
 }) {
   const HOURS = Array.from({ length: 16 }, (_, i) => i + 6)
   const HOUR_H = 60
+  const START = 6
+
+  const [dragState, setDragState] = useState<{
+    dateStr: string; startHour: number; endHour: number
+  } | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const [pendingEvent, setPendingEvent] = useState<{
+    dateStr: string; startTime: string; endTime: string
+  } | null>(null)
+  const [pendingTitle, setPendingTitle] = useState('')
+
+  const snap = (h: number) => Math.max(START, Math.min(22, Math.round(h * 4) / 4))
+
+  const fmt = (h: number) => {
+    const hrs = Math.floor(h)
+    const mins = Math.round((h - hrs) * 60)
+    const period = hrs >= 12 ? 'PM' : 'AM'
+    const displayHr = hrs > 12 ? hrs - 12 : hrs === 0 ? 12 : hrs
+    return `${displayHr}:${String(mins).padStart(2, '0')} ${period}`
+  }
+
+  const fmtDB = (h: number) => {
+    const hrs = Math.floor(h)
+    const mins = Math.round((h - hrs) * 60)
+    return String(hrs).padStart(2, '0') + ':' + String(mins).padStart(2, '0')
+  }
 
   const weekDays = useMemo(() => {
     const days = []
@@ -95,7 +123,8 @@ function WeekView({ currentDate, tasks, onDeleteTask }: {
       </div>
 
       {/* Time grid */}
-      <div style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
+      <div className="week-time-grid"
+        style={{ flex: 1, overflowY: 'auto', position: 'relative', userSelect: 'none' }}>
         {HOURS.map(h => (
           <div key={h} style={{
             display: 'grid',
@@ -121,15 +150,42 @@ function WeekView({ currentDate, tasks, onDeleteTask }: {
                 <div key={di} style={{
                   borderLeft: '1px solid var(--border)',
                   position: 'relative', padding: '2px',
-                  cursor: 'pointer'
+                  cursor: 'crosshair'
                 }}
-                onMouseEnter={e =>
-                  e.currentTarget.style.background =
-                    'rgba(99,102,241,0.04)'
-                }
-                onMouseLeave={e =>
-                  e.currentTarget.style.background = 'transparent'
-                }
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  const rect = e.currentTarget.closest('.week-time-grid')
+                    ?.getBoundingClientRect()
+                  if (!rect) return
+                  const scrollTop = e.currentTarget.closest('.week-time-grid')?.scrollTop || 0
+                  const hour = snap(START + (e.clientY - rect.top + scrollTop) / HOUR_H)
+                  setDragState({ dateStr, startHour: hour, endHour: hour })
+                  setIsDragging(true)
+                }}
+                onMouseMove={(e) => {
+                  if (!isDragging || !dragState || dragState.dateStr !== dateStr) return
+                  const rect = e.currentTarget.closest('.week-time-grid')
+                    ?.getBoundingClientRect()
+                  if (!rect) return
+                  const scrollTop = e.currentTarget.closest('.week-time-grid')?.scrollTop || 0
+                  const hour = snap(START + (e.clientY - rect.top + scrollTop) / HOUR_H)
+                  setDragState(p => p ? { ...p, endHour: hour } : null)
+                }}
+                onMouseUp={() => {
+                  if (!isDragging || !dragState || dragState.dateStr !== dateStr) return
+                  setIsDragging(false)
+                  const start = Math.min(dragState.startHour, dragState.endHour)
+                  const end = Math.max(dragState.startHour, dragState.endHour)
+                  if (end - start >= 0.25) {
+                    setPendingEvent({
+                      dateStr,
+                      startTime: fmtDB(start),
+                      endTime: fmtDB(end)
+                    })
+                  } else {
+                    setDragState(null)
+                  }
+                }}
                 >
                   {dayTasks.map(task => (
                     <div key={task.uid} style={{
@@ -144,7 +200,8 @@ function WeekView({ currentDate, tasks, onDeleteTask }: {
                       whiteSpace: 'nowrap',
                       display: 'flex',
                       justifyContent: 'space-between',
-                      alignItems: 'center'
+                      alignItems: 'center',
+                      pointerEvents: 'auto'
                     }}>
                       <span>{task.title}</span>
                       <span
@@ -158,12 +215,104 @@ function WeekView({ currentDate, tasks, onDeleteTask }: {
                       </span>
                     </div>
                   ))}
+                  {isDragging && dragState?.dateStr === dateStr && (
+                    <div style={{
+                      position: 'absolute',
+                      top: `${(Math.min(dragState.startHour, dragState.endHour) - h) * HOUR_H}px`,
+                      left: 0, right: 0,
+                      height: `${Math.abs(dragState.endHour - dragState.startHour) * HOUR_H}px`,
+                      background: 'rgba(99,102,241,0.2)',
+                      borderLeft: '3px solid var(--accent)',
+                      borderRadius: '3px',
+                      pointerEvents: 'none',
+                      zIndex: 10,
+                      padding: '2px 4px',
+                      overflow: 'hidden',
+                      minHeight: '4px'
+                    }}>
+                      <span style={{ fontSize: '9px', fontWeight: 700,
+                        color: 'var(--accent)' }}>
+                        {fmt(Math.min(dragState.startHour, dragState.endHour))}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )
             })}
           </div>
         ))}
       </div>
+
+      {/* Pending event popover */}
+      {pendingEvent && (
+        <div style={{
+          position: 'fixed',
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'var(--bg-primary)',
+          border: '2px solid var(--accent)',
+          borderRadius: '10px',
+          padding: '16px',
+          zIndex: 1000,
+          width: '280px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+        }}>
+          <div style={{ fontSize: '12px', fontWeight: 600,
+            color: 'var(--text-primary)', marginBottom: '4px' }}>
+            New Event
+          </div>
+          <div style={{ fontSize: '11px',
+            color: 'var(--text-tertiary)', marginBottom: '10px' }}>
+            {pendingEvent.startTime} → {pendingEvent.endTime}
+          </div>
+          <input
+            autoFocus
+            placeholder="Event title..."
+            value={pendingTitle}
+            onChange={e => setPendingTitle(e.target.value)}
+            onKeyDown={async e => {
+              if (e.key === 'Enter' && pendingTitle.trim()) {
+                const { nanoid } = await import('nanoid')
+                const task: Task = {
+                  uid: nanoid(),
+                  title: pendingTitle.trim(),
+                  status: 'todo',
+                  priority: null,
+                  dueDate: pendingEvent.dateStr,
+                  pageUid,
+                  scheduledDate: pendingEvent.dateStr,
+                  startTime: pendingEvent.startTime,
+                  endTime: pendingEvent.endTime,
+                  color: '#6366F1',
+                  createdAt: new Date().toISOString()
+                }
+                await db.tasks.add(task)
+                setTasks(prev => [...prev, task])
+                setPendingEvent(null)
+                setPendingTitle('')
+                setDragState(null)
+              }
+              if (e.key === 'Escape') {
+                setPendingEvent(null)
+                setPendingTitle('')
+                setDragState(null)
+              }
+            }}
+            style={{
+              width: '100%', padding: '8px 10px',
+              borderRadius: '6px',
+              border: '1px solid var(--border)',
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
+              fontSize: '13px', boxSizing: 'border-box'
+            }}
+          />
+          <div style={{ fontSize: '10px',
+            color: 'var(--text-tertiary)', marginTop: '6px' }}>
+            Enter to save &middot; Esc to cancel
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -522,6 +671,8 @@ export default function CalendarView({
           currentDate={currentDate}
           tasks={tasks}
           onDeleteTask={deleteTask}
+          pageUid={pageUid}
+          setTasks={setTasks}
         />
       )}
 
