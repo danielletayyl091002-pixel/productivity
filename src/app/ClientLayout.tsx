@@ -9,9 +9,22 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       if (font?.value && font.value !== 'System Default') {
         // Load Google Fonts
         if (!document.querySelector('link[data-fluent-fonts]')) {
+          if (!document.querySelector('link[href="https://fonts.googleapis.com"]')) {
+            const pc1 = document.createElement('link')
+            pc1.rel = 'preconnect'
+            pc1.href = 'https://fonts.googleapis.com'
+            document.head.appendChild(pc1)
+          }
+          if (!document.querySelector('link[href="https://fonts.gstatic.com"]')) {
+            const pc2 = document.createElement('link')
+            pc2.rel = 'preconnect'
+            pc2.href = 'https://fonts.gstatic.com'
+            pc2.crossOrigin = 'anonymous'
+            document.head.appendChild(pc2)
+          }
           const link = document.createElement('link')
           link.rel = 'stylesheet'
-          link.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(font.value).replace(/%20/g, '+') + ':wght@400;500;600;700&display=swap'
+          link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Lexend:wght@400;500;600;700&family=Lato:wght@400;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&family=Merriweather:wght@400;700&family=Lora:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&family=Fira+Code:wght@400;500;700&family=Source+Code+Pro:wght@400;600;700&display=swap'
           link.setAttribute('data-fluent-fonts', 'true')
           document.head.appendChild(link)
         }
