@@ -82,6 +82,7 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
   const [focusedCell, setFocusedCell] = useState<string | null>(null)
   const [openDropdown, setOpenDropdown] = useState<number | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const dropdownAnchor = useRef<{ top: number; left: number } | null>(null)
 
   function save(newData: TableData) {
     setData(newData)
@@ -249,8 +250,7 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
                   borderBottom: '2px solid var(--border)',
                   padding: '2px 0',
                   textAlign: 'left',
-                  width: `${Math.floor(100 / visibleColumns.length)}%`,
-                  position: 'relative'
+                  width: `${Math.floor(100 / visibleColumns.length)}%`
                 }}
               >
                 <div style={{
@@ -292,6 +292,11 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
                     <button
                       onClick={e => {
                         e.stopPropagation()
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                        dropdownAnchor.current = {
+                          top: rect.bottom + window.scrollY,
+                          left: rect.left + window.scrollX
+                        }
                         setOpenDropdown(openDropdown === ci ? null : ci)
                       }}
                       style={{
@@ -310,126 +315,6 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
                     </button>
                   )}
                 </div>
-
-                {openDropdown === ci && (
-                  <div
-                    onClick={e => e.stopPropagation()}
-                    style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      zIndex: 20,
-                      background: 'var(--bg-primary)',
-                      border: '1px solid var(--border)',
-                      borderRadius: '8px',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                      minWidth: '160px',
-                      padding: '6px 0',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <div style={{
-                      padding: '4px 12px 8px',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      color: 'var(--text-tertiary)',
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase'
-                    }}>
-                      Column Type
-                    </div>
-                    {TYPES.map(t => (
-                      <button
-                        key={t.type}
-                        onClick={() => updateColumnType(ci, t.type)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          width: '100%',
-                          padding: '6px 12px',
-                          background: col.type === t.type
-                            ? 'var(--bg-hover)' : 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          color: 'var(--text-primary)',
-                          textAlign: 'left'
-                        }}
-                      >
-                        <span style={{
-                          fontSize: '11px',
-                          color: 'var(--text-tertiary)',
-                          fontWeight: 700,
-                          minWidth: '16px'
-                        }}>
-                          {typeIcon(t.type)}
-                        </span>
-                        {t.label}
-                        {col.type === t.type && (
-                          <span style={{
-                            marginLeft: 'auto',
-                            color: 'var(--accent)',
-                            fontSize: '12px'
-                          }}>
-                            done
-                          </span>
-                        )}
-                      </button>
-                    ))}
-
-                    <div style={{
-                      borderTop: '1px solid var(--border)',
-                      margin: '6px 0'
-                    }} />
-
-                    <button
-                      onClick={() => toggleHidden(ci)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        width: '100%',
-                        padding: '6px 12px',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '13px',
-                        color: 'var(--text-primary)',
-                        textAlign: 'left'
-                      }}
-                    >
-                      Hide column
-                    </button>
-
-                    {data.columns.filter(c => !c.hidden).length > 1 && (
-                      <>
-                        <div style={{
-                          borderTop: '1px solid var(--border)',
-                          margin: '6px 0'
-                        }} />
-                        <button
-                          onClick={() => deleteColumn(ci)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            width: '100%',
-                            padding: '6px 12px',
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontSize: '13px',
-                            color: '#EF4444',
-                            textAlign: 'left'
-                          }}
-                        >
-                          Delete column
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
               </th>
             ))}
             <th style={{
@@ -548,6 +433,121 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
           </tfoot>
         )}
       </table>
+
+      {openDropdown !== null && dropdownAnchor.current && (() => {
+        const ci = openDropdown
+        const col = data.columns[ci]
+        if (!col) return null
+        return (
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'fixed',
+              top: dropdownAnchor.current.top,
+              left: dropdownAnchor.current.left,
+              zIndex: 1000,
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border)',
+              borderRadius: '8px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+              minWidth: '160px',
+              padding: '6px 0',
+              overflow: 'hidden'
+            }}
+          >
+            <div style={{
+              padding: '4px 12px 8px',
+              fontSize: '11px',
+              fontWeight: 600,
+              color: 'var(--text-tertiary)',
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase'
+            }}>
+              Column Type
+            </div>
+            {TYPES.map(t => (
+              <button
+                key={t.type}
+                onClick={() => updateColumnType(ci, t.type)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  width: '100%',
+                  padding: '6px 12px',
+                  background: col.type === t.type ? 'var(--bg-hover)' : 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  color: 'var(--text-primary)',
+                  textAlign: 'left'
+                }}
+              >
+                <span style={{
+                  fontSize: '11px',
+                  color: 'var(--text-tertiary)',
+                  fontWeight: 700,
+                  minWidth: '16px'
+                }}>
+                  {typeIcon(t.type)}
+                </span>
+                {t.label}
+                {col.type === t.type && (
+                  <span style={{
+                    marginLeft: 'auto',
+                    color: 'var(--accent)',
+                    fontSize: '12px'
+                  }}>
+                    done
+                  </span>
+                )}
+              </button>
+            ))}
+            <div style={{ borderTop: '1px solid var(--border)', margin: '6px 0' }} />
+            <button
+              onClick={() => toggleHidden(ci)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                width: '100%',
+                padding: '6px 12px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '13px',
+                color: 'var(--text-primary)',
+                textAlign: 'left'
+              }}
+            >
+              Hide column
+            </button>
+            {data.columns.filter(c => !c.hidden).length > 1 && (
+              <>
+                <div style={{ borderTop: '1px solid var(--border)', margin: '6px 0' }} />
+                <button
+                  onClick={() => deleteColumn(ci)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    padding: '6px 12px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    color: '#EF4444',
+                    textAlign: 'left'
+                  }}
+                >
+                  Delete column
+                </button>
+              </>
+            )}
+          </div>
+        )
+      })()}
 
       {data.columns.some(c => c.hidden) && (
         <div style={{
