@@ -3,17 +3,18 @@ import { useState, useRef } from 'react'
 import { Block } from '@/db/schema'
 
 type ColumnType = 'text' | 'number' | 'currency'
+type AggregateType = 'sum' | 'avg' | 'min' | 'max' | 'count' | null
 
 interface Column {
   name: string
   type: ColumnType
   hidden: boolean
+  aggregate: AggregateType
 }
 
 interface TableData {
   columns: Column[]
   rows: string[][]
-  showTotal: boolean
 }
 
 interface TableBlockProps {
@@ -24,28 +25,49 @@ interface TableBlockProps {
 
 const DEFAULT_DATA: TableData = {
   columns: [
-    { name: 'Column 1', type: 'text', hidden: false },
-    { name: 'Column 2', type: 'text', hidden: false },
-    { name: 'Column 3', type: 'text', hidden: false },
+    { name: 'Column 1', type: 'text', hidden: false, aggregate: null },
+    { name: 'Column 2', type: 'text', hidden: false, aggregate: null },
+    { name: 'Column 3', type: 'text', hidden: false, aggregate: null },
   ],
-  rows: [['', '', ''], ['', '', '']],
-  showTotal: false
+  rows: [['', '', ''], ['', '', '']]
+}
+
+// Aggregate cycle order per column type
+const NUMERIC_AGG: AggregateType[] = [null, 'sum', 'avg', 'min', 'max', 'count']
+const TEXT_AGG: AggregateType[] = [null, 'count']
+
+function nextAggregate(current: AggregateType, type: ColumnType): AggregateType {
+  const cycle = type === 'text' ? TEXT_AGG : NUMERIC_AGG
+  const idx = cycle.indexOf(current)
+  return cycle[(idx + 1) % cycle.length]
+}
+
+function aggLabel(agg: AggregateType): string {
+  if (!agg) return ''
+  return { sum: 'Sum', avg: 'Avg', min: 'Min', max: 'Max', count: 'Count' }[agg]
 }
 
 function parseData(content: string): TableData {
   try {
     const parsed = JSON.parse(content)
     if (Array.isArray(parsed.columns) && Array.isArray(parsed.rows)) {
-      const columns: Column[] = parsed.columns.map((col: string | Column) =>
-        typeof col === 'string'
-          ? { name: col, type: 'text' as ColumnType, hidden: false }
-          : { name: col.name, type: col.type || 'text', hidden: col.hidden ?? false }
-      )
-      return {
-        columns,
-        rows: parsed.rows,
-        showTotal: parsed.showTotal ?? false
-      }
+      const columns: Column[] = parsed.columns.map((col: string | Column & { aggregate?: AggregateType }) => {
+        if (typeof col === 'string') {
+          return { name: col, type: 'text' as ColumnType, hidden: false, aggregate: null }
+        }
+        return {
+          name: col.name,
+          type: col.type || 'text',
+          hidden: col.hidden ?? false,
+          // Migrate showTotal: if old data had showTotal:true, seed sum on numeric cols
+          aggregate: col.aggregate !== undefined
+            ? col.aggregate
+            : (parsed.showTotal && (col.type === 'number' || col.type === 'currency'))
+              ? 'sum' as AggregateType
+              : null
+        }
+      })
+      return { columns, rows: parsed.rows }
     }
   } catch {}
   return structuredClone(DEFAULT_DATA)
@@ -66,6 +88,38 @@ function typeIcon(type: ColumnType): string {
   if (type === 'number') return '#'
   if (type === 'currency') return '$'
   return 'Aa'
+}
+
+function computeAggregate(
+  rows: string[][],
+  ci: number,
+  agg: AggregateType,
+  type: ColumnType
+): string {
+  if (!agg) return ''
+
+  if (agg === 'count') {
+    const count = rows.filter(row => (row[ci] || '').trim() !== '').length
+    return String(count)
+  }
+
+  const nums = rows
+    .map(row => parseNumeric(row[ci] || ''))
+    .filter((_, i) => (rows[i][ci] || '').trim() !== '')
+
+  if (nums.length === 0) return ''
+
+  let result: number
+  switch (agg) {
+    case 'sum': result = nums.reduce((a, b) => a + b, 0); break
+    case 'avg': result = nums.reduce((a, b) => a + b, 0) / nums.length; break
+    case 'min': result = Math.min(...nums); break
+    case 'max': result = Math.max(...nums); break
+    default: return ''
+  }
+
+  if (type === 'currency') return `$${result.toFixed(2)}`
+  return result % 1 === 0 ? String(result) : result.toFixed(2)
 }
 
 const TYPES: { type: ColumnType; label: string }[] = [
@@ -96,9 +150,7 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
     .map((col, ci) => ({ col, ci }))
     .filter(({ col }) => !col.hidden)
 
-  const hasNumeric = visibleColumns.some(
-    ({ col }) => col.type === 'number' || col.type === 'currency'
-  )
+  const hasAnyAggregate = visibleColumns.some(({ col }) => col.aggregate !== null)
 
   function updateCell(ri: number, ci: number, value: string) {
     save({
@@ -119,9 +171,22 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
   function updateColumnType(ci: number, type: ColumnType) {
     save({
       ...data,
-      columns: data.columns.map((col, c) => c === ci ? { ...col, type } : col)
+      columns: data.columns.map((col, c) =>
+        c === ci ? { ...col, type, aggregate: null } : col
+      )
     })
     setOpenDropdown(null)
+  }
+
+  function cycleAggregate(ci: number) {
+    const col = data.columns[ci]
+    const next = nextAggregate(col.aggregate, col.type)
+    save({
+      ...data,
+      columns: data.columns.map((c, i) =>
+        i === ci ? { ...c, aggregate: next } : c
+      )
+    })
   }
 
   function toggleHidden(ci: number) {
@@ -145,10 +210,9 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
     save({
       columns: [
         ...data.columns,
-        { name: `Column ${data.columns.length + 1}`, type: 'text', hidden: false }
+        { name: `Column ${data.columns.length + 1}`, type: 'text' as ColumnType, hidden: false, aggregate: null }
       ],
-      rows: data.rows.map(row => [...row, '']),
-      showTotal: data.showTotal
+      rows: data.rows.map(row => [...row, ''])
     })
   }
 
@@ -161,20 +225,9 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
     if (data.columns.filter(c => !c.hidden).length <= 1) return
     save({
       columns: data.columns.filter((_, c) => c !== ci),
-      rows: data.rows.map(row => row.filter((_, c) => c !== ci)),
-      showTotal: data.showTotal
+      rows: data.rows.map(row => row.filter((_, c) => c !== ci))
     })
     setOpenDropdown(null)
-  }
-
-  function computeTotal(ci: number): string {
-    const col = data.columns[ci]
-    if (col.type !== 'number' && col.type !== 'currency') return ''
-    const sum = data.rows.reduce(
-      (acc, row) => acc + parseNumeric(row[ci] || ''), 0
-    )
-    if (col.type === 'currency') return `$${sum.toFixed(2)}`
-    return sum % 1 === 0 ? String(sum) : sum.toFixed(2)
   }
 
   function focusCell(ri: number, ci: number) {
@@ -332,8 +385,7 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
               onMouseLeave={() => setHoveredRow(null)}
               style={{
                 borderBottom: '1px solid var(--border)',
-                background: hoveredRow === ri
-                  ? 'var(--bg-hover)' : 'transparent'
+                background: hoveredRow === ri ? 'var(--bg-hover)' : 'transparent'
               }}
             >
               {visibleColumns.map(({ col, ci }) => {
@@ -361,8 +413,7 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
                         width: '100%',
                         padding: '7px 8px',
                         border: 'none',
-                        background: isFocused
-                          ? 'var(--accent-light)' : 'transparent',
+                        background: isFocused ? 'var(--accent-light)' : 'transparent',
                         transition: 'background 0.1s',
                         color: 'var(--text-primary)',
                         fontSize: '14px',
@@ -375,11 +426,7 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
                   </td>
                 )
               })}
-              <td style={{
-                padding: '0 4px',
-                textAlign: 'center',
-                width: '28px'
-              }}>
+              <td style={{ padding: '0 4px', textAlign: 'center', width: '28px' }}>
                 {data.rows.length > 1 && hoveredRow === ri && (
                   <button
                     onClick={() => deleteRow(ri)}
@@ -403,36 +450,133 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
           ))}
         </tbody>
 
-        {data.showTotal && hasNumeric && (
-          <tfoot>
-            <tr style={{
-              background: 'var(--bg-secondary)',
-              borderTop: '2px solid var(--border)'
-            }}>
-              {visibleColumns.map(({ col, ci }, vIdx) => (
+        <tfoot>
+          <tr style={{
+            background: 'var(--bg-secondary)',
+            borderTop: hasAnyAggregate ? '2px solid var(--border)' : '1px solid var(--border)'
+          }}>
+            {visibleColumns.map(({ col, ci }) => {
+              const agg = col.aggregate
+              const value = agg
+                ? computeAggregate(data.rows, ci, agg, col.type)
+                : ''
+              const isNumeric = col.type === 'number' || col.type === 'currency'
+              return (
                 <td
                   key={ci}
+                  onClick={() => cycleAggregate(ci)}
+                  title="Click to change aggregate function"
                   style={{
-                    padding: '7px 8px',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    color: 'var(--text-primary)',
-                    fontVariantNumeric: 'tabular-nums',
-                    textAlign:
-                      col.type === 'number' || col.type === 'currency'
-                        ? 'right' : 'left'
+                    padding: '6px 8px',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    textAlign: isNumeric ? 'right' : 'left',
+                    minHeight: '32px'
                   }}
                 >
-                  {vIdx === 0 && col.type === 'text'
-                    ? 'Total'
-                    : computeTotal(ci)}
+                  {agg ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: isNumeric ? 'flex-end' : 'flex-start', gap: '1px' }}>
+                      <span style={{
+                        fontSize: '10px',
+                        fontWeight: 600,
+                        color: 'var(--accent)',
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase'
+                      }}>
+                        {aggLabel(agg)}
+                      </span>
+                      <span style={{
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        color: 'var(--text-primary)',
+                        fontVariantNumeric: 'tabular-nums'
+                      }}>
+                        {value}
+                      </span>
+                    </div>
+                  ) : (
+                    <span style={{
+                      fontSize: '11px',
+                      color: 'var(--text-tertiary)',
+                      opacity: 0
+                    }}
+                    className="agg-hint"
+                    >
+                      Calculate
+                    </span>
+                  )}
                 </td>
-              ))}
-              <td style={{ width: '28px' }} />
-            </tr>
-          </tfoot>
-        )}
+              )
+            })}
+            <td style={{ width: '28px' }} />
+          </tr>
+        </tfoot>
       </table>
+
+      <style>{`
+        tfoot tr td:hover .agg-hint { opacity: 1 !important; }
+        tfoot tr td:hover { background: var(--bg-hover); }
+      `}</style>
+
+      {data.columns.some(c => c.hidden) && (
+        <div style={{ marginTop: '6px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          {data.columns.map((col, ci) =>
+            col.hidden ? (
+              <button
+                key={ci}
+                onClick={() => toggleHidden(ci)}
+                style={{
+                  fontSize: '11px',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border)',
+                  background: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-tertiary)'
+                }}
+              >
+                {col.name} (hidden)
+              </button>
+            ) : null
+          )}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: '12px', marginTop: '8px', alignItems: 'center' }}>
+        <button
+          onClick={addRow}
+          onMouseEnter={() => setHoveredBtn('row')}
+          onMouseLeave={() => setHoveredBtn(null)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: hoveredBtn === 'row' ? 'var(--text-primary)' : 'var(--text-tertiary)',
+            fontSize: '12px',
+            cursor: 'pointer',
+            padding: '4px 0',
+            marginRight: '4px',
+            transition: 'color 0.15s'
+          }}
+        >
+          + Add row
+        </button>
+        <button
+          onClick={addColumn}
+          onMouseEnter={() => setHoveredBtn('col')}
+          onMouseLeave={() => setHoveredBtn(null)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: hoveredBtn === 'col' ? 'var(--text-primary)' : 'var(--text-tertiary)',
+            fontSize: '12px',
+            cursor: 'pointer',
+            padding: '4px 0',
+            transition: 'color 0.15s'
+          }}
+        >
+          + Add column
+        </button>
+      </div>
 
       {openDropdown !== null && dropdownAnchor.current && (() => {
         const ci = openDropdown
@@ -443,8 +587,8 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
             onClick={e => e.stopPropagation()}
             style={{
               position: 'fixed',
-              top: dropdownAnchor.current.top,
-              left: dropdownAnchor.current.left,
+              top: dropdownAnchor.current!.top,
+              left: dropdownAnchor.current!.left,
               zIndex: 1000,
               background: 'var(--bg-primary)',
               border: '1px solid var(--border)',
@@ -493,11 +637,7 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
                 </span>
                 {t.label}
                 {col.type === t.type && (
-                  <span style={{
-                    marginLeft: 'auto',
-                    color: 'var(--accent)',
-                    fontSize: '12px'
-                  }}>
+                  <span style={{ marginLeft: 'auto', color: 'var(--accent)', fontSize: '12px' }}>
                     done
                   </span>
                 )}
@@ -548,100 +688,6 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
           </div>
         )
       })()}
-
-      {data.columns.some(c => c.hidden) && (
-        <div style={{
-          marginTop: '6px',
-          display: 'flex',
-          gap: '6px',
-          flexWrap: 'wrap'
-        }}>
-          {data.columns.map((col, ci) =>
-            col.hidden ? (
-              <button
-                key={ci}
-                onClick={() => toggleHidden(ci)}
-                style={{
-                  fontSize: '11px',
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border)',
-                  background: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-tertiary)'
-                }}
-              >
-                {col.name} (hidden)
-              </button>
-            ) : null
-          )}
-        </div>
-      )}
-
-      <div style={{
-        display: 'flex',
-        gap: '12px',
-        marginTop: '8px',
-        alignItems: 'center'
-      }}>
-        <button
-          onClick={addRow}
-          onMouseEnter={() => setHoveredBtn('row')}
-          onMouseLeave={() => setHoveredBtn(null)}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: hoveredBtn === 'row'
-              ? 'var(--text-primary)' : 'var(--text-tertiary)',
-            fontSize: '12px',
-            cursor: 'pointer',
-            padding: '4px 0',
-            marginRight: '4px',
-            transition: 'color 0.15s'
-          }}
-        >
-          + Add row
-        </button>
-        <button
-          onClick={addColumn}
-          onMouseEnter={() => setHoveredBtn('col')}
-          onMouseLeave={() => setHoveredBtn(null)}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: hoveredBtn === 'col'
-              ? 'var(--text-primary)' : 'var(--text-tertiary)',
-            fontSize: '12px',
-            cursor: 'pointer',
-            padding: '4px 0',
-            transition: 'color 0.15s'
-          }}
-        >
-          + Add column
-        </button>
-        {hasNumeric && (
-          <button
-            onClick={() => save({ ...data, showTotal: !data.showTotal })}
-            onMouseEnter={() => setHoveredBtn('total')}
-            onMouseLeave={() => setHoveredBtn(null)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: data.showTotal
-                ? 'var(--accent)'
-                : hoveredBtn === 'total'
-                  ? 'var(--text-primary)' : 'var(--text-tertiary)',
-              fontSize: '12px',
-              cursor: 'pointer',
-              padding: '4px 0',
-              transition: 'color 0.15s',
-              marginLeft: 'auto'
-            }}
-          >
-            {data.showTotal ? 'Hide total' : 'Show total'}
-          </button>
-        )}
-      </div>
     </div>
   )
 }
