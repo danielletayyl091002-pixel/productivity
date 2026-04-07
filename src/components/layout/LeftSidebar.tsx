@@ -218,6 +218,7 @@ function PageItem({ page, active, onClick }: {
         position: 'relative',
         borderRadius: '6px',
         marginBottom: '1px',
+        paddingLeft: '12px',
         background: active ? 'var(--accent-light)' : 'transparent'
       }}
     >
