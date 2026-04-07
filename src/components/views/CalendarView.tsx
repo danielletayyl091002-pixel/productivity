@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { db, Task } from '@/db/schema'
 
@@ -24,6 +24,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
   const HOURS = Array.from({ length: 16 }, (_, i) => i + 6)
   const HOUR_H = 60
   const START = 6
+  const TOTAL_H = HOURS.length * HOUR_H
 
   const [dragState, setDragState] = useState<{
     dateStr: string; startHour: number; endHour: number
@@ -33,6 +34,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
     dateStr: string; startTime: string; endTime: string
   } | null>(null)
   const [pendingTitle, setPendingTitle] = useState('')
+  const gridRef = useRef<HTMLDivElement>(null)
 
   const snap = (h: number) => Math.max(START, Math.min(22, Math.round(h * 4) / 4))
 
@@ -52,7 +54,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
 
   const toMinutes = (time: string) => {
     const [h, m] = time.split(':').map(Number)
-    return h * 60 + m
+    return h * 60 + (m || 0)
   }
 
   const weekDays = useMemo(() => {
@@ -71,6 +73,22 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
   const todayStr = new Date().toISOString().split('T')[0]
   const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
+  // Get column index and hour from mouse event on the grid
+  function getColAndHour(e: React.MouseEvent | MouseEvent): {
+    dateStr: string; hour: number
+  } | null {
+    if (!gridRef.current) return null
+    const rect = gridRef.current.getBoundingClientRect()
+    const scrollTop = gridRef.current.scrollTop
+    const relX = e.clientX - rect.left - 48 // subtract time label width
+    const relY = e.clientY - rect.top + scrollTop
+    const colW = (rect.width - 48) / 7
+    const colIdx = Math.max(0, Math.min(6, Math.floor(relX / colW)))
+    const hour = snap(START + relY / HOUR_H)
+    const dateStr = weekDays[colIdx].toISOString().split('T')[0]
+    return { dateStr, hour }
+  }
+
   function getTasksForDate(dateStr: string) {
     return tasks.filter(t =>
       (t.dueDate === dateStr || t.scheduledDate === dateStr) &&
@@ -78,7 +96,6 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
     )
   }
 
-  // Compute non-overlapping columns for events
   function computeColumns(evts: Task[]): {
     task: Task; col: number; totalCols: number
   }[] {
@@ -88,7 +105,6 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
     )
     const assigned: { task: Task; col: number }[] = []
     const colEnds: number[] = []
-
     for (const task of sorted) {
       const start = toMinutes(task.startTime!)
       const end = toMinutes(task.endTime!)
@@ -97,41 +113,41 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
       colEnds[col] = end
       assigned.push({ task, col })
     }
-
     const maxCol = Math.max(...assigned.map(a => a.col)) + 1
     return assigned.map(a => ({ ...a, totalCols: maxCol }))
   }
 
-  // Mouse position to hour within a day column container
-  function getHourFromY(e: React.MouseEvent, container: HTMLElement): number {
-    const rect = container.getBoundingClientRect()
-    const scrollTop = container.closest('.week-time-grid')?.scrollTop || 0
-    const relY = e.clientY - rect.top + scrollTop
-    return snap(START + relY / HOUR_H)
+  function handleMouseDown(e: React.MouseEvent) {
+    if ((e.target as HTMLElement).closest('[data-event]')) return
+    e.preventDefault()
+    const pos = getColAndHour(e)
+    if (!pos) return
+    setDragState({ dateStr: pos.dateStr, startHour: pos.hour, endHour: pos.hour })
+    setIsDragging(true)
   }
 
-  // Global mouseup to end drag even if mouse left the column
-  useEffect(() => {
-    function handleGlobalMouseUp() {
-      if (!isDragging || !dragState) return
-      setIsDragging(false)
-      const start = Math.min(dragState.startHour, dragState.endHour)
-      const end = Math.max(dragState.startHour, dragState.endHour)
-      if (end - start >= 0.25) {
-        setPendingEvent({
-          dateStr: dragState.dateStr,
-          startTime: fmtDB(start),
-          endTime: fmtDB(end)
-        })
-      } else {
-        setDragState(null)
-      }
-    }
-    window.addEventListener('mouseup', handleGlobalMouseUp)
-    return () => window.removeEventListener('mouseup', handleGlobalMouseUp)
-  }, [isDragging, dragState])
+  function handleMouseMove(e: React.MouseEvent) {
+    if (!isDragging || !dragState) return
+    const pos = getColAndHour(e)
+    if (!pos || pos.dateStr !== dragState.dateStr) return
+    setDragState(p => p ? { ...p, endHour: pos.hour } : null)
+  }
 
-  const TOTAL_H = HOURS.length * HOUR_H
+  function handleMouseUp() {
+    if (!isDragging || !dragState) return
+    setIsDragging(false)
+    const start = Math.min(dragState.startHour, dragState.endHour)
+    const end = Math.max(dragState.startHour, dragState.endHour)
+    if (end - start >= 0.25) {
+      setPendingEvent({
+        dateStr: dragState.dateStr,
+        startTime: fmtDB(start),
+        endTime: fmtDB(end)
+      })
+    } else {
+      setDragState(null)
+    }
+  }
 
   return (
     <div style={{
@@ -178,10 +194,20 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
         })}
       </div>
 
-      {/* Scrollable time grid */}
+      {/* Scrollable grid — single container owns ALL mouse events */}
       <div
-        className="week-time-grid"
-        style={{ flex: 1, overflowY: 'auto', position: 'relative' }}
+        ref={gridRef}
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          position: 'relative',
+          cursor: isDragging ? 'crosshair' : 'default',
+          userSelect: 'none'
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
       >
         <div style={{
           display: 'grid',
@@ -189,18 +215,18 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
           height: `${TOTAL_H}px`,
           position: 'relative'
         }}>
-          {/* Hour labels + horizontal lines */}
-          <div style={{ position: 'relative', zIndex: 1 }}>
+          {/* Time labels */}
+          <div style={{ position: 'relative' }}>
             {HOURS.map(h => (
               <div key={h} style={{
                 position: 'absolute',
                 top: `${(h - START) * HOUR_H}px`,
                 left: 0, right: 0,
                 height: `${HOUR_H}px`,
-                borderBottom: '1px solid var(--border)',
                 padding: '4px 8px',
                 fontSize: '10px',
-                color: 'var(--text-tertiary)'
+                color: 'var(--text-tertiary)',
+                pointerEvents: 'none'
               }}>
                 {h === 12 ? '12 PM' : h > 12 ? `${h - 12} PM` : `${h} AM`}
               </div>
@@ -215,29 +241,12 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
             const isDraggingThisDay = isDragging && dragState?.dateStr === dateStr
 
             return (
-              <div
-                key={di}
-                style={{
-                  borderLeft: '1px solid var(--border)',
-                  position: 'relative',
-                  height: '100%',
-                  cursor: 'crosshair',
-                  userSelect: 'none'
-                }}
-                onMouseDown={(e) => {
-                  if ((e.target as HTMLElement).closest('[data-event]')) return
-                  e.preventDefault()
-                  const hour = getHourFromY(e, e.currentTarget)
-                  setDragState({ dateStr, startHour: hour, endHour: hour })
-                  setIsDragging(true)
-                }}
-                onMouseMove={(e) => {
-                  if (!isDragging || !dragState || dragState.dateStr !== dateStr) return
-                  const hour = getHourFromY(e, e.currentTarget)
-                  setDragState(p => p ? { ...p, endHour: hour } : null)
-                }}
-              >
-                {/* Hour grid lines */}
+              <div key={di} style={{
+                borderLeft: '1px solid var(--border)',
+                position: 'relative',
+                height: '100%'
+              }}>
+                {/* Hour lines */}
                 {HOURS.map(h => (
                   <div key={h} style={{
                     position: 'absolute',
@@ -255,9 +264,8 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                     position: 'absolute',
                     top: `${(Math.min(dragState.startHour, dragState.endHour) - START) * HOUR_H}px`,
                     left: '2px', right: '2px',
-                    height: `${Math.abs(dragState.endHour - dragState.startHour) * HOUR_H}px`,
-                    minHeight: '4px',
-                    background: 'rgba(99,102,241,0.2)',
+                    height: `${Math.max(Math.abs(dragState.endHour - dragState.startHour) * HOUR_H, 4)}px`,
+                    background: 'var(--accent-light)',
                     borderLeft: '3px solid var(--accent)',
                     borderRadius: '3px',
                     pointerEvents: 'none',
@@ -286,7 +294,6 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                   const color = task.priority
                     ? PRIORITY_COLORS[task.priority]
                     : 'var(--accent)'
-
                   return (
                     <div
                       key={task.uid}
@@ -295,7 +302,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                         position: 'absolute',
                         top: `${top}px`,
                         left: `${col * colW + 1}%`,
-                        width: `${colW - 1}%`,
+                        width: `${colW - 2}%`,
                         height: `${height}px`,
                         background: color + '20',
                         borderLeft: `3px solid ${color}`,
@@ -309,45 +316,35 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
-                        justifyContent: 'space-between',
                         boxSizing: 'border-box'
                       }}
                     >
                       <span style={{
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        flex: 1
+                        whiteSpace: 'nowrap'
                       }}>
                         {task.title}
                       </span>
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}>
-                        <span style={{
-                          fontSize: '9px',
-                          opacity: 0.8
-                        }}>
-                          {task.startTime} - {task.endTime}
-                        </span>
-                        <span
-                          onClick={e => {
-                            e.stopPropagation()
-                            onDeleteTask(task.uid)
-                          }}
-                          style={{
-                            cursor: 'pointer',
-                            opacity: 0.6,
-                            fontSize: '12px',
-                            lineHeight: 1,
-                            padding: '0 2px'
-                          }}
-                        >
-                          &times;
-                        </span>
-                      </div>
+                      <span style={{ fontSize: '9px', opacity: 0.8 }}>
+                        {task.startTime} - {task.endTime}
+                      </span>
+                      <span
+                        onClick={e => {
+                          e.stopPropagation()
+                          onDeleteTask(task.uid)
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: '2px', right: '2px',
+                          cursor: 'pointer',
+                          opacity: 0.6,
+                          fontSize: '12px',
+                          lineHeight: 1
+                        }}
+                      >
+                        &times;
+                      </span>
                     </div>
                   )
                 })}
@@ -366,7 +363,8 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
             setDragState(null)
           }}
           style={{
-            position: 'fixed', inset: 0, zIndex: 999,
+            position: 'fixed', inset: 0,
+            zIndex: 999,
             background: 'rgba(0,0,0,0.3)'
           }}
         >
