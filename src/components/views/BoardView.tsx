@@ -1,10 +1,10 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import {
-  DndContext, DragOverlay, closestCenter,
+  DndContext, DragOverlay, pointerWithin,
   PointerSensor, useSensor, useSensors,
   DragStartEvent, DragOverEvent, DragEndEvent,
-  useDroppable, rectIntersection
+  useDroppable
 } from '@dnd-kit/core'
 import {
   SortableContext, verticalListSortingStrategy,
@@ -26,31 +26,17 @@ const PRIORITY_COLORS: Record<string, string> = {
   low: '#10B981',
 }
 
-class SmartPointerSensor extends PointerSensor {
-  static activators = [
-    {
-      eventName: 'onPointerDown' as const,
-      handler: ({ nativeEvent: event }: { nativeEvent: PointerEvent }) => {
-        const target = event.target as HTMLElement
-        if (
-          target.closest('button') ||
-          target.closest('select') ||
-          target.closest('input')
-        ) return false
-        return true
-      }
-    }
-  ]
-}
-
 function DroppableColumn({ id, children, style }: {
   id: string
   children: React.ReactNode
   style: React.CSSProperties
 }) {
-  const { setNodeRef } = useDroppable({ id })
+  const { setNodeRef, isOver } = useDroppable({ id })
   return (
-    <div ref={setNodeRef} style={style}>
+    <div ref={setNodeRef} style={{
+      ...style,
+      outline: isOver ? '2px solid var(--accent)' : 'none'
+    }}>
       {children}
     </div>
   )
@@ -64,8 +50,8 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
   const pendingStatus = useRef<{ uid: string; status: Task['status'] } | null>(null)
 
   const sensors = useSensors(
-    useSensor(SmartPointerSensor, {
-      activationConstraint: { distance: 5 }
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 }
     })
   )
 
@@ -111,15 +97,15 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
     const overId = over.id as string
     if (aId === overId) return
 
-    const overColumn = COLUMNS.find(c => c.id === overId)
-    const overTask = tasks.find(t => t.uid === overId)
     const activeTask = tasks.find(t => t.uid === aId)
     if (!activeTask) return
 
-    // Cross-column move
+    const overColumn = COLUMNS.find(c => c.id === overId)
+    const overTask = tasks.find(t => t.uid === overId)
     const newStatus = overColumn
       ? overColumn.id as Task['status']
       : overTask?.status
+
     if (!newStatus) return
 
     if (activeTask.status !== newStatus) {
@@ -130,7 +116,6 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
       return
     }
 
-    // Same-column reorder
     if (overTask && activeTask.status === overTask.status) {
       setTasks(prev => {
         const oldIndex = prev.findIndex(t => t.uid === aId)
@@ -143,7 +128,7 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
   async function handleDragEnd(event: DragEndEvent) {
     const { active } = event
     setActiveTask(null)
-    if (pendingStatus.current && pendingStatus.current.uid === active.id) {
+    if (pendingStatus.current?.uid === active.id) {
       const task = tasks.find(t => t.uid === active.id)
       if (task?.id) {
         await db.tasks.update(task.id, { status: pendingStatus.current.status })
@@ -160,7 +145,7 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
     }}>
       <DndContext
         sensors={sensors}
-        collisionDetection={rectIntersection}
+        collisionDetection={pointerWithin}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
@@ -309,7 +294,8 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
               background: 'var(--bg-primary)',
               borderRadius: '10px', padding: '12px',
               boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-              border: '1px solid var(--border)', opacity: 0.9
+              border: '1px solid var(--border)', opacity: 0.9,
+              width: '280px'
             }}>
               <span style={{
                 fontSize: '13px', color: 'var(--text-primary)',
@@ -338,6 +324,8 @@ function TaskCard({ task, onDelete, onPriorityChange }: {
   return (
     <div
       ref={setNodeRef}
+      {...attributes}
+      {...listeners}
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
@@ -346,29 +334,19 @@ function TaskCard({ task, onDelete, onPriorityChange }: {
         borderRadius: '10px',
         border: '1px solid var(--border)',
         boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-        overflow: 'hidden'
+        cursor: 'grab',
+        touchAction: 'none',
+        userSelect: 'none'
       }}
     >
-      {/* Drag handle */}
-      <div
-        {...attributes}
-        {...listeners}
-        style={{
-          padding: '12px 12px 0',
-          cursor: 'grab',
-          touchAction: 'none'
-        }}
-      >
+      <div style={{ padding: '12px 12px 8px' }}>
         <div style={{
           fontSize: '13px', fontWeight: 500,
-          color: 'var(--text-primary)',
-          lineHeight: 1.4, marginBottom: '8px'
+          color: 'var(--text-primary)', lineHeight: 1.4
         }}>
           {task.title}
         </div>
       </div>
-
-      {/* Controls — outside drag listeners */}
       <div style={{
         display: 'flex', alignItems: 'center',
         justifyContent: 'space-between',
@@ -376,9 +354,11 @@ function TaskCard({ task, onDelete, onPriorityChange }: {
       }}>
         <select
           value={task.priority || ''}
-          onChange={e => onPriorityChange(
-            (e.target.value as Task['priority']) || null
-          )}
+          onChange={e => {
+            e.stopPropagation()
+            onPriorityChange((e.target.value as Task['priority']) || null)
+          }}
+          onPointerDown={e => e.stopPropagation()}
           style={{
             fontSize: '11px', padding: '2px 6px',
             borderRadius: '6px', border: 'none',
@@ -397,6 +377,7 @@ function TaskCard({ task, onDelete, onPriorityChange }: {
           <option value="low">Low</option>
         </select>
         <button
+          onPointerDown={e => e.stopPropagation()}
           onClick={onDelete}
           style={{
             background: 'none', border: 'none',
@@ -406,7 +387,6 @@ function TaskCard({ task, onDelete, onPriorityChange }: {
           }}
         >x</button>
       </div>
-
       {task.dueDate && (
         <div style={{
           fontSize: '11px', color: 'var(--text-tertiary)',
