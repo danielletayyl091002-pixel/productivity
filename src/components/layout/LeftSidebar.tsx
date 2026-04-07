@@ -175,6 +175,12 @@ export default function LeftSidebar() {
         <NavLink onClick={() => router.push('/settings')}>Settings</NavLink>
         <ThemeToggle />
       </div>
+      <style>{`
+        .page-item-actions { display: none; }
+        .page-item:hover .page-item-actions { display: flex; }
+        .page-item:hover { background: var(--bg-hover); }
+        .page-item.active { background: var(--accent-light) !important; }
+      `}</style>
     </aside>
   )
 }
@@ -203,18 +209,14 @@ function PageItem({ page, active, depth, hasChildren, isExpanded, onToggle, onCl
   onAddChild: () => void
   onDelete: () => void
 }) {
-  const [hovered, setHovered] = useState(false)
-
   return (
     <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      className={'page-item' + (active ? ' active' : '')}
       style={{
         display: 'flex', alignItems: 'center',
         position: 'relative',
         borderRadius: '6px', marginBottom: '1px',
-        paddingLeft: `${12 + depth * 16}px`,
-        background: active ? 'var(--accent-light)' : 'transparent'
+        paddingLeft: `${12 + depth * 16}px`
       }}
     >
       {/* Expand/collapse arrow */}
@@ -246,12 +248,6 @@ function PageItem({ page, active, depth, hasChildren, isExpanded, onToggle, onCl
           cursor: 'pointer', fontSize: '13px',
           color: active ? 'var(--accent)' : 'var(--text-primary)'
         }}
-        onMouseEnter={e => {
-          if (!active) e.currentTarget.parentElement!.style.background = 'var(--bg-hover)'
-        }}
-        onMouseLeave={e => {
-          if (!active) e.currentTarget.parentElement!.style.background = 'transparent'
-        }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24"
           fill="none" stroke="currentColor" strokeWidth="2"
@@ -268,10 +264,9 @@ function PageItem({ page, active, depth, hasChildren, isExpanded, onToggle, onCl
       </div>
 
       {/* Hover actions */}
-      {hovered && (
-        <div style={{
+        <div className="page-item-actions" style={{
           position: 'absolute', right: '4px',
-          display: 'flex', gap: '2px', alignItems: 'center'
+          gap: '2px', alignItems: 'center'
         }}>
           <button
             onClick={e => { e.stopPropagation(); onAddChild() }}
@@ -301,7 +296,6 @@ function PageItem({ page, active, depth, hasChildren, isExpanded, onToggle, onCl
             >x</button>
           )}
         </div>
-      )}
     </div>
   )
 }
