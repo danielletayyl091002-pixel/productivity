@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react'
 import {
   DndContext, DragOverlay, closestCenter,
   PointerSensor, useSensor, useSensors,
-  DragStartEvent, DragOverEvent, DragEndEvent
+  DragStartEvent, DragOverEvent, DragEndEvent,
+  useDroppable, rectIntersection
 } from '@dnd-kit/core'
 import {
   SortableContext, verticalListSortingStrategy,
@@ -40,6 +41,19 @@ class SmartPointerSensor extends PointerSensor {
       }
     }
   ]
+}
+
+function DroppableColumn({ id, children, style }: {
+  id: string
+  children: React.ReactNode
+  style: React.CSSProperties
+}) {
+  const { setNodeRef } = useDroppable({ id })
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children}
+    </div>
+  )
 }
 
 export default function BoardView({ pageUid }: { pageUid: string }) {
@@ -136,7 +150,7 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
     }}>
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={rectIntersection}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
@@ -144,10 +158,9 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
         {COLUMNS.map(col => {
           const colTasks = tasks.filter(t => t.status === col.id)
           return (
-            <div
+            <DroppableColumn
               key={col.id}
               id={col.id}
-              className="board-column"
               style={{
                 minWidth: '280px', width: '280px',
                 minHeight: 'calc(100vh - 200px)',
@@ -276,7 +289,7 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
                   + Add task
                 </button>
               )}
-            </div>
+            </DroppableColumn>
           )
         })}
 
