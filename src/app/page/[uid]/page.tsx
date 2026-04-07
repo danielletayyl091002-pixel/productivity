@@ -501,6 +501,11 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
           onKeyDown={handleKeyDown}
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
+          onPaste={(e) => {
+            e.preventDefault()
+            const text = e.clipboardData.getData('text/plain')
+            document.execCommand('insertText', false, text)
+          }}
           style={{ flex: 1, outline: 'none', color: 'var(--text-primary)', lineHeight: 1.7, minHeight: '28px', wordBreak: 'break-word', userSelect: 'text', WebkitUserSelect: 'text', cursor: 'text', ...style }}
         />
       )}
