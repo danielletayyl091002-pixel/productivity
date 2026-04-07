@@ -19,6 +19,7 @@ const COMMANDS: {
   { group: 'Lists', icon: '1.', label: 'Numbered List', description: 'Ordered list', type: 'numbered' },
   { group: 'Lists', icon: '☐', label: 'To-do', description: 'Checkbox item', type: 'todo' },
   { group: 'Code', icon: '</>', label: 'Code', description: 'Code block', type: 'code' },
+  { group: 'Basic', icon: '⊞', label: 'Table', description: 'Insert a table', type: 'table' },
 ]
 
 interface Props {

@@ -19,7 +19,7 @@ export interface Block {
   uid: string
   pageUid: string
   type: 'text' | 'heading1' | 'heading2' | 'heading3' |
-        'todo' | 'bullet' | 'numbered' | 'quote' | 'code' | 'divider'
+        'todo' | 'bullet' | 'numbered' | 'quote' | 'code' | 'divider' | 'table'
   content: string
   checked: boolean
   order: number
