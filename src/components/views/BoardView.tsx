@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import {
   DndContext, DragOverlay, closestCenter,
-  MouseSensor, useSensor, useSensors,
+  PointerSensor, useSensor, useSensors,
   DragStartEvent, DragOverEvent, DragEndEvent
 } from '@dnd-kit/core'
 import {
@@ -33,8 +33,8 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
   const [newTaskTitle, setNewTaskTitle] = useState('')
 
   const sensors = useSensors(
-    useSensor(MouseSensor, {
-      activationConstraint: { distance: 5 }
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 }
     })
   )
 
@@ -329,12 +329,28 @@ function TaskCard({ task, onDelete, onPriorityChange }: {
         borderRadius: '10px',
         padding: '12px',
         border: '1px solid var(--border)',
-        cursor: 'grab',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+        position: 'relative'
       }}
-      {...attributes}
-      {...listeners}
     >
+      {/* Drag handle */}
+      <div
+        {...attributes}
+        {...listeners}
+        style={{
+          position: 'absolute',
+          top: '12px', right: '28px',
+          cursor: 'grab',
+          color: 'var(--text-tertiary)',
+          fontSize: '12px',
+          opacity: 0.4,
+          userSelect: 'none',
+          lineHeight: 1
+        }}
+      >
+        ⠿
+      </div>
+
       <div style={{ fontSize: '13px', fontWeight: 500,
         color: 'var(--text-primary)', marginBottom: '8px',
         lineHeight: 1.4 }}>
@@ -347,6 +363,7 @@ function TaskCard({ task, onDelete, onPriorityChange }: {
           onChange={e => onPriorityChange(
             (e.target.value as Task['priority']) || null
           )}
+          onPointerDown={e => e.stopPropagation()}
           onClick={e => e.stopPropagation()}
           style={{
             fontSize: '11px', padding: '2px 6px',
@@ -365,6 +382,7 @@ function TaskCard({ task, onDelete, onPriorityChange }: {
           <option value="low">Low</option>
         </select>
         <button
+          onPointerDown={e => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); onDelete() }}
           style={{
             background: 'none', border: 'none',
