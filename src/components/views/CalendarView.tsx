@@ -298,6 +298,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                     <div
                       key={task.uid}
                       data-event="true"
+                      onMouseDown={e => e.stopPropagation()}
                       style={{
                         position: 'absolute',
                         top: `${top}px`,
@@ -330,10 +331,8 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                         {task.startTime} - {task.endTime}
                       </span>
                       <span
-                        onClick={e => {
-                          e.stopPropagation()
-                          onDeleteTask(task.uid)
-                        }}
+                        onClick={e => { e.stopPropagation(); onDeleteTask(task.uid) }}
+                        onMouseDown={e => e.stopPropagation()}
                         style={{
                           position: 'absolute',
                           top: '2px', right: '2px',
