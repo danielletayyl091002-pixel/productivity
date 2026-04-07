@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import LeftSidebar from "@/components/layout/LeftSidebar";
 import RightRail from "@/components/layout/RightRail";
+import CmdK from "@/components/CmdK";
 import ClientLayout from "./ClientLayout";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           overflow: 'hidden',
           background: 'var(--bg-secondary)'
         }}>
+          <CmdK />
           <LeftSidebar />
           <ClientLayout>
             <main style={{ flex: 1, overflow: 'auto' }}>
