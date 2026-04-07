@@ -1,5 +1,6 @@
 'use client'
 import TrackerGrid from '@/components/trackers/TrackerGrid'
+import { db } from '@/db/schema'
 
 export default function TrackersPage() {
   return (
@@ -12,6 +13,24 @@ export default function TrackersPage() {
           Track your daily habits, goals, and metrics.
         </p>
         <TrackerGrid />
+        <button
+          onClick={async () => {
+            await db.tasks.clear()
+            alert('All tasks cleared. Reload the page.')
+          }}
+          style={{
+            marginTop: '40px',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: '1px solid #EF4444',
+            background: 'none',
+            color: '#EF4444',
+            fontSize: '12px',
+            cursor: 'pointer'
+          }}
+        >
+          Clear all test tasks
+        </button>
       </div>
     </div>
   )
