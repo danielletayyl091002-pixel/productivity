@@ -31,6 +31,9 @@ function parseData(content: string): TableData {
 
 export default function TableBlock({ block, onChange, onFocusNext }: TableBlockProps) {
   const [data, setData] = useState<TableData>(() => parseData(block.content))
+  const [hoveredRow, setHoveredRow] = useState<number | null>(null)
+  const [hoveredBtn, setHoveredBtn] = useState<string | null>(null)
+  const [focusedCell, setFocusedCell] = useState<string | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   function save(newData: TableData) {
@@ -121,16 +124,17 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
         width: '100%',
         borderCollapse: 'collapse',
         fontSize: '14px',
-        tableLayout: 'auto'
+        tableLayout: 'fixed'
       }}>
         <thead>
-          <tr>
+          <tr style={{ background: 'var(--bg-secondary)' }}>
             {data.columns.map((col, ci) => (
               <th key={ci} style={{
                 borderBottom: '2px solid var(--border)',
-                padding: 0,
+                padding: '2px 0',
                 textAlign: 'left',
-                minWidth: '120px'
+                width: `${Math.floor(100 / data.columns.length)}%`,
+                borderRadius: 0
               }}>
                 <input
                   value={col}
@@ -162,7 +166,12 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
           {data.rows.map((row, ri) => (
             <tr
               key={ri}
-              style={{ borderBottom: '1px solid var(--border)' }}
+              onMouseEnter={() => setHoveredRow(ri)}
+              onMouseLeave={() => setHoveredRow(null)}
+              style={{
+                borderBottom: '1px solid var(--border)',
+                background: hoveredRow === ri ? 'var(--bg-hover)' : 'transparent'
+              }}
             >
               {row.map((cell, ci) => (
                 <td key={ci} style={{ padding: 0 }}>
@@ -171,11 +180,14 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
                     value={cell}
                     onChange={e => updateCell(ri, ci, e.target.value)}
                     onKeyDown={e => handleCellKeyDown(e, ri, ci)}
+                    onFocus={() => setFocusedCell(`${ri}-${ci}`)}
+                    onBlur={() => setFocusedCell(null)}
                     style={{
                       width: '100%',
                       padding: '7px 8px',
                       border: 'none',
-                      background: 'transparent',
+                      background: focusedCell === `${ri}-${ci}` ? 'var(--accent-light)' : 'transparent',
+                      transition: 'background 0.1s',
                       color: 'var(--text-primary)',
                       fontSize: '14px',
                       outline: 'none',
@@ -190,7 +202,7 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
                 textAlign: 'center',
                 width: '28px'
               }}>
-                {data.rows.length > 1 && (
+                {data.rows.length > 1 && hoveredRow === ri && (
                   <button
                     onClick={() => deleteRow(ri)}
                     style={{
@@ -216,26 +228,33 @@ export default function TableBlock({ block, onChange, onFocusNext }: TableBlockP
       <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
         <button
           onClick={addRow}
+          onMouseEnter={() => setHoveredBtn('row')}
+          onMouseLeave={() => setHoveredBtn(null)}
           style={{
             background: 'none',
             border: 'none',
-            color: 'var(--text-tertiary)',
+            color: hoveredBtn === 'row' ? 'var(--text-primary)' : 'var(--text-tertiary)',
             fontSize: '12px',
             cursor: 'pointer',
-            padding: '4px 0'
+            padding: '4px 0',
+            marginRight: '16px',
+            transition: 'color 0.15s'
           }}
         >
           + Add row
         </button>
         <button
           onClick={addColumn}
+          onMouseEnter={() => setHoveredBtn('col')}
+          onMouseLeave={() => setHoveredBtn(null)}
           style={{
             background: 'none',
             border: 'none',
-            color: 'var(--text-tertiary)',
+            color: hoveredBtn === 'col' ? 'var(--text-primary)' : 'var(--text-tertiary)',
             fontSize: '12px',
             cursor: 'pointer',
-            padding: '4px 0'
+            padding: '4px 0',
+            transition: 'color 0.15s'
           }}
         >
           + Add column
