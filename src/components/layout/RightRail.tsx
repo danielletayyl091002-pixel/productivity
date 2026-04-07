@@ -183,32 +183,30 @@ function Timeline({ now, tasks, onAddEvent }: {
       )}
 
       {tasks.map(task => {
-        const startHour = task.startTime
-          ? parseInt(task.startTime.split(':')[0])
-          : 9
-        const startMin = task.startTime
-          ? parseInt(task.startTime.split(':')[1])
-          : 0
-        const endHour = task.endTime
-          ? parseInt(task.endTime.split(':')[0])
-          : startHour + 1
-
+        const startHour = task.startTime ? parseInt(task.startTime.split(':')[0]) : 9
+        const startMin = task.startTime ? parseInt(task.startTime.split(':')[1]) : 0
+        const endHour = task.endTime ? parseInt(task.endTime.split(':')[0]) : startHour + 1
+        const endMin = task.endTime ? parseInt(task.endTime.split(':')[1]) : 0
+        const topPx = (startHour - START + startMin / 60) * HOUR_H
+        const heightPx = Math.max(((endHour - startHour) + (endMin - startMin) / 60) * HOUR_H - 2, 20)
+        const color = task.color && task.color.startsWith('#') ? task.color : '#6366F1'
         return (
           <div key={task.uid} style={{
             position: 'absolute',
-            top: `${(startHour - START + startMin / 60) * HOUR_H}px`,
+            top: `${topPx}px`,
             left: '44px', right: '8px',
-            height: `${(endHour - startHour) * HOUR_H - 2}px`,
-            background: `${task.color || '#6366F1'}20`,
-            borderLeft: `3px solid ${task.color || 'var(--accent)'}`,
+            height: `${heightPx}px`,
+            background: `${color}20`,
+            borderLeft: `3px solid ${color}`,
             borderRadius: '4px',
-            padding: '3px 6px', overflow: 'hidden',
+            padding: '3px 6px',
+            overflow: 'hidden',
             minHeight: '20px',
             pointerEvents: 'none'
           }}>
             <span style={{
               fontSize: '10px', fontWeight: 600,
-              color: task.color || 'var(--accent)'
+              color: color
             }}>{task.title}</span>
           </div>
         )
