@@ -637,21 +637,22 @@ export default function CalendarView({
         </div>
       </div>
 
-      {/* Day headers */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(7, 1fr)',
-        gap: '1px', marginBottom: '4px'
-      }}>
-        {DAYS.map(d => (
-          <div key={d} style={{
-            textAlign: 'center', fontSize: '11px',
-            fontWeight: 600, color: 'var(--text-tertiary)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em', padding: '4px'
-          }}>{d}</div>
-        ))}
-      </div>
+      {viewMode === 'month' && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(7, 1fr)',
+          gap: '1px', marginBottom: '4px'
+        }}>
+          {DAYS.map(d => (
+            <div key={d} style={{
+              textAlign: 'center', fontSize: '11px',
+              fontWeight: 600, color: 'var(--text-tertiary)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em', padding: '4px'
+            }}>{d}</div>
+          ))}
+        </div>
+      )}
 
       {viewMode === 'month' ? (
       <div style={{
