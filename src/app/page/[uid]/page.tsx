@@ -73,6 +73,14 @@ export default function PageCanvas() {
       const allBlocks = await db.blocks
         .where('pageUid').equals(uid)
         .sortBy('order')
+      // Sanitize legacy bullet characters in content
+      for (const b of allBlocks) {
+        const cleaned = b.content.replace(/^•\s?/, '')
+        if (cleaned !== b.content && b.id) {
+          b.content = cleaned
+          await db.blocks.update(b.id, { content: cleaned })
+        }
+      }
       // Delete ALL empty text blocks except one at the very end
       const toDelete = allBlocks.filter((b, i) => {
         const isEmpty = b.content.trim() === ''
