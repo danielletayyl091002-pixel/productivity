@@ -97,7 +97,15 @@ export default function TrackerDetailPage() {
     if (!uid) return
     async function loadLogs() {
       const allLogs = await db.trackerLogs.where('trackerUid').equals(uid).toArray()
-      setLogs(allLogs)
+
+      // Clean up zero-value logs (legacy data)
+      const zeroLogs = allLogs.filter(l => l.value === 0)
+      for (const log of zeroLogs) {
+        if (log.id) await db.trackerLogs.delete(log.id)
+      }
+
+      const cleanLogs = allLogs.filter(l => l.value !== 0)
+      setLogs(cleanLogs)
       const inputs: Record<string, string> = {}
       const base = new Date()
       base.setDate(base.getDate() + weekOffset * 7)
@@ -106,7 +114,7 @@ export default function TrackerDetailPage() {
         const d = new Date(wStart)
         d.setDate(wStart.getDate() + i)
         const ds = formatDateStr(d)
-        const v = allLogs
+        const v = cleanLogs
           .filter(l => l.trackerUid === uid && l.date === ds)
           .reduce((sum, l) => sum + l.value, 0)
         if (v > 0) inputs[ds] = String(v)
