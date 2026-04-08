@@ -290,13 +290,14 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
         borderRadius: '12px 12px 0 0'
       }} />
 
+      <div style={{ position: 'relative', zIndex: 1 }}>
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center',
         justifyContent: 'space-between', marginBottom: '10px'
       }}>
         <div
-          onClick={e => { e.stopPropagation(); router.push(`/trackers/${tracker.uid}`) }}
+          onClick={() => router.push(`/trackers/${tracker.uid}`)}
           style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', flex: 1 }}
         >
           <div style={{ color: tracker.color }}>
@@ -484,6 +485,7 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
             </div>
           ))}
         </div>
+      </div>
       </div>
     </div>
   )
