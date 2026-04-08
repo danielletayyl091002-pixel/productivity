@@ -57,6 +57,42 @@ const PALETTES: {
   { name: 'Pastel Lilac', colors: ['#C4B5FD', '#DDD6FE', '#F5F3FF'],
     vars: { '--accent': '#A78BFA', '--accent-light': '#F5F3FF' },
     darkVars: { '--accent': '#C4B5FD', '--accent-light': '#3B0764' } },
+  { name: 'Matcha', colors: ['#5C7A5C', '#8FAF8F', '#F0F5F0'],
+    vars: { '--accent': '#5C7A5C', '--accent-light': '#F0F5F0' },
+    darkVars: { '--accent': '#8FAF8F', '--accent-light': '#1A2E1A' } },
+  { name: 'Sakura', colors: ['#D4859A', '#E8A0B0', '#FDF0F3'],
+    vars: { '--accent': '#D4859A', '--accent-light': '#FDF0F3' },
+    darkVars: { '--accent': '#E8A0B0', '--accent-light': '#3D1A22' } },
+  { name: 'Eucalyptus', colors: ['#4A8C7F', '#6BB5A6', '#EDF5F4'],
+    vars: { '--accent': '#4A8C7F', '--accent-light': '#EDF5F4' },
+    darkVars: { '--accent': '#6BB5A6', '--accent-light': '#0F2926' } },
+  { name: 'Dusty Rose', colors: ['#B07080', '#C99AAA', '#FAF0F2'],
+    vars: { '--accent': '#B07080', '--accent-light': '#FAF0F2' },
+    darkVars: { '--accent': '#C99AAA', '--accent-light': '#2E1018' } },
+  { name: 'Cheesecake', colors: ['#C4A265', '#D4B885', '#FDF8EF'],
+    vars: { '--accent': '#C4A265', '--accent-light': '#FDF8EF' },
+    darkVars: { '--accent': '#D4B885', '--accent-light': '#2E200A' } },
+  { name: 'Milkshake', colors: ['#E8A0C0', '#F0C0D8', '#FDF5FA'],
+    vars: { '--accent': '#E8A0C0', '--accent-light': '#FDF5FA' },
+    darkVars: { '--accent': '#F0C0D8', '--accent-light': '#3D0A22' } },
+  { name: 'Sage', colors: ['#7A9E7E', '#9DC4A0', '#F2F7F2'],
+    vars: { '--accent': '#7A9E7E', '--accent-light': '#F2F7F2' },
+    darkVars: { '--accent': '#9DC4A0', '--accent-light': '#162918' } },
+  { name: 'Lychee', colors: ['#E8607A', '#F08090', '#FEF0F2'],
+    vars: { '--accent': '#E8607A', '--accent-light': '#FEF0F2' },
+    darkVars: { '--accent': '#F08090', '--accent-light': '#3D0510' } },
+  { name: 'Oat Milk', colors: ['#C8A882', '#D8C0A0', '#FAF6F0'],
+    vars: { '--accent': '#C8A882', '--accent-light': '#FAF6F0' },
+    darkVars: { '--accent': '#D8C0A0', '--accent-light': '#2E1E08' } },
+  { name: 'Periwinkle', colors: ['#6B7FD4', '#8B9FE8', '#F0F2FD'],
+    vars: { '--accent': '#6B7FD4', '--accent-light': '#F0F2FD' },
+    darkVars: { '--accent': '#8B9FE8', '--accent-light': '#0A0E3D' } },
+  { name: 'Mocha', colors: ['#8B5E3C', '#A87850', '#FBF5F0'],
+    vars: { '--accent': '#8B5E3C', '--accent-light': '#FBF5F0' },
+    darkVars: { '--accent': '#A87850', '--accent-light': '#1E0E05' } },
+  { name: 'Pistachio', colors: ['#8DB870', '#ADDC90', '#F4FAF0'],
+    vars: { '--accent': '#8DB870', '--accent-light': '#F4FAF0' },
+    darkVars: { '--accent': '#ADDC90', '--accent-light': '#142A08' } },
 ]
 
 const FONT_GROUPS: { group: string; fonts: { name: string; family: string }[] }[] = [
@@ -194,6 +230,41 @@ export default function SettingsPage() {
                 <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)' }}>{p.name}</div>
               </button>
             ))}
+          </div>
+          <div style={{ marginTop: '16px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+              Custom color
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <input
+                type="color"
+                defaultValue="#3B82F6"
+                onChange={e => {
+                  const hex = e.target.value
+                  const light = hex + '20'
+                  document.documentElement.style.setProperty('--accent', hex)
+                  document.documentElement.style.setProperty('--accent-light', light)
+                  setCurrentPalette('Custom')
+                  db.settings.where('key').equals('palette_accent').first().then(ex => {
+                    if (ex?.id) db.settings.update(ex.id, { value: hex })
+                    else db.settings.add({ key: 'palette_accent', value: hex })
+                  })
+                  db.settings.where('key').equals('palette_accent_light').first().then(ex => {
+                    if (ex?.id) db.settings.update(ex.id, { value: light })
+                    else db.settings.add({ key: 'palette_accent_light', value: light })
+                  })
+                }}
+                style={{
+                  width: '36px', height: '36px',
+                  borderRadius: '8px', border: '1px solid var(--border)',
+                  padding: '2px', cursor: 'pointer',
+                  background: 'none'
+                }}
+              />
+              <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                Pick any accent color
+              </span>
+            </div>
           </div>
         </section>
 
