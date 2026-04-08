@@ -360,9 +360,29 @@ export default function TrackerDetailPage() {
 
         {/* Log entries for this week */}
         <div style={{ marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
-            Log for this week
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+            <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+              Log for this week
+            </h2>
+            <button
+              onClick={async () => {
+                const allLogs = await db.trackerLogs.where('trackerUid').equals(uid).toArray()
+                for (const log of allLogs) {
+                  if (log.note && log.id) {
+                    await db.trackerLogs.update(log.id, { note: '' })
+                  }
+                }
+                const refreshed = await db.trackerLogs.where('trackerUid').equals(uid).toArray()
+                setLogs(refreshed.filter(l => l.value !== 0))
+              }}
+              style={{
+                fontSize: '11px', color: '#EF4444', background: 'none',
+                border: 'none', cursor: 'pointer', padding: 0
+              }}
+            >
+              Clear notes
+            </button>
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {weekDays.map(d => {
               const dateStr = formatDateStr(d)
