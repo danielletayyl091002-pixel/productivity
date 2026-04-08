@@ -71,6 +71,7 @@ export default function TrackerDetailPage() {
   const [tracker, setTracker] = useState<TrackerDefinition | null>(null)
   const [logs, setLogs] = useState<TrackerLog[]>([])
   const [weekOffset, setWeekOffset] = useState(0)
+  const [showDatePicker, setShowDatePicker] = useState(false)
   const [notes, setNotes] = useState('')
   const [logInputs, setLogInputs] = useState<Record<string, string>>({})
   const [logNotes, setLogNotes] = useState<Record<string, string>>({})
@@ -105,7 +106,9 @@ export default function TrackerDetailPage() {
     <div style={{ padding: '40px', color: 'var(--text-tertiary)' }}>Loading...</div>
   )
 
-  const { start, end } = getWeekRange(new Date(), weekOffset, startOnMonday)
+  const baseDate = new Date()
+  baseDate.setDate(baseDate.getDate() + weekOffset * 7)
+  const { start, end } = getWeekRange(baseDate, 0, startOnMonday)
   const weekDays = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(start)
     d.setDate(start.getDate() + i)
@@ -220,9 +223,44 @@ export default function TrackerDetailPage() {
             >
               <ChevronLeft size={16} />
             </button>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-              {formatRangeLabel(start, end)}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span
+                onClick={() => setShowDatePicker(p => !p)}
+                style={{
+                  fontSize: '13px', fontWeight: 600,
+                  color: 'var(--text-primary)', cursor: 'pointer',
+                  borderBottom: `1px dashed ${color}`,
+                  paddingBottom: '1px'
+                }}
+              >
+                {formatRangeLabel(start, end)}
+              </span>
+              {showDatePicker && (
+                <input
+                  type="date"
+                  defaultValue={formatDateStr(start)}
+                  onChange={e => {
+                    if (!e.target.value) return
+                    const picked = new Date(e.target.value + 'T12:00:00')
+                    const today = new Date()
+                    const diffTime = picked.getTime() - today.getTime()
+                    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7))
+                    setWeekOffset(diffDays)
+                    setShowDatePicker(false)
+                  }}
+                  style={{
+                    padding: '4px 8px', borderRadius: '6px',
+                    border: `1px solid ${color}`,
+                    background: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '12px', outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                  autoFocus
+                  onBlur={() => setShowDatePicker(false)}
+                />
+              )}
+            </div>
             <button
               onClick={() => setWeekOffset(p => Math.min(p + 1, 0))}
               style={{
