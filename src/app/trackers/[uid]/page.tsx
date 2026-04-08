@@ -133,7 +133,20 @@ export default function TrackerDetailPage() {
   async function logForDate(dateStr: string) {
     const val = parseFloat(logInputs[dateStr] || '0')
     if (isNaN(val) || val === 0) return
-    await addLog(uid, val, logNotes[dateStr] || '', dateStr)
+    const existingLogs = logs.filter(l => l.trackerUid === uid && l.date === dateStr)
+    for (const log of existingLogs) {
+      if (log.id) await db.trackerLogs.delete(log.id)
+    }
+    const newLog = {
+      trackerUid: uid,
+      value: val,
+      note: logNotes[dateStr] || '',
+      date: dateStr,
+      startTime: null,
+      endTime: null,
+      createdAt: new Date().toISOString()
+    }
+    await db.trackerLogs.add(newLog)
     const allLogs = await db.trackerLogs.where('trackerUid').equals(uid).toArray()
     setLogs(allLogs)
     setLogInputs(p => ({ ...p, [dateStr]: '' }))
@@ -262,110 +275,6 @@ export default function TrackerDetailPage() {
           </div>
         </div>
 
-        {/* Log entries for this week */}
-        <div style={{ marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
-            Log for this week
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {weekDays.map(d => {
-              const dateStr = formatDateStr(d)
-              const val = getValueForDate(dateStr)
-              const isToday = dateStr === formatDateStr(new Date())
-              return (
-                <div key={dateStr} style={{
-                  display: 'flex', alignItems: 'center', gap: '12px',
-                  padding: '10px 14px', borderRadius: '10px',
-                  background: isToday ? `${color}08` : 'var(--bg-secondary)',
-                  border: isToday ? `1px solid ${color}30` : '1px solid var(--border)',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
-                }}>
-                  <div style={{ width: '48px', flexShrink: 0 }}>
-                    <div style={{ fontSize: '11px', fontWeight: 600, color: isToday ? color : 'var(--text-secondary)' }}>
-                      {d.toLocaleDateString('en-US', { weekday: 'short' })}
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                      {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </div>
-                  </div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {tracker.type === 'habit' ? (
-                      <button
-                        onClick={async () => {
-                          if (val > 0) {
-                            const todayLogs = logs.filter(l => l.trackerUid === uid && l.date === dateStr)
-                            for (const log of todayLogs) {
-                              if (log.id) await db.trackerLogs.delete(log.id)
-                            }
-                            setLogs(prev => prev.filter(l => !(l.trackerUid === uid && l.date === dateStr)))
-                          } else {
-                            await addLog(uid, 1, '', dateStr)
-                            const allLogs = await db.trackerLogs.where('trackerUid').equals(uid).toArray()
-                            setLogs(allLogs)
-                          }
-                        }}
-                        style={{
-                          padding: '4px 12px', borderRadius: '20px',
-                          border: `1px solid ${color}`,
-                          background: val > 0 ? color : 'transparent',
-                          color: val > 0 ? 'white' : color,
-                          fontSize: '11px', fontWeight: 600, cursor: 'pointer'
-                        }}
-                      >
-                        {val > 0 ? 'Done' : 'Mark done'}
-                      </button>
-                    ) : (
-                      <>
-                        <input
-                          type="number"
-                          value={logInputs[dateStr] || ''}
-                          placeholder={val > 0 ? String(val) : '0'}
-                          onChange={e => setLogInputs(p => ({ ...p, [dateStr]: e.target.value }))}
-                          onKeyDown={e => { if (e.key === 'Enter') logForDate(dateStr) }}
-                          style={{
-                            width: '60px', padding: '4px 8px', borderRadius: '6px',
-                            border: '1px solid var(--border)', background: 'var(--bg-primary)',
-                            color: 'var(--text-primary)', fontSize: '13px', outline: 'none',
-                            textAlign: 'center'
-                          }}
-                        />
-                        <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                          {tracker.unit}
-                        </span>
-                        {val > 0 && (
-                          <span style={{ fontSize: '11px', color: color, fontWeight: 600 }}>
-                            {val} logged
-                          </span>
-                        )}
-                      </>
-                    )}
-                    <input
-                      value={logNotes[dateStr] || ''}
-                      onChange={e => setLogNotes(p => ({ ...p, [dateStr]: e.target.value }))}
-                      placeholder="Note..."
-                      style={{
-                        flex: 1, padding: '4px 8px', borderRadius: '6px',
-                        border: '1px solid var(--border)', background: 'transparent',
-                        color: 'var(--text-secondary)', fontSize: '12px', outline: 'none'
-                      }}
-                    />
-                    {tracker.type !== 'habit' && (
-                      <button
-                        onClick={() => logForDate(dateStr)}
-                        style={{
-                          padding: '4px 10px', borderRadius: '6px', border: 'none',
-                          background: color, color: 'white', fontSize: '11px',
-                          fontWeight: 600, cursor: 'pointer', flexShrink: 0
-                        }}
-                      >Log</button>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
         {/* Notes / Description */}
         <div style={{ marginBottom: '24px' }}>
           <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
@@ -389,47 +298,127 @@ export default function TrackerDetailPage() {
           />
         </div>
 
-        {/* Log history */}
-        <div>
+        {/* Log entries for this week */}
+        <div style={{ marginBottom: '24px' }}>
           <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
-            History
+            Log for this week
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {[...logs]
-              .sort((a, b) => b.date.localeCompare(a.date))
-              .slice(0, 20)
-              .map((log, i) => (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'center', gap: '12px',
-                  padding: '8px 14px', borderRadius: '8px',
-                  background: 'var(--bg-secondary)',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-                }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', width: '80px', flexShrink: 0 }}>
-                    {new Date(log.date + 'T12:00:00').toLocaleDateString('en-US', {
-                      month: 'short', day: 'numeric', year: 'numeric'
-                    })}
-                  </div>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: color }}>
-                    {log.value} {tracker.unit}
-                  </div>
-                  {log.startTime && (
-                    <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                      {log.startTime}{log.endTime ? ` \u2013 ${log.endTime}` : ''}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {weekDays.map(d => {
+              const dateStr = formatDateStr(d)
+              const val = getValueForDate(dateStr)
+              const isToday = dateStr === formatDateStr(new Date())
+              return (
+                <div key={dateStr}>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '12px',
+                    padding: '10px 14px', borderRadius: '10px',
+                    background: isToday ? `${color}08` : 'var(--bg-secondary)',
+                    border: isToday ? `1px solid ${color}30` : '1px solid var(--border)',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
+                  }}>
+                    <div style={{ width: '48px', flexShrink: 0 }}>
+                      <div style={{ fontSize: '11px', fontWeight: 600, color: isToday ? color : 'var(--text-secondary)' }}>
+                        {d.toLocaleDateString('en-US', { weekday: 'short' })}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                        {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </div>
                     </div>
-                  )}
-                  {log.note && (
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', flex: 1 }}>
-                      {log.note}
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {tracker.type === 'habit' ? (
+                        <button
+                          onClick={async () => {
+                            if (val > 0) {
+                              const todayLogs = logs.filter(l => l.trackerUid === uid && l.date === dateStr)
+                              for (const log of todayLogs) {
+                                if (log.id) await db.trackerLogs.delete(log.id)
+                              }
+                              setLogs(prev => prev.filter(l => !(l.trackerUid === uid && l.date === dateStr)))
+                            } else {
+                              await addLog(uid, 1, '', dateStr)
+                              const allLogs = await db.trackerLogs.where('trackerUid').equals(uid).toArray()
+                              setLogs(allLogs)
+                            }
+                          }}
+                          style={{
+                            padding: '4px 12px', borderRadius: '20px',
+                            border: `1px solid ${color}`,
+                            background: val > 0 ? color : 'transparent',
+                            color: val > 0 ? 'white' : color,
+                            fontSize: '11px', fontWeight: 600, cursor: 'pointer'
+                          }}
+                        >
+                          {val > 0 ? 'Done' : 'Mark done'}
+                        </button>
+                      ) : (
+                        <>
+                          <input
+                            type="number"
+                            value={logInputs[dateStr] || ''}
+                            placeholder={val > 0 ? String(val) : '0'}
+                            onChange={e => setLogInputs(p => ({ ...p, [dateStr]: e.target.value }))}
+                            onKeyDown={e => { if (e.key === 'Enter') logForDate(dateStr) }}
+                            style={{
+                              width: '60px', padding: '4px 8px', borderRadius: '6px',
+                              border: '1px solid var(--border)', background: 'var(--bg-primary)',
+                              color: 'var(--text-primary)', fontSize: '13px', outline: 'none',
+                              textAlign: 'center'
+                            }}
+                          />
+                          <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                            {tracker.unit}
+                          </span>
+                          {val > 0 && (
+                            <span style={{ fontSize: '11px', color: color, fontWeight: 600 }}>
+                              {val} logged
+                            </span>
+                          )}
+                        </>
+                      )}
+                      <input
+                        value={logNotes[dateStr] || ''}
+                        onChange={e => setLogNotes(p => ({ ...p, [dateStr]: e.target.value }))}
+                        placeholder="Note..."
+                        style={{
+                          flex: 1, padding: '4px 8px', borderRadius: '6px',
+                          border: '1px solid var(--border)', background: 'transparent',
+                          color: 'var(--text-secondary)', fontSize: '12px', outline: 'none'
+                        }}
+                      />
+                      {tracker.type !== 'habit' && (
+                        <button
+                          onClick={() => logForDate(dateStr)}
+                          style={{
+                            padding: '4px 10px', borderRadius: '6px', border: 'none',
+                            background: color, color: 'white', fontSize: '11px',
+                            fontWeight: 600, cursor: 'pointer', flexShrink: 0
+                          }}
+                        >Log</button>
+                      )}
                     </div>
-                  )}
+                  </div>
+                  {(() => {
+                    const dayLogs = logs.filter(l => l.trackerUid === uid && l.date === dateStr)
+                    if (dayLogs.length === 0) return null
+                    return (
+                      <div style={{ marginTop: '6px', paddingLeft: '60px' }}>
+                        {dayLogs.map((log, li) => (
+                          <div key={li} style={{
+                            fontSize: '11px', color: 'var(--text-tertiary)',
+                            display: 'flex', gap: '8px', alignItems: 'center'
+                          }}>
+                            <span style={{ color: color, fontWeight: 600 }}>{log.value} {tracker.unit}</span>
+                            {log.startTime && <span>{log.startTime}{log.endTime ? ` \u2013 ${log.endTime}` : ''}</span>}
+                            {log.note && <span>{log.note}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })()}
                 </div>
-              ))}
-            {logs.length === 0 && (
-              <div style={{ fontSize: '13px', color: 'var(--text-tertiary)', padding: '8px 0' }}>
-                No logs yet.
-              </div>
-            )}
+              )
+            })}
           </div>
         </div>
       </div>
