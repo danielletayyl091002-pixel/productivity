@@ -162,6 +162,16 @@ export default function TrackerGrid() {
             todayValue={getTodayValue(tracker.uid)}
             weekData={getWeekData(tracker.uid)}
             onClick={() => setActiveTracker(tracker)}
+            onIncrement={() => addLog(tracker.uid, 1)}
+            onDecrement={() => {
+              const current = getTodayValue(tracker.uid)
+              if (current > 0) addLog(tracker.uid, -1)
+            }}
+            onHabitToggle={() => {
+              const current = getTodayValue(tracker.uid)
+              if (current > 0) addLog(tracker.uid, -current)
+              else addLog(tracker.uid, 1)
+            }}
           />
         ))}
       </div>
@@ -179,11 +189,14 @@ export default function TrackerGrid() {
   )
 }
 
-function TrackerCard({ tracker, todayValue, weekData, onClick }: {
+function TrackerCard({ tracker, todayValue, weekData, onClick, onIncrement, onDecrement, onHabitToggle }: {
   tracker: TrackerDefinition
   todayValue: number
   weekData: number[]
   onClick: () => void
+  onIncrement: () => void
+  onDecrement: () => void
+  onHabitToggle: () => void
 }) {
   const progress = tracker.target > 0 ? Math.min(todayValue / tracker.target, 1) : 0
   const maxWeek = Math.max(...weekData, 1)
@@ -193,8 +206,6 @@ function TrackerCard({ tracker, todayValue, weekData, onClick }: {
   if (tracker.type === 'select' && tracker.options) {
     const opts: string[] = JSON.parse(tracker.options)
     displayValue = todayValue > 0 ? opts[todayValue - 1] || String(todayValue) : '--'
-  } else if (tracker.type === 'habit') {
-    displayValue = todayValue > 0 ? 'Done' : '--'
   } else {
     displayValue = String(todayValue)
   }
@@ -253,24 +264,75 @@ function TrackerCard({ tracker, todayValue, weekData, onClick }: {
       </div>
 
       {/* Value */}
-      <div style={{
-        display: 'flex', alignItems: 'baseline',
-        gap: '4px', marginBottom: '10px'
-      }}>
-        <span style={{
-          fontSize: '22px', fontWeight: 700,
-          color: isComplete ? tracker.color : 'var(--text-primary)',
-          transition: 'color 0.2s',
-          fontVariantNumeric: 'tabular-nums'
+      {tracker.type === 'counter' ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+          <button
+            onClick={e => { e.stopPropagation(); onDecrement() }}
+            style={{
+              width: '28px', height: '28px', borderRadius: '50%',
+              border: '1px solid var(--border)', background: 'none',
+              cursor: 'pointer', fontSize: '18px',
+              color: 'var(--text-secondary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0
+            }}
+          >-</button>
+          <div style={{ textAlign: 'center' }}>
+            <span style={{
+              fontSize: '22px', fontWeight: 700,
+              color: isComplete ? tracker.color : 'var(--text-primary)',
+              fontVariantNumeric: 'tabular-nums'
+            }}>{todayValue}</span>
+            <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginLeft: '4px' }}>
+              / {tracker.target} {tracker.unit}
+            </span>
+          </div>
+          <button
+            onClick={e => { e.stopPropagation(); onIncrement() }}
+            style={{
+              width: '28px', height: '28px', borderRadius: '50%',
+              border: 'none', background: tracker.color,
+              cursor: 'pointer', fontSize: '18px', color: 'white',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0
+            }}
+          >+</button>
+        </div>
+      ) : tracker.type === 'habit' ? (
+        <div style={{ marginBottom: '10px' }}>
+          <button
+            onClick={e => { e.stopPropagation(); onHabitToggle() }}
+            style={{
+              padding: '5px 14px', borderRadius: '20px',
+              border: `1px solid ${tracker.color}`,
+              background: todayValue > 0 ? tracker.color : 'transparent',
+              color: todayValue > 0 ? 'white' : tracker.color,
+              fontSize: '12px', fontWeight: 600,
+              cursor: 'pointer', transition: 'all 0.15s'
+            }}
+          >
+            {todayValue > 0 ? 'Done' : 'Mark done'}
+          </button>
+        </div>
+      ) : (
+        <div style={{
+          display: 'flex', alignItems: 'baseline',
+          gap: '4px', marginBottom: '10px'
         }}>
-          {displayValue}
-        </span>
-        {tracker.type !== 'select' && tracker.type !== 'habit' && (
-          <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
-            / {tracker.target} {tracker.unit}
+          <span style={{
+            fontSize: '22px', fontWeight: 700,
+            color: isComplete ? tracker.color : 'var(--text-primary)',
+            fontVariantNumeric: 'tabular-nums'
+          }}>
+            {displayValue}
           </span>
-        )}
-      </div>
+          {tracker.type !== 'select' && (
+            <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+              / {tracker.target} {tracker.unit}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Progress bar */}
       {tracker.type !== 'select' && tracker.type !== 'habit' && (
@@ -595,15 +657,15 @@ function AddTrackerModal({ onClose }: { onClose: () => void }) {
           </button>
           <button
             onClick={handleCreate}
-            disabled={!name.trim()}
             style={{
               padding: '8px 20px', borderRadius: '8px',
               border: 'none',
-              background: name.trim() ? color : 'var(--bg-hover)',
-              color: name.trim() ? '#fff' : 'var(--text-tertiary)',
+              background: color,
+              color: '#fff',
               fontSize: '13px', fontWeight: 600,
-              cursor: name.trim() ? 'pointer' : 'not-allowed',
-              transition: 'background 0.15s'
+              cursor: 'pointer',
+              opacity: name.trim() ? 1 : 0.4,
+              transition: 'opacity 0.15s'
             }}
           >
             Create Tracker
