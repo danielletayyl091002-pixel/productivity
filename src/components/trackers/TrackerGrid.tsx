@@ -96,7 +96,7 @@ function renderIcon(iconStr: string, size = 16, color = 'currentColor') {
 }
 
 export default function TrackerGrid() {
-  const { definitions, loaded, load, getTodayValue, getWeekData, addLog, updateDefinition, deleteDefinition, setTodayValue } = useTrackerStore()
+  const { definitions, loaded, load, getTodayValue, getWeekData, addLog, updateDefinition, deleteDefinition, setTodayValue, logs } = useTrackerStore()
   const [activeTracker, setActiveTracker] = useState<TrackerDefinition | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [editTracker, setEditTracker] = useState<TrackerDefinition | null>(null)
@@ -154,6 +154,7 @@ export default function TrackerGrid() {
             tracker={tracker}
             todayValue={getTodayValue(tracker.uid)}
             weekData={getWeekData(tracker.uid)}
+            logs={logs}
             onClick={() => setActiveTracker(tracker)}
             onEdit={() => setEditTracker(tracker)}
             onIncrement={() => addLog(tracker.uid, 1)}
@@ -198,7 +199,7 @@ export default function TrackerGrid() {
   )
 }
 
-function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncrement, onDecrement, onHabitToggle, onLogValue }: {
+function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncrement, onDecrement, onHabitToggle, onLogValue, logs }: {
   tracker: TrackerDefinition
   todayValue: number
   weekData: number[]
@@ -208,6 +209,7 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
   onDecrement: () => void
   onHabitToggle: () => void
   onLogValue: (val: number) => void
+  logs: { trackerUid: string; date: string; value: number }[]
 }) {
   const router = useRouter()
   const [inputVal, setInputVal] = useState(todayValue === 0 ? '' : String(todayValue))
@@ -239,7 +241,13 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
     return d
   })
   const monthYear = weekStart.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-  const maxVal = Math.max(...weekData, tracker.target, 1)
+  const offsetWeekData = weekDates.map(d => {
+    const dateStr = d.toISOString().split('T')[0]
+    return logs
+      .filter(l => l.trackerUid === tracker.uid && l.date === dateStr)
+      .reduce((sum, l) => sum + l.value, 0)
+  })
+  const maxVal = Math.max(...offsetWeekData, tracker.target, 1)
 
   let displayValue: string
   if (tracker.type === 'select' && tracker.options) {
@@ -287,7 +295,7 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
         justifyContent: 'space-between', marginBottom: '10px'
       }}>
         <div
-          onClick={() => router.push(`/trackers/${tracker.uid}`)}
+          onClick={e => { e.stopPropagation(); router.push(`/trackers/${tracker.uid}`) }}
           style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
         >
           <div style={{ color: tracker.color }}>
@@ -455,7 +463,7 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
           </div>
         </div>
         <div style={{ display: 'flex', gap: '3px', alignItems: 'flex-end', height: '28px', marginBottom: '3px' }}>
-          {weekData.map((v, i) => (
+          {offsetWeekData.map((v, i) => (
             <div key={i} style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'flex-end' }}>
               <div style={{
                 width: '100%', borderRadius: '2px',
