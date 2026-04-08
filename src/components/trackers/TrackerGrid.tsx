@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Droplets, Activity, BookOpen, Brain, Target, Dumbbell,
   Music, Apple, Pill, PenLine, Flame, Moon, Coffee, Heart,
@@ -10,7 +11,8 @@ import {
   Bed, Eye, Smile, Frown, Meh,
   DollarSign, TrendingUp, BarChart2,
   Leaf, Flower2, TreePine,
-  Gamepad2, Tv, Headphones, Camera
+  Gamepad2, Tv, Headphones, Camera,
+  ChevronLeft, ChevronRight
 } from 'lucide-react'
 import { useTrackerStore } from '@/stores/trackers'
 import { TrackerDefinition } from '@/db/schema'
@@ -207,8 +209,10 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
   onHabitToggle: () => void
   onLogValue: (val: number) => void
 }) {
+  const router = useRouter()
   const [inputVal, setInputVal] = useState(todayValue === 0 ? '' : String(todayValue))
   const [hovered, setHovered] = useState(false)
+  const [weekOffset, setWeekOffset] = useState(0)
   const progress = tracker.target > 0 ? Math.min(todayValue / tracker.target, 1) : 0
   const isComplete = todayValue >= tracker.target && tracker.target > 0
 
@@ -222,14 +226,19 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
 
   const startOnMonday = typeof window !== 'undefined' && localStorage.getItem('week_start') === 'monday'
   const dayLabels = startOnMonday ? ['M','T','W','T','F','S','S'] : ['S','M','T','W','T','F','S']
-  const today = new Date()
+  const baseDate = new Date()
+  const weekStart = new Date(baseDate)
+  const todayDay = baseDate.getDay()
+  const diffToStart = startOnMonday
+    ? (todayDay === 0 ? -6 : 1 - todayDay)
+    : -todayDay
+  weekStart.setDate(baseDate.getDate() + diffToStart + weekOffset * 7)
   const weekDates = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(today)
-    const offset = startOnMonday ? (today.getDay() === 0 ? -6 : 1 - today.getDay()) : -today.getDay()
-    d.setDate(today.getDate() + offset + i)
-    return d.getDate()
+    const d = new Date(weekStart)
+    d.setDate(weekStart.getDate() + i)
+    return d
   })
-  const monthYear = today.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+  const monthYear = weekStart.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
   const maxVal = Math.max(...weekData, tracker.target, 1)
 
   let displayValue: string
@@ -260,7 +269,8 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
         cursor: 'default',
         transition: 'box-shadow 0.15s, border-color 0.15s',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
       }}
     >
       {/* Color accent bar */}
@@ -276,7 +286,10 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
         display: 'flex', alignItems: 'center',
         justifyContent: 'space-between', marginBottom: '10px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div
+          onClick={() => router.push(`/trackers/${tracker.uid}`)}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+        >
           <div style={{ color: tracker.color }}>
             {renderIcon(tracker.icon, 16, tracker.color)}
           </div>
@@ -412,22 +425,44 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
       )}
 
       <div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '2px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
           <span style={{ fontSize: '9px', color: 'var(--text-tertiary)', fontWeight: 500 }}>
             {monthYear}
           </span>
+          <div style={{ display: 'flex', gap: '2px' }}>
+            <button
+              onClick={e => { e.stopPropagation(); setWeekOffset(p => p - 1) }}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: '1px', color: 'var(--text-tertiary)',
+                display: 'flex', alignItems: 'center'
+              }}
+            >
+              <ChevronLeft size={10} />
+            </button>
+            <button
+              onClick={e => { e.stopPropagation(); setWeekOffset(p => Math.min(p + 1, 0)) }}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: '1px',
+                color: 'var(--text-tertiary)',
+                opacity: weekOffset >= 0 ? 0.3 : 1,
+                display: 'flex', alignItems: 'center'
+              }}
+            >
+              <ChevronRight size={10} />
+            </button>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: '3px', alignItems: 'flex-end', height: '28px', marginBottom: '3px' }}>
           {weekData.map((v, i) => (
             <div key={i} style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'flex-end' }}>
               <div style={{
-                width: '100%',
-                borderRadius: '2px',
+                width: '100%', borderRadius: '2px',
                 background: v > 0 ? tracker.color : 'var(--bg-hover)',
                 opacity: v > 0 ? 0.4 + Math.min(v / maxVal, 1) * 0.6 : 0.25,
                 height: `${Math.max(v > 0 ? Math.min(v / maxVal, 1) * 100 : 8, 8)}%`,
-                minHeight: '2px',
-                transition: 'height 0.2s'
+                minHeight: '2px', transition: 'height 0.2s'
               }} />
             </div>
           ))}
@@ -436,7 +471,7 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
           {dayLabels.map((label, i) => (
             <div key={i} style={{ flex: 1, textAlign: 'center' }}>
               <div style={{ fontSize: '8px', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>{label}</div>
-              <div style={{ fontSize: '8px', color: 'var(--text-tertiary)', opacity: 0.6, lineHeight: 1.2 }}>{weekDates[i]}</div>
+              <div style={{ fontSize: '8px', color: 'var(--text-tertiary)', opacity: 0.6, lineHeight: 1.2 }}>{weekDates[i].getDate()}</div>
             </div>
           ))}
         </div>
