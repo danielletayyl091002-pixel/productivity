@@ -451,6 +451,20 @@ export default function TrackerDetailPage() {
                         )}
                       </div>
                     )}
+
+                    <input
+                      value={logNotes[dateStr] ?? ''}
+                      onChange={e => setLogNotes(p => ({ ...p, [dateStr]: e.target.value }))}
+                      placeholder="Add note..."
+                      style={{
+                        flex: 1, padding: '4px 8px', borderRadius: '6px',
+                        border: '1px solid transparent', background: 'transparent',
+                        color: 'var(--text-secondary)', fontSize: '12px', outline: 'none',
+                        minWidth: '80px'
+                      }}
+                      onFocus={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                      onBlur={e => e.currentTarget.style.borderColor = 'transparent'}
+                    />
                   </div>
 
                   {dayLogs.map((log, li) => (
