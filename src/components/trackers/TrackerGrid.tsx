@@ -94,7 +94,7 @@ function renderIcon(iconStr: string, size = 16, color = 'currentColor') {
 }
 
 export default function TrackerGrid() {
-  const { definitions, loaded, load, getTodayValue, getWeekData, addLog, updateDefinition, deleteDefinition } = useTrackerStore()
+  const { definitions, loaded, load, getTodayValue, getWeekData, addLog, updateDefinition, deleteDefinition, setTodayValue } = useTrackerStore()
   const [activeTracker, setActiveTracker] = useState<TrackerDefinition | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [editTracker, setEditTracker] = useState<TrackerDefinition | null>(null)
@@ -164,11 +164,7 @@ export default function TrackerGrid() {
               if (current > 0) addLog(tracker.uid, -current)
               else addLog(tracker.uid, 1)
             }}
-            onLogValue={(val: number) => {
-              const current = getTodayValue(tracker.uid)
-              const diff = val - current
-              if (diff !== 0) addLog(tracker.uid, diff)
-            }}
+            onLogValue={(val: number) => setTodayValue(tracker.uid, val)}
           />
         ))}
       </div>

@@ -12,6 +12,7 @@ interface TrackerState {
   updateDefinition: (uid: string, updates: Partial<TrackerDefinition>) => Promise<void>
   deleteDefinition: (uid: string) => Promise<void>
   addLog: (trackerUid: string, value: number, note?: string, date?: string, startTime?: string, endTime?: string) => Promise<void>
+  setTodayValue: (trackerUid: string, value: number, note?: string) => Promise<void>
   getTodayValue: (trackerUid: string) => number
   getWeekData: (trackerUid: string) => number[]
 }
@@ -95,6 +96,29 @@ export const useTrackerStore = create<TrackerState>((set, get) => ({
     }
     await db.trackerLogs.add(newLog)
     set({ logs: [...get().logs, newLog] })
+  },
+
+  async setTodayValue(trackerUid, value, note = '') {
+    const today = new Date().toISOString().split('T')[0]
+    const todayLogs = get().logs.filter(
+      l => l.trackerUid === trackerUid && l.date === today
+    )
+    for (const log of todayLogs) {
+      if (log.id) await db.trackerLogs.delete(log.id)
+    }
+    const newLog: TrackerLog = {
+      trackerUid, value, note,
+      date: today,
+      startTime: null, endTime: null,
+      createdAt: new Date().toISOString()
+    }
+    await db.trackerLogs.add(newLog)
+    set({
+      logs: [
+        ...get().logs.filter(l => !(l.trackerUid === trackerUid && l.date === today)),
+        newLog
+      ]
+    })
   },
 
   getTodayValue(trackerUid) {
