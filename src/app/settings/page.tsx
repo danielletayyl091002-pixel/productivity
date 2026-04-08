@@ -71,6 +71,7 @@ const PALETTES: {
   { name: 'Pastel Lilac', colors: ['#C4B5FD', '#DDD6FE', '#F5F3FF'],
     vars: { '--accent': '#A78BFA', '--accent-light': '#F5F3FF' },
     darkVars: { '--accent': '#C4B5FD', '--accent-light': '#3B0764' } },
+  { name: 'Slate', colors: ['#475569', '#94A3B8', '#F8FAFC'], vars: { '--accent': '#475569', '--accent-light': '#F8FAFC' }, darkVars: { '--accent': '#94A3B8', '--accent-light': '#1E293B' } },
 ]
 
 const FONT_GROUPS: { group: string; fonts: { name: string; family: string }[] }[] = [
