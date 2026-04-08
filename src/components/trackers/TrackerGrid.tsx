@@ -220,6 +220,18 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
   // Fix mini chart: cap at relative height, never solid block
   const maxWeek = Math.max(...weekData, tracker.target, 1)
 
+  const startOnMonday = typeof window !== 'undefined' && localStorage.getItem('week_start') === 'monday'
+  const dayLabels = startOnMonday ? ['M','T','W','T','F','S','S'] : ['S','M','T','W','T','F','S']
+  const today = new Date()
+  const weekDates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today)
+    const offset = startOnMonday ? (today.getDay() === 0 ? -6 : 1 - today.getDay()) : -today.getDay()
+    d.setDate(today.getDate() + offset + i)
+    return d.getDate()
+  })
+  const monthYear = today.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+  const maxVal = Math.max(...weekData, tracker.target, 1)
+
   let displayValue: string
   if (tracker.type === 'select' && tracker.options) {
     const opts: string[] = JSON.parse(tracker.options)
@@ -399,60 +411,36 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
         </div>
       )}
 
-      {/* Enhanced week chart */}
-      {(() => {
-        const startOnMonday = typeof window !== 'undefined' && localStorage.getItem('week_start') === 'monday'
-        const dayLabels = startOnMonday
-          ? ['M','T','W','T','F','S','S']
-          : ['S','M','T','W','T','F','S']
-        const today = new Date()
-        const todayDay = today.getDay()
-        const weekDates = Array.from({ length: 7 }, (_, i) => {
-          const d = new Date(today)
-          const startOffset = startOnMonday
-            ? (todayDay === 0 ? -6 : 1 - todayDay)
-            : -todayDay
-          d.setDate(today.getDate() + startOffset + i)
-          return d.getDate()
-        })
-        const monthYear = today.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-        const maxVal = Math.max(...weekData, tracker.target, 1)
-
-        return (
-          <div>
-            <div style={{
-              display: 'flex', justifyContent: 'flex-end',
-              marginBottom: '4px'
-            }}>
-              <span style={{ fontSize: '9px', color: 'var(--text-tertiary)', fontWeight: 500 }}>
-                {monthYear}
-              </span>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '2px' }}>
+          <span style={{ fontSize: '9px', color: 'var(--text-tertiary)', fontWeight: 500 }}>
+            {monthYear}
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: '3px', alignItems: 'flex-end', height: '28px', marginBottom: '3px' }}>
+          {weekData.map((v, i) => (
+            <div key={i} style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'flex-end' }}>
+              <div style={{
+                width: '100%',
+                borderRadius: '2px',
+                background: v > 0 ? tracker.color : 'var(--bg-hover)',
+                opacity: v > 0 ? 0.4 + Math.min(v / maxVal, 1) * 0.6 : 0.25,
+                height: `${Math.max(v > 0 ? Math.min(v / maxVal, 1) * 100 : 8, 8)}%`,
+                minHeight: '2px',
+                transition: 'height 0.2s'
+              }} />
             </div>
-            <div style={{ display: 'flex', gap: '3px', alignItems: 'flex-end', height: '28px', marginBottom: '3px' }}>
-              {weekData.map((v, i) => (
-                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-                  <div style={{
-                    width: '100%', borderRadius: '2px',
-                    background: v > 0 ? tracker.color : 'var(--bg-hover)',
-                    opacity: v > 0 ? 0.4 + Math.min(v / maxVal, 1) * 0.6 : 0.25,
-                    height: `${Math.max(v > 0 ? Math.min(v / maxVal, 1) * 100 : 8, 8)}%`,
-                    minHeight: '2px',
-                    transition: 'height 0.2s'
-                  }} />
-                </div>
-              ))}
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: '3px' }}>
+          {dayLabels.map((label, i) => (
+            <div key={i} style={{ flex: 1, textAlign: 'center' }}>
+              <div style={{ fontSize: '8px', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>{label}</div>
+              <div style={{ fontSize: '8px', color: 'var(--text-tertiary)', opacity: 0.6, lineHeight: 1.2 }}>{weekDates[i]}</div>
             </div>
-            <div style={{ display: 'flex', gap: '3px' }}>
-              {dayLabels.map((label, i) => (
-                <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontSize: '8px', color: 'var(--text-tertiary)', fontWeight: 600 }}>{label}</div>
-                  <div style={{ fontSize: '8px', color: 'var(--text-tertiary)', opacity: 0.6 }}>{weekDates[i]}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )
-      })()}
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
