@@ -98,9 +98,23 @@ export default function TrackerDetailPage() {
     async function loadLogs() {
       const allLogs = await db.trackerLogs.where('trackerUid').equals(uid).toArray()
       setLogs(allLogs)
+      const inputs: Record<string, string> = {}
+      const base = new Date()
+      base.setDate(base.getDate() + weekOffset * 7)
+      const { start: wStart } = getWeekRange(base, 0, startOnMonday)
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(wStart)
+        d.setDate(wStart.getDate() + i)
+        const ds = formatDateStr(d)
+        const v = allLogs
+          .filter(l => l.trackerUid === uid && l.date === ds)
+          .reduce((sum, l) => sum + l.value, 0)
+        if (v > 0) inputs[ds] = String(v)
+      }
+      setLogInputs(inputs)
     }
     loadLogs()
-  }, [uid])
+  }, [uid, weekOffset])
 
   if (!tracker) return (
     <div style={{ padding: '40px', color: 'var(--text-tertiary)' }}>Loading...</div>
@@ -135,7 +149,7 @@ export default function TrackerDetailPage() {
 
   async function logForDate(dateStr: string) {
     const val = parseFloat(logInputs[dateStr] || '0')
-    if (isNaN(val) || val === 0) return
+    if (isNaN(val)) return
     const existingLogs = logs.filter(l => l.trackerUid === uid && l.date === dateStr)
     for (const log of existingLogs) {
       if (log.id) await db.trackerLogs.delete(log.id)
@@ -393,7 +407,7 @@ export default function TrackerDetailPage() {
                         <>
                           <input
                             type="number"
-                            value={logInputs[dateStr] || ''}
+                            value={logInputs[dateStr] ?? ''}
                             placeholder={val > 0 ? String(val) : '0'}
                             onChange={e => setLogInputs(p => ({ ...p, [dateStr]: e.target.value }))}
                             onKeyDown={e => { if (e.key === 'Enter') logForDate(dateStr) }}
@@ -415,9 +429,9 @@ export default function TrackerDetailPage() {
                         </>
                       )}
                       <input
-                        value={logNotes[dateStr] || ''}
+                        value={logNotes[dateStr] ?? ''}
                         onChange={e => setLogNotes(p => ({ ...p, [dateStr]: e.target.value }))}
-                        placeholder="Note..."
+                        placeholder="Add note..."
                         style={{
                           flex: 1, padding: '4px 8px', borderRadius: '6px',
                           border: '1px solid var(--border)', background: 'transparent',
