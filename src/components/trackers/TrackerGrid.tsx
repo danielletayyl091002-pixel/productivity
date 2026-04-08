@@ -172,6 +172,11 @@ export default function TrackerGrid() {
               if (current > 0) addLog(tracker.uid, -current)
               else addLog(tracker.uid, 1)
             }}
+            onLogValue={async (val: number) => {
+              const current = getTodayValue(tracker.uid)
+              const diff = val - current
+              if (diff !== 0) await addLog(tracker.uid, diff)
+            }}
           />
         ))}
       </div>
@@ -189,7 +194,7 @@ export default function TrackerGrid() {
   )
 }
 
-function TrackerCard({ tracker, todayValue, weekData, onClick, onIncrement, onDecrement, onHabitToggle }: {
+function TrackerCard({ tracker, todayValue, weekData, onClick, onIncrement, onDecrement, onHabitToggle, onLogValue }: {
   tracker: TrackerDefinition
   todayValue: number
   weekData: number[]
@@ -197,6 +202,7 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onIncrement, onDe
   onIncrement: () => void
   onDecrement: () => void
   onHabitToggle: () => void
+  onLogValue: (val: number) => void
 }) {
   const progress = tracker.target > 0 ? Math.min(todayValue / tracker.target, 1) : 0
   const maxWeek = Math.max(...weekData, 1)
@@ -314,6 +320,43 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onIncrement, onDe
             {todayValue > 0 ? 'Done' : 'Mark done'}
           </button>
         </div>
+      ) : tracker.type === 'value' ? (
+        <div style={{ marginBottom: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+            <input
+              type="number"
+              defaultValue={todayValue || ''}
+              placeholder="0"
+              onClick={e => e.stopPropagation()}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  const val = parseFloat((e.target as HTMLInputElement).value)
+                  if (!isNaN(val)) onLogValue(val)
+                  ;(e.target as HTMLInputElement).blur()
+                }
+                e.stopPropagation()
+              }}
+              onBlur={e => {
+                const val = parseFloat(e.target.value)
+                if (!isNaN(val) && val !== todayValue) onLogValue(val)
+              }}
+              style={{
+                width: '60px',
+                fontSize: '22px', fontWeight: 700,
+                color: isComplete ? tracker.color : 'var(--text-primary)',
+                fontVariantNumeric: 'tabular-nums',
+                border: 'none',
+                borderBottom: '2px solid var(--border)',
+                background: 'transparent',
+                outline: 'none',
+                padding: '0 0 2px 0'
+              }}
+            />
+            <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+              / {tracker.target} {tracker.unit}
+            </span>
+          </div>
+        </div>
       ) : (
         <div style={{
           display: 'flex', alignItems: 'baseline',
@@ -326,11 +369,6 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onIncrement, onDe
           }}>
             {displayValue}
           </span>
-          {tracker.type !== 'select' && (
-            <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
-              / {tracker.target} {tracker.unit}
-            </span>
-          )}
         </div>
       )}
 
