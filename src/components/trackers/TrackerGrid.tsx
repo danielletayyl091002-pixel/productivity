@@ -259,6 +259,7 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
 
   return (
     <div
+      onClick={e => e.stopPropagation()}
       onMouseEnter={e => {
         setHovered(true)
         e.currentTarget.style.borderColor = tracker.color
@@ -296,7 +297,7 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
       }}>
         <div
           onClick={e => { e.stopPropagation(); router.push(`/trackers/${tracker.uid}`) }}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', flex: 1 }}
         >
           <div style={{ color: tracker.color }}>
             {renderIcon(tracker.icon, 16, tracker.color)}
