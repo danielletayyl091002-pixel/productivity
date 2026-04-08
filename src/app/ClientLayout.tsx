@@ -60,6 +60,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         const accentLightSetting = await db.settings.where('key').equals('palette_accent_light').first()
         if (accentSetting?.value) document.documentElement.style.setProperty('--accent', accentSetting.value)
         if (accentLightSetting?.value) document.documentElement.style.setProperty('--accent-light', accentLightSetting.value)
+
+        const bgPrimary = await db.settings.where('key').equals('palette_bg_primary').first()
+        const bgSecondary = await db.settings.where('key').equals('palette_bg_secondary').first()
+        const bgSidebar = await db.settings.where('key').equals('palette_bg_sidebar').first()
+        if (bgPrimary?.value) document.documentElement.style.setProperty('--bg-primary', bgPrimary.value)
+        if (bgSecondary?.value) document.documentElement.style.setProperty('--bg-secondary', bgSecondary.value)
+        if (bgSidebar?.value) document.documentElement.style.setProperty('--bg-sidebar', bgSidebar.value)
       }
     }
     loadSettings()

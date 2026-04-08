@@ -162,6 +162,32 @@ export default function SettingsPage() {
     const accentLightExist = await db.settings.where('key').equals('palette_accent_light').first()
     if (accentLightExist?.id) { await db.settings.update(accentLightExist.id, { value: accentLightVal }) }
     else { await db.settings.add({ key: 'palette_accent_light', value: accentLightVal }) }
+
+    // Tint backgrounds in light mode
+    const accent = vars['--accent'] || ''
+    if (theme === 'light' && accent.startsWith('#')) {
+      const r = parseInt(accent.slice(1,3), 16)
+      const g = parseInt(accent.slice(3,5), 16)
+      const b = parseInt(accent.slice(5,7), 16)
+      const bgPrimary = `rgb(${Math.round(r*0.04 + 255*0.96)}, ${Math.round(g*0.04 + 255*0.96)}, ${Math.round(b*0.04 + 255*0.96)})`
+      const bgSecondary = `rgb(${Math.round(r*0.07 + 255*0.93)}, ${Math.round(g*0.07 + 255*0.93)}, ${Math.round(b*0.07 + 255*0.93)})`
+      const bgSidebar = `rgb(${Math.round(r*0.05 + 255*0.95)}, ${Math.round(g*0.05 + 255*0.95)}, ${Math.round(b*0.05 + 255*0.95)})`
+      document.documentElement.style.setProperty('--bg-primary', bgPrimary)
+      document.documentElement.style.setProperty('--bg-secondary', bgSecondary)
+      document.documentElement.style.setProperty('--bg-sidebar', bgSidebar)
+
+      const bgPrimaryExist = await db.settings.where('key').equals('palette_bg_primary').first()
+      if (bgPrimaryExist?.id) await db.settings.update(bgPrimaryExist.id, { value: bgPrimary })
+      else await db.settings.add({ key: 'palette_bg_primary', value: bgPrimary })
+
+      const bgSecondaryExist = await db.settings.where('key').equals('palette_bg_secondary').first()
+      if (bgSecondaryExist?.id) await db.settings.update(bgSecondaryExist.id, { value: bgSecondary })
+      else await db.settings.add({ key: 'palette_bg_secondary', value: bgSecondary })
+
+      const bgSidebarExist = await db.settings.where('key').equals('palette_bg_sidebar').first()
+      if (bgSidebarExist?.id) await db.settings.update(bgSidebarExist.id, { value: bgSidebar })
+      else await db.settings.add({ key: 'palette_bg_sidebar', value: bgSidebar })
+    }
   }
 
   async function applyFont(fontName: string) {
