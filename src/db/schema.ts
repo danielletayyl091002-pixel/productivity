@@ -76,6 +76,7 @@ export interface TrackerDefinition {
   color: string
   type: 'counter' | 'value' | 'select' | 'habit'
   options: string | null // JSON array for select type (e.g. mood emojis)
+  notes: string | null
   order: number
   createdAt: string
 }
@@ -141,6 +142,16 @@ class FluentDB extends Dexie {
       trackerDefinitions: '++id, uid, type, order',
       trackerLogs: '++id, trackerUid, date'
     })
+    this.version(5).stores({
+      pages: '++id, uid, parentUid, isFavorite',
+      blocks: '++id, uid, pageUid, type, order',
+      tasks: '++id, uid, pageUid, status, dueDate, scheduledDate',
+      settings: '++id, key',
+      financeEntries: '++id, type, category, date',
+      financeCategories: '++id, type',
+      trackerDefinitions: '++id, uid, type, order',
+      trackerLogs: '++id, trackerUid, date'
+    })
   }
 }
 
@@ -183,15 +194,15 @@ export async function seedIfEmpty() {
   ])
 
   await db.trackerDefinitions.bulkAdd([
-    { uid: nanoid(), name: 'Water', icon: '💧', unit: 'cups', target: 8, color: '#3B82F6', type: 'counter', options: null, order: 0, createdAt: new Date().toISOString() },
-    { uid: nanoid(), name: 'Sleep', icon: '😴', unit: 'hours', target: 8, color: '#8B5CF6', type: 'value', options: null, order: 1, createdAt: new Date().toISOString() },
-    { uid: nanoid(), name: 'Exercise', icon: '🏃', unit: 'min', target: 30, color: '#EF4444', type: 'value', options: null, order: 2, createdAt: new Date().toISOString() },
-    { uid: nanoid(), name: 'Reading', icon: '📖', unit: 'pages', target: 20, color: '#A855F7', type: 'value', options: null, order: 3, createdAt: new Date().toISOString() },
-    { uid: nanoid(), name: 'Mood', icon: '😊', unit: '', target: 5, color: '#EC4899', type: 'select', options: JSON.stringify(['😢', '😕', '😐', '🙂', '😊']), order: 4, createdAt: new Date().toISOString() },
-    { uid: nanoid(), name: 'Meditation', icon: '🧘', unit: 'min', target: 15, color: '#14B8A6', type: 'value', options: null, order: 5, createdAt: new Date().toISOString() },
-    { uid: nanoid(), name: 'Steps', icon: '👟', unit: 'steps', target: 10000, color: '#F59E0B', type: 'value', options: null, order: 6, createdAt: new Date().toISOString() },
-    { uid: nanoid(), name: 'Journaling', icon: '📝', unit: '', target: 1, color: '#6366F1', type: 'habit', options: null, order: 7, createdAt: new Date().toISOString() },
-    { uid: nanoid(), name: 'No Caffeine', icon: '☕', unit: '', target: 1, color: '#78716C', type: 'habit', options: null, order: 8, createdAt: new Date().toISOString() },
+    { uid: nanoid(), name: 'Water', icon: '💧', unit: 'cups', target: 8, color: '#3B82F6', type: 'counter', options: null, notes: null, order: 0, createdAt: new Date().toISOString() },
+    { uid: nanoid(), name: 'Sleep', icon: '😴', unit: 'hours', target: 8, color: '#8B5CF6', type: 'value', options: null, notes: null, order: 1, createdAt: new Date().toISOString() },
+    { uid: nanoid(), name: 'Exercise', icon: '🏃', unit: 'min', target: 30, color: '#EF4444', type: 'value', options: null, notes: null, order: 2, createdAt: new Date().toISOString() },
+    { uid: nanoid(), name: 'Reading', icon: '📖', unit: 'pages', target: 20, color: '#A855F7', type: 'value', options: null, notes: null, order: 3, createdAt: new Date().toISOString() },
+    { uid: nanoid(), name: 'Mood', icon: '😊', unit: '', target: 5, color: '#EC4899', type: 'select', options: JSON.stringify(['😢', '😕', '😐', '🙂', '😊']), notes: null, order: 4, createdAt: new Date().toISOString() },
+    { uid: nanoid(), name: 'Meditation', icon: '🧘', unit: 'min', target: 15, color: '#14B8A6', type: 'value', options: null, notes: null, order: 5, createdAt: new Date().toISOString() },
+    { uid: nanoid(), name: 'Steps', icon: '👟', unit: 'steps', target: 10000, color: '#F59E0B', type: 'value', options: null, notes: null, order: 6, createdAt: new Date().toISOString() },
+    { uid: nanoid(), name: 'Journaling', icon: '📝', unit: '', target: 1, color: '#6366F1', type: 'habit', options: null, notes: null, order: 7, createdAt: new Date().toISOString() },
+    { uid: nanoid(), name: 'No Caffeine', icon: '☕', unit: '', target: 1, color: '#78716C', type: 'habit', options: null, notes: null, order: 8, createdAt: new Date().toISOString() },
   ])
 
   await db.financeCategories.bulkAdd([

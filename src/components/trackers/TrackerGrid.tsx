@@ -684,7 +684,7 @@ function AddTrackerModal({ onClose }: { onClose: () => void }) {
 
   async function handleCreate() {
     if (!name.trim()) return
-    await addDefinition({ name, icon, unit, target, color, type, options: null })
+    await addDefinition({ name, icon, unit, target, color, type, options: null, notes: null })
     onClose()
   }
 
