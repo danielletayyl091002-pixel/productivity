@@ -177,7 +177,7 @@ export default function TrackerGrid() {
         <TrackerLogModal
           tracker={activeTracker}
           currentValue={getTodayValue(activeTracker.uid)}
-          onLog={(value, note) => addLog(activeTracker.uid, value, note)}
+          onLog={(value, note, date, startTime, endTime) => addLog(activeTracker.uid, value, note, date, startTime, endTime)}
           onClose={() => setActiveTracker(null)}
         />
       )}
