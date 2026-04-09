@@ -345,9 +345,10 @@ function ThemeToggle() {
     db.settings.where('key').equals('theme').modify({ value: next })
 
     if (next === 'dark') {
-      document.documentElement.style.setProperty('--bg-primary', '#1A1A1B')
-      document.documentElement.style.setProperty('--bg-secondary', '#222224')
-      document.documentElement.style.setProperty('--bg-sidebar', '#191919')
+      // Remove any palette bg overrides so [data-theme="dark"] CSS vars win
+      document.documentElement.style.removeProperty('--bg-primary')
+      document.documentElement.style.removeProperty('--bg-secondary')
+      document.documentElement.style.removeProperty('--bg-sidebar')
     } else {
       // Remove dark overrides first, then apply saved tints if any
       document.documentElement.style.removeProperty('--bg-primary')

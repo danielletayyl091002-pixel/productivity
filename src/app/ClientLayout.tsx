@@ -53,6 +53,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       }
 
       const palette = await db.settings.where('key').equals('palette').first()
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'light'
       if (palette?.value && palette.value !== 'Default') {
         // Re-apply palette vars on load — import the palette list dynamically would be heavy,
         // so we store just accent + accent-light in settings
@@ -61,12 +62,16 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         if (accentSetting?.value) document.documentElement.style.setProperty('--accent', accentSetting.value)
         if (accentLightSetting?.value) document.documentElement.style.setProperty('--accent-light', accentLightSetting.value)
 
-        const bgPrimary = await db.settings.where('key').equals('palette_bg_primary').first()
-        const bgSecondary = await db.settings.where('key').equals('palette_bg_secondary').first()
-        const bgSidebar = await db.settings.where('key').equals('palette_bg_sidebar').first()
-        if (bgPrimary?.value) document.documentElement.style.setProperty('--bg-primary', bgPrimary.value)
-        if (bgSecondary?.value) document.documentElement.style.setProperty('--bg-secondary', bgSecondary.value)
-        if (bgSidebar?.value) document.documentElement.style.setProperty('--bg-sidebar', bgSidebar.value)
+        // Only apply palette bg overrides in light mode — in dark mode the
+        // [data-theme="dark"] CSS rule must win, not the saved light-palette values
+        if (currentTheme !== 'dark') {
+          const bgPrimary = await db.settings.where('key').equals('palette_bg_primary').first()
+          const bgSecondary = await db.settings.where('key').equals('palette_bg_secondary').first()
+          const bgSidebar = await db.settings.where('key').equals('palette_bg_sidebar').first()
+          if (bgPrimary?.value) document.documentElement.style.setProperty('--bg-primary', bgPrimary.value)
+          if (bgSecondary?.value) document.documentElement.style.setProperty('--bg-secondary', bgSecondary.value)
+          if (bgSidebar?.value) document.documentElement.style.setProperty('--bg-sidebar', bgSidebar.value)
+        }
       }
 
       const bgKeys = ['bg_trackers', 'bg_finance', 'bg_board']
