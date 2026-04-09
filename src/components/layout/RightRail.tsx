@@ -316,6 +316,16 @@ export default function RightRail() {
     if (!trackersLoaded) loadTrackers()
   }, [trackersLoaded, loadTrackers])
 
+  useEffect(() => {
+    const interval = setInterval(() => loadTrackers(), 30000)
+    const onFocus = () => loadTrackers()
+    window.addEventListener('focus', onFocus)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [loadTrackers])
+
   const [ringUids, setRingUids] = useState<string[]>([])
 
   useEffect(() => {

@@ -109,3 +109,7 @@ body {
   border: 1px solid var(--border);
 }
 
+.tracker-card {
+  background: color-mix(in srgb, var(--bg-primary) 88%, transparent) !important;
+}
+

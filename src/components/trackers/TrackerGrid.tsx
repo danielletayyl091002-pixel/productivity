@@ -25,7 +25,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useTrackerStore } from '@/stores/trackers'
-import { TrackerDefinition } from '@/db/schema'
+import { db, TrackerDefinition } from '@/db/schema'
 import TrackerLogModal from './TrackerLogModal'
 
 const ICON_CATEGORIES: { label: string; icons: { name: string; icon: React.ComponentType<{ size?: number; color?: string }> }[] }[] = [
@@ -123,9 +123,13 @@ export default function TrackerGrid() {
     const oldIndex = definitions.findIndex(d => d.uid === active.id)
     const newIndex = definitions.findIndex(d => d.uid === over.id)
     const reordered = arrayMove(definitions, oldIndex, newIndex)
+    // Persist all orders to DB
     for (let i = 0; i < reordered.length; i++) {
-      await updateDefinition(reordered[i].uid, { order: i })
+      const def = reordered[i]
+      if (def.id) await db.trackerDefinitions.update(def.id, { order: i })
     }
+    // Reload store to reflect new order
+    await load()
   }
 
   useEffect(() => {
@@ -343,6 +347,7 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
 
   return (
     <div
+      className="tracker-card"
       onClick={e => e.stopPropagation()}
       onMouseEnter={e => {
         setHovered(true)
@@ -359,6 +364,8 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
         borderRadius: '12px',
         border: '1px solid var(--border)',
         background: 'var(--bg-primary)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         cursor: 'default',
         transition: 'box-shadow 0.15s, border-color 0.15s',
         position: 'relative',
