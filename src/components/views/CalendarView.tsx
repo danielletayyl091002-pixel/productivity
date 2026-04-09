@@ -36,6 +36,16 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
   const [pendingTitle, setPendingTitle] = useState('')
   const gridRef = useRef<HTMLDivElement>(null)
 
+  // Drag-to-move state
+  const [movingTask, setMovingTask] = useState<Task | null>(null)
+  const [moveGhost, setMoveGhost] = useState<{ dateStr: string; startHour: number; endHour: number } | null>(null)
+  const moveDuration = useRef(0)
+  const moveStartPos = useRef<{ x: number; y: number } | null>(null)
+
+  // Drag-to-resize state
+  const [resizingTask, setResizingTask] = useState<Task | null>(null)
+  const [resizeEndHour, setResizeEndHour] = useState<number | null>(null)
+
   const snap = (h: number) => Math.max(START, Math.min(22, Math.round(h * 4) / 4))
 
   const fmt = (h: number) => {
@@ -103,22 +113,62 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
     const sorted = [...evts].sort((a, b) =>
       toMinutes(a.startTime!) - toMinutes(b.startTime!)
     )
-    const assigned: { task: Task; col: number }[] = []
-    const colEnds: number[] = []
+    // Group into clusters of overlapping events
+    const clusters: Task[][] = []
+    let currentCluster: Task[] = []
+    let clusterEnd = 0
     for (const task of sorted) {
       const start = toMinutes(task.startTime!)
       const end = toMinutes(task.endTime!)
-      let col = 0
-      while (colEnds[col] !== undefined && colEnds[col] > start) col++
-      colEnds[col] = end
-      assigned.push({ task, col })
+      if (currentCluster.length === 0 || start < clusterEnd) {
+        currentCluster.push(task)
+        clusterEnd = Math.max(clusterEnd, end)
+      } else {
+        clusters.push(currentCluster)
+        currentCluster = [task]
+        clusterEnd = end
+      }
     }
-    const maxCol = Math.max(...assigned.map(a => a.col)) + 1
-    return assigned.map(a => ({ ...a, totalCols: maxCol }))
+    if (currentCluster.length > 0) clusters.push(currentCluster)
+
+    // Assign columns per cluster
+    const result: { task: Task; col: number; totalCols: number }[] = []
+    for (const cluster of clusters) {
+      const colEnds: number[] = []
+      const assigned: { task: Task; col: number }[] = []
+      for (const task of cluster) {
+        const start = toMinutes(task.startTime!)
+        const end = toMinutes(task.endTime!)
+        let col = 0
+        while (colEnds[col] !== undefined && colEnds[col] > start) col++
+        colEnds[col] = end
+        assigned.push({ task, col })
+      }
+      const totalCols = Math.max(...assigned.map(a => a.col)) + 1
+      result.push(...assigned.map(a => ({ ...a, totalCols })))
+    }
+    return result
   }
 
   function handleMouseDown(e: React.MouseEvent) {
-    if ((e.target as HTMLElement).closest('[data-event]')) return
+    // Resize handle click
+    if ((e.target as HTMLElement).closest('[data-resize]')) return
+    // Event click — start move
+    const eventEl = (e.target as HTMLElement).closest('[data-event-uid]') as HTMLElement | null
+    if (eventEl) {
+      e.preventDefault()
+      e.stopPropagation()
+      const uid = eventEl.getAttribute('data-event-uid')
+      const task = tasks.find(t => t.uid === uid)
+      if (!task) return
+      const startMin = toMinutes(task.startTime!)
+      const endMin = toMinutes(task.endTime!)
+      moveDuration.current = (endMin - startMin) / 60
+      moveStartPos.current = { x: e.clientX, y: e.clientY }
+      setMovingTask(task)
+      return
+    }
+    // Empty space click — start create-new drag
     e.preventDefault()
     const pos = getColAndHour(e)
     if (!pos) return
@@ -127,13 +177,83 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
   }
 
   function handleMouseMove(e: React.MouseEvent) {
+    // Moving an event
+    if (movingTask) {
+      // Require 3px movement before starting visual drag
+      if (moveStartPos.current) {
+        const dx = Math.abs(e.clientX - moveStartPos.current.x)
+        const dy = Math.abs(e.clientY - moveStartPos.current.y)
+        if (dx < 3 && dy < 3) return
+        moveStartPos.current = null
+      }
+      const pos = getColAndHour(e)
+      if (!pos) return
+      const endHour = pos.hour + moveDuration.current
+      setMoveGhost({ dateStr: pos.dateStr, startHour: pos.hour, endHour: snap(endHour) })
+      return
+    }
+    // Resizing an event
+    if (resizingTask) {
+      const pos = getColAndHour(e)
+      if (!pos) return
+      const startHour = toMinutes(resizingTask.startTime!) / 60
+      const minEnd = startHour + 0.25 // minimum 15 minutes
+      setResizeEndHour(Math.max(minEnd, pos.hour))
+      return
+    }
+    // Creating new event
     if (!isDragging || !dragState) return
     const pos = getColAndHour(e)
-    if (!pos || pos.dateStr !== dragState.dateStr) return
-    setDragState(p => p ? { ...p, endHour: pos.hour } : null)
+    if (!pos) return
+    setDragState(p => p ? { ...p, endHour: pos.hour, dateStr: pos.dateStr } : null)
   }
 
-  function handleMouseUp() {
+  async function handleMouseUp() {
+    // Finish moving event
+    if (movingTask && moveGhost) {
+      const newStart = moveGhost.startHour
+      const newEnd = newStart + moveDuration.current
+      const task = movingTask
+      await db.tasks.where('uid').equals(task.uid).modify({
+        scheduledDate: moveGhost.dateStr,
+        dueDate: moveGhost.dateStr,
+        startTime: fmtDB(newStart),
+        endTime: fmtDB(snap(newEnd)),
+      })
+      setTasks(prev => prev.map(t => t.uid === task.uid ? {
+        ...t,
+        scheduledDate: moveGhost.dateStr,
+        dueDate: moveGhost.dateStr,
+        startTime: fmtDB(newStart),
+        endTime: fmtDB(snap(newEnd)),
+      } : t))
+      setMovingTask(null)
+      setMoveGhost(null)
+      moveStartPos.current = null
+      return
+    }
+    if (movingTask) {
+      // Click without move — just cancel
+      setMovingTask(null)
+      setMoveGhost(null)
+      moveStartPos.current = null
+      return
+    }
+    // Finish resizing event
+    if (resizingTask && resizeEndHour !== null) {
+      const task = resizingTask
+      const newEndTime = fmtDB(resizeEndHour)
+      await db.tasks.where('uid').equals(task.uid).modify({
+        endTime: newEndTime,
+      })
+      setTasks(prev => prev.map(t => t.uid === task.uid ? {
+        ...t, endTime: newEndTime,
+      } : t))
+      setResizingTask(null)
+      setResizeEndHour(null)
+      return
+    }
+    // Finish creating new event
     if (!isDragging || !dragState) return
     setIsDragging(false)
     const start = Math.min(dragState.startHour, dragState.endHour)
@@ -147,6 +267,13 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
     } else {
       setDragState(null)
     }
+  }
+
+  function handleResizeStart(e: React.MouseEvent, task: Task) {
+    e.preventDefault()
+    e.stopPropagation()
+    setResizingTask(task)
+    setResizeEndHour(toMinutes(task.endTime!) / 60)
   }
 
   return (
@@ -201,7 +328,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
           flex: 1,
           overflowY: 'auto',
           position: 'relative',
-          cursor: isDragging ? 'crosshair' : 'default',
+          cursor: isDragging ? 'crosshair' : movingTask ? 'grabbing' : resizingTask ? 'ns-resize' : 'default',
           userSelect: 'none'
         }}
         onMouseDown={handleMouseDown}
@@ -284,10 +411,36 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                   </div>
                 )}
 
+                {/* Move ghost preview */}
+                {movingTask && moveGhost && moveGhost.dateStr === dateStr && (
+                  <div style={{
+                    position: 'absolute',
+                    top: `${(moveGhost.startHour - START) * HOUR_H}px`,
+                    left: '2px', right: '2px',
+                    height: `${moveDuration.current * HOUR_H}px`,
+                    background: 'var(--accent-light)',
+                    borderLeft: '3px dashed var(--accent)',
+                    borderRadius: '3px',
+                    opacity: 0.7,
+                    pointerEvents: 'none',
+                    zIndex: 8,
+                    padding: '2px 4px',
+                    fontSize: '9px',
+                    fontWeight: 700,
+                    color: 'var(--accent)',
+                  }}>
+                    {movingTask.title} — {fmt(moveGhost.startHour)} → {fmt(moveGhost.startHour + moveDuration.current)}
+                  </div>
+                )}
+
                 {/* Events */}
                 {positioned.map(({ task, col, totalCols }) => {
+                  const isBeingMoved = movingTask?.uid === task.uid && moveGhost
+                  const isBeingResized = resizingTask?.uid === task.uid
                   const startMins = toMinutes(task.startTime!)
-                  const endMins = toMinutes(task.endTime!)
+                  const endMins = isBeingResized && resizeEndHour !== null
+                    ? resizeEndHour * 60
+                    : toMinutes(task.endTime!)
                   const top = (startMins / 60 - START) * HOUR_H
                   const height = Math.max(((endMins - startMins) / 60) * HOUR_H, 20)
                   const colW = 100 / totalCols
@@ -297,8 +450,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                   return (
                     <div
                       key={task.uid}
-                      data-event="true"
-                      onMouseDown={e => e.stopPropagation()}
+                      data-event-uid={task.uid}
                       style={{
                         position: 'absolute',
                         top: `${top}px`,
@@ -313,11 +465,13 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                         fontWeight: 500,
                         color: color,
                         overflow: 'hidden',
-                        zIndex: 3,
-                        cursor: 'pointer',
+                        zIndex: isBeingMoved || isBeingResized ? 10 : 3,
+                        cursor: 'grab',
                         display: 'flex',
                         flexDirection: 'column',
-                        boxSizing: 'border-box'
+                        boxSizing: 'border-box',
+                        opacity: isBeingMoved ? 0.3 : 1,
+                        transition: isBeingMoved ? 'none' : 'opacity 0.15s',
                       }}
                     >
                       <span style={{
@@ -328,7 +482,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                         {task.title}
                       </span>
                       <span style={{ fontSize: '9px', opacity: 0.8 }}>
-                        {task.startTime} - {task.endTime}
+                        {task.startTime} - {isBeingResized && resizeEndHour !== null ? fmtDB(resizeEndHour) : task.endTime}
                       </span>
                       <span
                         onClick={e => { e.stopPropagation(); onDeleteTask(task.uid) }}
@@ -344,6 +498,18 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                       >
                         &times;
                       </span>
+                      {/* Resize handle at bottom */}
+                      <div
+                        data-resize="true"
+                        onMouseDown={e => handleResizeStart(e, task)}
+                        style={{
+                          position: 'absolute',
+                          bottom: 0, left: 0, right: 0,
+                          height: '6px',
+                          cursor: 'ns-resize',
+                          background: 'transparent',
+                        }}
+                      />
                     </div>
                   )
                 })}
