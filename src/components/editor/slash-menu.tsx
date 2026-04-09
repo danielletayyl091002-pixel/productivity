@@ -1,0 +1,163 @@
+'use client'
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
+import { ReactRenderer } from '@tiptap/react'
+import tippy, { Instance } from 'tippy.js'
+import { Editor, Range } from '@tiptap/core'
+import { SuggestionOptions, SuggestionProps, SuggestionKeyDownProps } from '@tiptap/suggestion'
+import Fuse from 'fuse.js'
+
+interface SlashItem {
+  title: string
+  command: string
+  attrs?: Record<string, unknown>
+  icon: string
+  shortcut: string
+}
+
+const commands: SlashItem[] = [
+  { title: 'Text', command: 'paragraph', icon: 'T', shortcut: '' },
+  { title: 'Heading 1', command: 'heading', attrs: { level: 1 }, icon: 'H1', shortcut: '' },
+  { title: 'Heading 2', command: 'heading', attrs: { level: 2 }, icon: 'H2', shortcut: '' },
+  { title: 'Heading 3', command: 'heading', attrs: { level: 3 }, icon: 'H3', shortcut: '' },
+  { title: 'Bullet List', command: 'bulletList', icon: '\u2022', shortcut: '' },
+  { title: 'Numbered List', command: 'orderedList', icon: '1.', shortcut: '' },
+  { title: 'To-do List', command: 'taskList', icon: '\u2610', shortcut: '' },
+  { title: 'Quote', command: 'blockquote', icon: '\u201C', shortcut: '' },
+  { title: 'Code Block', command: 'codeBlock', icon: '</>', shortcut: '' },
+  { title: 'Divider', command: 'horizontalRule', icon: '\u2014', shortcut: '' },
+  { title: 'Callout', command: 'callout', icon: '\uD83D\uDCA1', shortcut: '' },
+]
+
+const fuse = new Fuse(commands, { keys: ['title'], threshold: 0.3 })
+
+function getRecent(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem('fluent_slash_recent') || '[]')
+  } catch { return [] }
+}
+
+function addRecent(title: string) {
+  const recent = getRecent().filter((t: string) => t !== title)
+  recent.unshift(title)
+  localStorage.setItem('fluent_slash_recent', JSON.stringify(recent.slice(0, 3)))
+}
+
+export const suggestion: Omit<SuggestionOptions, 'editor'> = {
+  char: '/',
+  command: ({ editor, range, props }: { editor: Editor; range: Range; props: any }) => {
+    const { type, attrs } = props
+    const chain = editor.chain().focus().deleteRange(range)
+    switch (type) {
+      case 'paragraph': chain.setNode('paragraph').run(); break
+      case 'heading': chain.setNode('heading', attrs).run(); break
+      case 'bulletList': chain.toggleBulletList().run(); break
+      case 'orderedList': chain.toggleOrderedList().run(); break
+      case 'taskList': chain.toggleTaskList().run(); break
+      case 'blockquote': chain.toggleBlockquote().run(); break
+      case 'codeBlock': chain.toggleCodeBlock().run(); break
+      case 'horizontalRule': chain.setHorizontalRule().run(); break
+      case 'callout': editor.chain().focus().deleteRange(range).setCallout().run(); break
+      default: chain.setNode('paragraph').run(); break
+    }
+  },
+  items: ({ query }: { query: string }) => {
+    const recent = getRecent()
+    const filtered = query ? fuse.search(query).map(r => r.item) : commands
+    const recentItems = filtered.filter(c => recent.includes(c.title))
+    const otherItems = filtered.filter(c => !recent.includes(c.title))
+    return [...recentItems, ...otherItems]
+  },
+  render: () => {
+    let component: ReactRenderer | null = null
+    let popup: Instance[] | null = null
+
+    return {
+      onStart: (props: SuggestionProps) => {
+        component = new ReactRenderer(MenuList, {
+          props,
+          editor: props.editor,
+        })
+        popup = tippy('body', {
+          getReferenceClientRect: props.clientRect as () => DOMRect,
+          appendTo: () => document.body,
+          content: component.element,
+          showOnCreate: true,
+          interactive: true,
+          trigger: 'manual',
+          placement: 'bottom-start',
+        })
+      },
+      onUpdate(props: SuggestionProps) {
+        component?.updateProps(props)
+        if (popup?.[0]) {
+          popup[0].setProps({ getReferenceClientRect: props.clientRect as () => DOMRect })
+        }
+      },
+      onKeyDown(props: SuggestionKeyDownProps) {
+        if (props.event.key === 'Escape') {
+          popup?.[0]?.hide()
+          return true
+        }
+        return (component?.ref as any)?.onKeyDown(props) ?? false
+      },
+      onExit() {
+        popup?.[0]?.destroy()
+        component?.destroy()
+      },
+    }
+  },
+}
+
+const MenuList = forwardRef((props: any, ref) => {
+  const { items, command } = props
+  const [selectedIndex, setSelectedIndex] = useState(0)
+
+  useEffect(() => {
+    setSelectedIndex(0)
+  }, [items])
+
+  useImperativeHandle(ref, () => ({
+    onKeyDown: ({ event }: { event: KeyboardEvent }) => {
+      if (event.key === 'ArrowUp') {
+        setSelectedIndex((prev: number) => (prev - 1 + items.length) % items.length)
+        return true
+      }
+      if (event.key === 'ArrowDown') {
+        setSelectedIndex((prev: number) => (prev + 1) % items.length)
+        return true
+      }
+      if (event.key === 'Enter') {
+        selectItem(items[selectedIndex])
+        return true
+      }
+      return false
+    },
+  }))
+
+  const selectItem = (item: SlashItem) => {
+    if (!item) return
+    addRecent(item.title)
+    command({ type: item.command, attrs: item.attrs })
+  }
+
+  if (!items?.length) return null
+
+  return (
+    <div className="slash-menu">
+      {items.map((item: SlashItem, idx: number) => (
+        <div
+          key={item.title}
+          className={`slash-item ${idx === selectedIndex ? 'selected' : ''}`}
+          onClick={() => selectItem(item)}
+          onMouseEnter={() => setSelectedIndex(idx)}
+        >
+          <span className="slash-icon">{item.icon}</span>
+          <span className="slash-title">{item.title}</span>
+          {item.shortcut && <span className="slash-shortcut">{item.shortcut}</span>}
+        </div>
+      ))}
+    </div>
+  )
+})
+
+MenuList.displayName = 'MenuList'

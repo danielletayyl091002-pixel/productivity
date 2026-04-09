@@ -6,7 +6,28 @@ import Placeholder from '@tiptap/extension-placeholder'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import HorizontalRule from '@tiptap/extension-horizontal-rule'
+import { Extension } from '@tiptap/core'
+import Suggestion from '@tiptap/suggestion'
+import { suggestion } from './slash-menu'
+import { Callout } from './CalloutExtension'
+import FloatingToolbar from './FloatingToolbar'
+import DragHandle from './DragHandle'
 import { db, Block } from '@/db/schema'
+
+const SlashCommand = Extension.create({
+  name: 'slashCommand',
+  addOptions() {
+    return { suggestion }
+  },
+  addProseMirrorPlugins() {
+    return [
+      Suggestion({
+        editor: this.editor,
+        ...this.options.suggestion,
+      }),
+    ]
+  },
+})
 
 interface FluentEditorProps {
   pageUid: string
@@ -53,6 +74,8 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
       Placeholder.configure({
         placeholder: "Type '/' for commands...",
       }),
+      SlashCommand,
+      Callout,
     ],
     content: initialContent || { type: 'doc', content: [{ type: 'paragraph' }] },
     onUpdate: ({ editor: ed }) => {
@@ -65,9 +88,25 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
     },
     editorProps: {
       handleKeyDown: (view, event) => {
-        // Slash command trigger
-        if (event.key === '/' && !event.metaKey && !event.ctrlKey) {
-          // Let TipTap handle the '/' insertion, we'll detect it in onUpdate
+        // Tab inside blockquote: nest deeper
+        if (event.key === 'Tab' && !event.metaKey && !event.ctrlKey) {
+          const { state } = view
+          const { $from } = state.selection
+          // Check if inside a blockquote
+          for (let d = $from.depth; d > 0; d--) {
+            if ($from.node(d).type.name === 'blockquote') {
+              event.preventDefault()
+              if (event.shiftKey) {
+                // Shift+Tab: lift out of blockquote
+                editor?.commands.lift('blockquote')
+              } else {
+                // Tab: wrap in another blockquote
+                editor?.commands.wrapIn('blockquote')
+              }
+              return true
+            }
+          }
+          return false
         }
         return false
       },
@@ -111,7 +150,9 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
   if (!editor) return null
 
   return (
-    <div>
+    <div style={{ position: 'relative' }}>
+      <FloatingToolbar editor={editor} />
+      <DragHandle editor={editor} />
       <EditorContent editor={editor} />
     </div>
   )
