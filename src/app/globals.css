@@ -77,7 +77,15 @@ body {
 .ProseMirror blockquote { border-left: 3px solid var(--accent); padding-left: 12px; font-style: italic; color: var(--text-secondary); margin: 4px 0; }
 .ProseMirror pre { background: var(--bg-hover); padding: 12px 16px; border-radius: 8px; font-family: monospace; font-size: 13px; overflow-x: auto; }
 .ProseMirror code:not(pre code) { background: var(--bg-hover); padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 13px; }
-.ProseMirror hr, .ProseMirror .horizontal-rule { display: block; border: none; border-top: 2px solid var(--border); margin: 16px 0; padding: 8px 0; cursor: grab; }
+.horizontal-rule,
+.ProseMirror hr {
+  display: block;
+  margin: 24px 0;
+  border: none;
+  border-top: 3px solid var(--text-tertiary, #9CA3AF);
+  height: 1px;
+  background: transparent;
+}
 .ProseMirror ul[data-type="taskList"] { list-style: none; padding: 0; }
 .ProseMirror ul[data-type="taskList"] li { display: flex; gap: 8px; align-items: flex-start; }
 .ProseMirror ul[data-type="taskList"] li > label { margin-top: 2px; }
@@ -166,8 +174,9 @@ body {
   user-select: none;
   border-radius: 4px;
   color: var(--text-tertiary);
-  pointer-events: auto !important;
+  opacity: 1 !important;
   visibility: visible !important;
+  pointer-events: auto !important;
 }
 .drag-handle:hover {
   background: var(--bg-hover);
