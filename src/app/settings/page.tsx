@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { db, TrackerDefinition } from '@/db/schema'
+import { db } from '@/db/schema'
 
 const PALETTES: {
   name: string
@@ -111,8 +111,6 @@ export default function SettingsPage() {
   const [weekStart, setWeekStart] = useState('sunday')
   const [tintStrength, setTintStrength] = useState(8)
   const [bgImages, setBgImages] = useState<Record<string, string>>({})
-  const [allTrackers, setAllTrackers] = useState<TrackerDefinition[]>([])
-  const [selectedRingUids, setSelectedRingUids] = useState<string[]>([])
 
   useEffect(() => {
     // Load saved settings
@@ -130,12 +128,6 @@ export default function SettingsPage() {
         if (setting?.value) imgs[key] = setting.value
       }
       setBgImages(imgs)
-      const trackers = await db.trackerDefinitions.orderBy('order').toArray()
-      setAllTrackers(trackers)
-      const ringSetting = await db.settings.where('key').equals('daily_progress_trackers').first()
-      if (ringSetting?.value) {
-        try { setSelectedRingUids(JSON.parse(ringSetting.value)) } catch {}
-      }
     }
     loadSettings()
 
@@ -467,55 +459,6 @@ export default function SettingsPage() {
           ))}
         </section>
 
-        <section style={{ marginTop: '40px' }}>
-          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
-            Daily Progress Rings
-          </h2>
-          <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '16px' }}>
-            Choose up to 3 trackers to display in the right rail.
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {allTrackers.map(t => {
-              const isSelected = selectedRingUids.includes(t.uid)
-              const atLimit = selectedRingUids.length >= 3 && !isSelected
-              return (
-                <button
-                  key={t.uid}
-                  onClick={async () => {
-                    let next: string[]
-                    if (isSelected) {
-                      next = selectedRingUids.filter(u => u !== t.uid)
-                    } else if (!atLimit) {
-                      next = [...selectedRingUids, t.uid]
-                    } else return
-                    setSelectedRingUids(next)
-                    const val = JSON.stringify(next)
-                    const exist = await db.settings.where('key').equals('daily_progress_trackers').first()
-                    if (exist?.id) await db.settings.update(exist.id, { value: val })
-                    else await db.settings.add({ key: 'daily_progress_trackers', value: val })
-                  }}
-                  style={{
-                    padding: '6px 14px', borderRadius: '20px',
-                    border: isSelected ? `2px solid ${t.color}` : '1px solid var(--border)',
-                    background: isSelected ? `${t.color}18` : 'transparent',
-                    color: isSelected ? t.color : atLimit ? 'var(--text-tertiary)' : 'var(--text-secondary)',
-                    fontSize: '12px', fontWeight: 500, cursor: atLimit ? 'not-allowed' : 'pointer',
-                    opacity: atLimit ? 0.5 : 1,
-                    transition: 'all 0.1s'
-                  }}
-                >
-                  {t.icon && <span style={{ marginRight: '4px' }}>{t.icon}</span>}
-                  {t.name}
-                </button>
-              )
-            })}
-          </div>
-          {selectedRingUids.length > 0 && (
-            <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--text-tertiary)' }}>
-              {selectedRingUids.length}/3 selected
-            </div>
-          )}
-        </section>
       </div>
     </div>
   )

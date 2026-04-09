@@ -111,6 +111,15 @@ export default function TrackerGrid() {
   const [showAdd, setShowAdd] = useState(false)
   const [editTracker, setEditTracker] = useState<TrackerDefinition | null>(null)
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
+  const [ringUids, setRingUids] = useState<string[]>([])
+
+  useEffect(() => {
+    async function loadRingPref() {
+      const setting = await db.settings.where('key').equals('daily_progress_trackers').first()
+      if (setting?.value) try { setRingUids(JSON.parse(setting.value)) } catch {}
+    }
+    loadRingPref()
+  }, [])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -172,6 +181,46 @@ export default function TrackerGrid() {
           background: 'transparent', color: 'var(--text-secondary)',
           fontSize: '12px', cursor: 'pointer'
         }}>+ Add</button>
+      </div>
+
+      {/* Daily Progress selection */}
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '8px' }}>
+          Daily Progress (pick up to 3)
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+          {definitions.map(t => {
+            const isSelected = ringUids.includes(t.uid)
+            const atLimit = ringUids.length >= 3 && !isSelected
+            return (
+              <button
+                key={t.uid}
+                onPointerDown={e => e.stopPropagation()}
+                onClick={async () => {
+                  let next: string[]
+                  if (isSelected) next = ringUids.filter(u => u !== t.uid)
+                  else if (!atLimit) next = [...ringUids, t.uid]
+                  else return
+                  setRingUids(next)
+                  const val = JSON.stringify(next)
+                  const exist = await db.settings.where('key').equals('daily_progress_trackers').first()
+                  if (exist?.id) await db.settings.update(exist.id, { value: val })
+                  else await db.settings.add({ key: 'daily_progress_trackers', value: val })
+                }}
+                style={{
+                  padding: '4px 12px', borderRadius: '16px',
+                  border: isSelected ? `2px solid ${t.color}` : '1px solid var(--border)',
+                  background: isSelected ? `${t.color}18` : 'transparent',
+                  color: isSelected ? t.color : atLimit ? 'var(--text-tertiary)' : 'var(--text-secondary)',
+                  fontSize: '11px', fontWeight: 500, cursor: atLimit ? 'not-allowed' : 'pointer',
+                  opacity: atLimit ? 0.5 : 1, transition: 'all 0.1s'
+                }}
+              >
+                {t.name}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       <DndContext
@@ -282,7 +331,6 @@ function SortableTrackerCard(props: Parameters<typeof TrackerCard>[0] & { uid: s
         <GripVertical size={12} />
       </div>
       <TrackerCard {...props} />
-      <style>{`.tracker-drag-handle { opacity: 0; } div:hover > .tracker-drag-handle { opacity: 0.6; }`}</style>
     </div>
   )
 }

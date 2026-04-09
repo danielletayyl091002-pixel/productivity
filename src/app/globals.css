@@ -113,3 +113,6 @@ body {
   background: color-mix(in srgb, var(--bg-primary) 88%, transparent) !important;
 }
 
+.tracker-drag-handle { opacity: 0; transition: opacity 0.15s; }
+div:hover > .tracker-drag-handle { opacity: 0.6; }
+
