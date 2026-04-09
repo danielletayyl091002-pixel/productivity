@@ -68,6 +68,14 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         if (bgSecondary?.value) document.documentElement.style.setProperty('--bg-secondary', bgSecondary.value)
         if (bgSidebar?.value) document.documentElement.style.setProperty('--bg-sidebar', bgSidebar.value)
       }
+
+      const bgKeys = ['bg_trackers', 'bg_finance', 'bg_board']
+      for (const key of bgKeys) {
+        const setting = await db.settings.where('key').equals(key).first()
+        if (setting?.value) {
+          document.documentElement.style.setProperty(`--${key}`, `url(${setting.value})`)
+        }
+      }
     }
     loadSettings()
   }, [])

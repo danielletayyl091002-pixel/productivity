@@ -109,6 +109,8 @@ export default function SettingsPage() {
   const [currentFont, setCurrentFont] = useState('System Default')
   const [fontsLoaded, setFontsLoaded] = useState(false)
   const [weekStart, setWeekStart] = useState('sunday')
+  const [tintStrength, setTintStrength] = useState(8)
+  const [bgImages, setBgImages] = useState<Record<string, string>>({})
 
   useEffect(() => {
     // Load saved settings
@@ -117,6 +119,15 @@ export default function SettingsPage() {
       const font = await db.settings.where('key').equals('font').first()
       if (palette?.value) setCurrentPalette(palette.value)
       if (font?.value) setCurrentFont(font.value)
+      const tint = await db.settings.where('key').equals('tint_strength').first()
+      if (tint?.value) setTintStrength(Number(tint.value))
+      const bgImgKeys = ['bg_trackers', 'bg_finance', 'bg_board']
+      const imgs: Record<string, string> = {}
+      for (const key of bgImgKeys) {
+        const setting = await db.settings.where('key').equals(key).first()
+        if (setting?.value) imgs[key] = setting.value
+      }
+      setBgImages(imgs)
     }
     loadSettings()
 
@@ -169,9 +180,12 @@ export default function SettingsPage() {
       const r = parseInt(accent.slice(1,3), 16)
       const g = parseInt(accent.slice(3,5), 16)
       const b = parseInt(accent.slice(5,7), 16)
-      const bgPrimary = `rgb(${Math.round(r*0.04 + 255*0.96)}, ${Math.round(g*0.04 + 255*0.96)}, ${Math.round(b*0.04 + 255*0.96)})`
-      const bgSecondary = `rgb(${Math.round(r*0.07 + 255*0.93)}, ${Math.round(g*0.07 + 255*0.93)}, ${Math.round(b*0.07 + 255*0.93)})`
-      const bgSidebar = `rgb(${Math.round(r*0.05 + 255*0.95)}, ${Math.round(g*0.05 + 255*0.95)}, ${Math.round(b*0.05 + 255*0.95)})`
+      const t = tintStrength / 100
+      const ts = (tintStrength * 1.6) / 100
+      const tm = (tintStrength * 1.25) / 100
+      const bgPrimary = `rgb(${Math.round(r*t + 255*(1-t))}, ${Math.round(g*t + 255*(1-t))}, ${Math.round(b*t + 255*(1-t))})`
+      const bgSecondary = `rgb(${Math.round(r*ts + 255*(1-ts))}, ${Math.round(g*ts + 255*(1-ts))}, ${Math.round(b*ts + 255*(1-ts))})`
+      const bgSidebar = `rgb(${Math.round(r*tm + 255*(1-tm))}, ${Math.round(g*tm + 255*(1-tm))}, ${Math.round(b*tm + 255*(1-tm))})`
       document.documentElement.style.setProperty('--bg-primary', bgPrimary)
       document.documentElement.style.setProperty('--bg-secondary', bgSecondary)
       document.documentElement.style.setProperty('--bg-sidebar', bgSidebar)
@@ -274,6 +288,31 @@ export default function SettingsPage() {
               </span>
             </div>
           </div>
+          <div style={{ marginTop: '20px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+              Background tint strength
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <input
+                type="range"
+                min="0"
+                max="30"
+                value={tintStrength}
+                onChange={async e => {
+                  const val = Number(e.target.value)
+                  setTintStrength(val)
+                  await applyPalette(currentPalette)
+                  const exist = await db.settings.where('key').equals('tint_strength').first()
+                  if (exist?.id) await db.settings.update(exist.id, { value: String(val) })
+                  else await db.settings.add({ key: 'tint_strength', value: String(val) })
+                }}
+                style={{ flex: 1, accentColor: 'var(--accent)' }}
+              />
+              <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', minWidth: '32px' }}>
+                {tintStrength}%
+              </span>
+            </div>
+          </div>
         </section>
 
         {/* Week starts on */}
@@ -329,6 +368,93 @@ export default function SettingsPage() {
                   }}>{f.name}</button>
                 ))}
               </div>
+            </div>
+          ))}
+        </section>
+
+        <section style={{ marginTop: '40px' }}>
+          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+            Page Backgrounds
+          </h2>
+          <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '16px' }}>
+            Set a custom background image for Trackers, Finance, and Board pages.
+          </p>
+          {[
+            { key: 'bg_trackers', label: 'Trackers' },
+            { key: 'bg_finance', label: 'Finance' },
+            { key: 'bg_board', label: 'Board' },
+          ].map(({ key, label }) => (
+            <div key={key} style={{
+              display: 'flex', alignItems: 'center', gap: '12px',
+              marginBottom: '12px', padding: '12px',
+              borderRadius: '10px', border: '1px solid var(--border)',
+              background: 'var(--bg-secondary)'
+            }}>
+              <div style={{
+                width: '56px', height: '40px', borderRadius: '6px',
+                background: bgImages[key] ? `url(${bgImages[key]}) center/cover` : 'var(--bg-hover)',
+                border: '1px solid var(--border)', flexShrink: 0
+              }} />
+              <span style={{ flex: 1, fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                {label}
+              </span>
+              <label style={{
+                padding: '5px 12px', borderRadius: '6px',
+                border: '1px solid var(--border)',
+                background: 'transparent', color: 'var(--text-secondary)',
+                fontSize: '12px', cursor: 'pointer'
+              }}>
+                {bgImages[key] ? 'Change' : 'Upload'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={async e => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    const reader = new FileReader()
+                    reader.onload = async ev => {
+                      const dataUrl = ev.target?.result as string
+                      const img = new Image()
+                      img.onload = async () => {
+                        const canvas = document.createElement('canvas')
+                        const maxW = 1920
+                        const scale = Math.min(1, maxW / img.width)
+                        canvas.width = img.width * scale
+                        canvas.height = img.height * scale
+                        const ctx = canvas.getContext('2d')!
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+                        const compressed = canvas.toDataURL('image/jpeg', 0.7)
+                        setBgImages(p => ({ ...p, [key]: compressed }))
+                        const exist = await db.settings.where('key').equals(key).first()
+                        if (exist?.id) await db.settings.update(exist.id, { value: compressed })
+                        else await db.settings.add({ key, value: compressed })
+                        document.documentElement.style.setProperty(`--${key}`, `url(${compressed})`)
+                      }
+                      img.src = dataUrl
+                    }
+                    reader.readAsDataURL(file)
+                  }}
+                />
+              </label>
+              {bgImages[key] && (
+                <button
+                  onClick={async () => {
+                    setBgImages(p => ({ ...p, [key]: '' }))
+                    const exist = await db.settings.where('key').equals(key).first()
+                    if (exist?.id) await db.settings.update(exist.id, { value: '' })
+                    document.documentElement.style.removeProperty(`--${key}`)
+                  }}
+                  style={{
+                    padding: '5px 10px', borderRadius: '6px',
+                    border: '1px solid #EF4444',
+                    background: 'none', color: '#EF4444',
+                    fontSize: '12px', cursor: 'pointer'
+                  }}
+                >
+                  Remove
+                </button>
+              )}
             </div>
           ))}
         </section>

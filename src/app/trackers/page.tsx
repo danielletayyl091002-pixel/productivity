@@ -4,7 +4,7 @@ import { db } from '@/db/schema'
 
 export default function TrackersPage() {
   return (
-    <div style={{ height: '100vh', overflowY: 'auto', background: 'var(--bg-primary)' }}>
+    <div style={{ height: '100vh', overflowY: 'auto', background: 'var(--bg-primary)', backgroundImage: 'var(--bg_trackers, none)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
       <div style={{ maxWidth: '860px', margin: '0 auto', padding: '40px 40px 120px' }}>
         <h1 style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
           Trackers

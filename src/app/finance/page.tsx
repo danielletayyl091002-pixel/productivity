@@ -288,6 +288,9 @@ export default function FinancePage() {
     <div style={{
       height: '100vh', overflowY: 'auto',
       background: 'var(--bg-secondary)',
+      backgroundImage: 'var(--bg_finance, none)',
+      backgroundSize: 'cover', backgroundPosition: 'center',
+      backgroundAttachment: 'fixed',
       padding: '32px 40px'
     }}>
 

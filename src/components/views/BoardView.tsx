@@ -141,7 +141,10 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
     <div style={{
       display: 'flex', gap: '16px',
       padding: '24px', height: '100%',
-      overflowX: 'auto', alignItems: 'flex-start'
+      overflowX: 'auto', alignItems: 'flex-start',
+      backgroundImage: 'var(--bg_board, none)',
+      backgroundSize: 'cover', backgroundPosition: 'center',
+      backgroundAttachment: 'fixed'
     }}>
       <DndContext
         sensors={sensors}
