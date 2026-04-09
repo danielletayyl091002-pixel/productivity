@@ -114,5 +114,5 @@ body {
 }
 
 .tracker-drag-handle { opacity: 0; transition: opacity 0.15s; }
-div:hover > .tracker-drag-handle { opacity: 0.6; }
+div:hover > .tracker-drag-handle { opacity: 0.6 !important; }
 
