@@ -189,44 +189,26 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
   }, [editor, updateCellInfo])
 
   const commitFormula = useCallback(() => {
-    console.log('[FORMULA] commitFormula called, formula:', formula, 'cached:', cached.current)
-    if (!formula.startsWith('=')) { console.log('[FORMULA] not a formula, skipping'); return }
-    if (!cached.current) { console.log('[FORMULA] no cached cell, skipping'); return }
+    if (!formula.startsWith('=') || !cached.current) return
     const { tablePos, cellPos, cellRow, cellCol } = cached.current
-
-    // Re-read table from current doc (fresh data)
     const tableNode = editor.state.doc.nodeAt(tablePos)
-    console.log('[FORMULA] tableNode at', tablePos, ':', tableNode?.type.name, tableNode ? 'found' : 'NOT FOUND')
-    if (!tableNode || tableNode.type.name !== 'table') { console.log('[FORMULA] no table at cached pos'); return }
-
+    if (!tableNode || tableNode.type.name !== 'table') return
     const data = readTable(tableNode)
-    console.log('[FORMULA] table data:', data)
     const { val, err } = evalFormula(formula, data, cellRow, cellCol)
-    console.log('[FORMULA] eval result:', val, 'err:', err)
     if (err) { setError(err); return }
-
-    // Store formula
     const key = `${cellRow}-${cellCol}`
     formulaMap.set(key, formula)
-
-    // Re-read the cell node from current doc to get fresh content size
     const cellNode = editor.state.doc.nodeAt(cellPos)
-    console.log('[FORMULA] cellNode at', cellPos, ':', cellNode?.type.name, 'contentSize:', cellNode?.content.size)
-    if (!cellNode) { console.log('[FORMULA] no cell node at cached pos'); return }
+    if (!cellNode) return
     const contentStart = cellPos + 1
     const contentEnd = contentStart + cellNode.content.size
-
-    const resultText = String(val ?? 0)
-    console.log('[FORMULA] writing', resultText, 'to range', contentStart, '-', contentEnd)
-    const textNode = editor.state.schema.text(resultText)
+    const textNode = editor.state.schema.text(String(val ?? 0))
     const para = editor.state.schema.nodes.paragraph.create(null, textNode)
-
     const tr = editor.state.tr
     tr.setNodeMarkup(cellPos, undefined, { ...cellNode.attrs, formula: formula })
     tr.replaceWith(contentStart, contentEnd, para)
     tr.setMeta('formulaRecalc', true)
     editor.view.dispatch(tr)
-    console.log('[FORMULA] transaction dispatched')
     setError('')
   }, [editor, formula])
 

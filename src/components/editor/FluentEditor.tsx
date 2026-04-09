@@ -151,13 +151,104 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
           }
         }
 
-        // Enter in table: move to next row (same as Tab then back)
+        // Enter in table: evaluate formula if cell starts with =, then move to next cell
         if (event.key === 'Enter' && !event.shiftKey) {
           let inTable = false
           for (let d = $from.depth; d >= 0; d--) {
             if ($from.node(d).type.name === 'table') { inTable = true; break }
           }
           if (inTable) {
+            // Check if current cell text is a formula
+            let cellDepth = -1
+            for (let d = $from.depth; d >= 0; d--) {
+              const n = $from.node(d)
+              if (n.type.name === 'tableCell' || n.type.name === 'tableHeader') {
+                cellDepth = d
+                break
+              }
+            }
+            if (cellDepth >= 0) {
+              const cellNode = $from.node(cellDepth)
+              const cellText = cellNode.textContent.trim()
+              if (cellText.startsWith('=')) {
+                // Find the table node to read data
+                let tableNode = null
+                let tableRow = -1, tableCol = -1
+                for (let d = $from.depth; d >= 0; d--) {
+                  const n = $from.node(d)
+                  if (n.type.name === 'table') tableNode = n
+                  if (n.type.name === 'tableRow') tableRow = $from.index(d - 1)
+                  if (n.type.name === 'tableCell' || n.type.name === 'tableHeader') tableCol = $from.index(d - 1)
+                }
+                if (tableNode) {
+                  // Build data array from table, but use 0 for the formula cell itself
+                  const data: number[][] = []
+                  let ri = 0
+                  tableNode.forEach((row: any) => {
+                    const rowData: number[] = []
+                    let ci = 0
+                    row.forEach((cell: any) => {
+                      if (ri === tableRow && ci === tableCol) {
+                        rowData.push(0) // skip self
+                      } else {
+                        const num = parseFloat(cell.textContent.trim().replace(/[,$%]/g, ''))
+                        rowData.push(isNaN(num) ? 0 : num)
+                      }
+                      ci++
+                    })
+                    data.push(rowData)
+                    ri++
+                  })
+                  // Evaluate
+                  const f = cellText.toUpperCase()
+                  let result: number | null = null
+                  const single = f.slice(1).match(/^([A-Z])(\d+)$/)
+                  if (single) {
+                    const c = single[1].charCodeAt(0) - 65, r = +single[2] - 1
+                    result = data[r]?.[c] ?? 0
+                  } else {
+                    const fm = f.slice(1).match(/^(SUM|AVG|AVERAGE|MIN|MAX|COUNT)\(([A-Z]\d+:[A-Z]\d+)\)$/)
+                    if (fm) {
+                      const rm = fm[2].match(/^([A-Z])(\d+):([A-Z])(\d+)$/)
+                      if (rm) {
+                        const sc = rm[1].charCodeAt(0)-65, sr = +rm[2]-1, ec = rm[3].charCodeAt(0)-65, er = +rm[4]-1
+                        const vals: number[] = []
+                        for (let r = sr; r <= er; r++)
+                          for (let c = sc; c <= ec; c++)
+                            vals.push(data[r]?.[c] ?? 0)
+                        if (vals.length) {
+                          switch (fm[1]) {
+                            case 'SUM': result = Math.round(vals.reduce((a,b) => a+b, 0)*100)/100; break
+                            case 'AVG': case 'AVERAGE': result = Math.round(vals.reduce((a,b) => a+b, 0)/vals.length*100)/100; break
+                            case 'MIN': result = Math.min(...vals); break
+                            case 'MAX': result = Math.max(...vals); break
+                            case 'COUNT': result = vals.filter(v => v !== 0).length; break
+                          }
+                        }
+                      }
+                    }
+                  }
+                  if (result !== null) {
+                    // Replace cell content with result
+                    const cellPos = $from.before(cellDepth)
+                    const contentStart = cellPos + 1
+                    const contentEnd = contentStart + cellNode.content.size
+                    const textNode = state.schema.text(String(result))
+                    const para = state.schema.nodes.paragraph.create(null, textNode)
+                    const tr = state.tr
+                    tr.setNodeMarkup(cellPos, undefined, { ...cellNode.attrs, formula: cellText })
+                    tr.replaceWith(contentStart, contentEnd, para)
+                    tr.setMeta('formulaRecalc', true)
+                    view.dispatch(tr)
+                    event.preventDefault()
+                    // Move to next cell after replacing
+                    editor?.commands.goToNextCell()
+                    return true
+                  }
+                }
+              }
+            }
+            // Normal Enter: just move to next cell
             const moved = editor?.commands.goToNextCell()
             if (moved) { event.preventDefault(); return true }
           }
