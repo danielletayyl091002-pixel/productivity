@@ -348,6 +348,10 @@ function ThemeToggle() {
       document.documentElement.style.setProperty('--bg-secondary', '#222224')
       document.documentElement.style.setProperty('--bg-sidebar', '#191919')
     } else {
+      // Remove dark overrides first, then apply saved tints if any
+      document.documentElement.style.removeProperty('--bg-primary')
+      document.documentElement.style.removeProperty('--bg-secondary')
+      document.documentElement.style.removeProperty('--bg-sidebar')
       const bgPrimary = await db.settings.where('key').equals('palette_bg_primary').first()
       const bgSecondary = await db.settings.where('key').equals('palette_bg_secondary').first()
       const bgSidebar = await db.settings.where('key').equals('palette_bg_sidebar').first()

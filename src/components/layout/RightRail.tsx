@@ -272,7 +272,8 @@ function Ring({ value, max, color, label }: {
 }) {
   const r = 18
   const circ = 2 * Math.PI * r
-  const offset = circ * (1 - Math.min(value / max, 1))
+  const pct = max > 0 ? Math.min(value / max, 1) : 0
+  const offset = circ * (1 - pct)
   return (
     <div style={{
       display: 'flex', flexDirection: 'column',
@@ -290,7 +291,7 @@ function Ring({ value, max, color, label }: {
         <text x="24" y="28" textAnchor="middle"
           fontSize="9" fontWeight="700"
           fill="var(--text-primary)">
-          {Math.round(Math.min(value/max,1)*100)}%
+          {Math.round(pct * 100)}%
         </text>
       </svg>
       <span style={{
