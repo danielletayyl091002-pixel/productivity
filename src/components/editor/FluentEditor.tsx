@@ -10,6 +10,8 @@ import { Extension } from '@tiptap/core'
 import Suggestion from '@tiptap/suggestion'
 import { suggestion } from './slash-menu'
 import { Callout } from './CalloutExtension'
+import { Table, TableCell, TableHeader } from '@tiptap/extension-table'
+import TableRow from '@tiptap/extension-table-row'
 import FloatingToolbar from './FloatingToolbar'
 import DragHandle from './DragHandle'
 import { db, Block } from '@/db/schema'
@@ -76,6 +78,10 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
       }),
       SlashCommand,
       Callout,
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableCell,
+      TableHeader,
     ],
     content: initialContent || { type: 'doc', content: [{ type: 'paragraph' }] },
     onUpdate: ({ editor: ed }) => {

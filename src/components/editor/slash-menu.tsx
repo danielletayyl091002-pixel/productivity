@@ -26,6 +26,7 @@ const commands: SlashItem[] = [
   { title: 'Code Block', command: 'codeBlock', icon: '</>', shortcut: '' },
   { title: 'Divider', command: 'horizontalRule', icon: '\u2014', shortcut: '' },
   { title: 'Callout', command: 'callout', icon: '\uD83D\uDCA1', shortcut: '' },
+  { title: 'Table', command: 'table', icon: '\u229E', shortcut: '' },
 ]
 
 const fuse = new Fuse(commands, { keys: ['title'], threshold: 0.3 })
@@ -46,18 +47,19 @@ export const suggestion: Omit<SuggestionOptions, 'editor'> = {
   char: '/',
   command: ({ editor, range, props }: { editor: Editor; range: Range; props: any }) => {
     const { type, attrs } = props
-    const chain = editor.chain().focus().deleteRange(range)
+    editor.chain().focus().deleteRange(range).run()
     switch (type) {
-      case 'paragraph': chain.setNode('paragraph').run(); break
-      case 'heading': chain.setNode('heading', attrs).run(); break
-      case 'bulletList': chain.toggleBulletList().run(); break
-      case 'orderedList': chain.toggleOrderedList().run(); break
-      case 'taskList': chain.toggleTaskList().run(); break
-      case 'blockquote': chain.toggleBlockquote().run(); break
-      case 'codeBlock': chain.toggleCodeBlock().run(); break
-      case 'horizontalRule': chain.setHorizontalRule().run(); break
-      case 'callout': editor.chain().focus().deleteRange(range).setCallout().run(); break
-      default: chain.setNode('paragraph').run(); break
+      case 'paragraph': editor.chain().focus().setNode('paragraph').run(); break
+      case 'heading': editor.chain().focus().setNode('heading', attrs).run(); break
+      case 'bulletList': editor.chain().focus().toggleBulletList().run(); break
+      case 'orderedList': editor.chain().focus().toggleOrderedList().run(); break
+      case 'taskList': editor.chain().focus().toggleTaskList().run(); break
+      case 'blockquote': editor.chain().focus().toggleBlockquote().run(); break
+      case 'codeBlock': editor.chain().focus().toggleCodeBlock().run(); break
+      case 'horizontalRule': editor.chain().focus().setHorizontalRule().run(); break
+      case 'callout': editor.chain().focus().setCallout().run(); break
+      case 'table': editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(); break
+      default: editor.chain().focus().setNode('paragraph').run(); break
     }
   },
   items: ({ query }: { query: string }) => {
