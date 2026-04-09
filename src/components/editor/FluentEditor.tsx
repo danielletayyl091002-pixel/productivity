@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -13,6 +13,7 @@ import { Callout } from './CalloutExtension'
 import { Table, TableCell, TableHeader } from '@tiptap/extension-table'
 import TableRow from '@tiptap/extension-table-row'
 import FloatingToolbar from './FloatingToolbar'
+import TableMenu from './TableMenu'
 import { DragHandle } from '@tiptap/extension-drag-handle'
 import { db, Block } from '@/db/schema'
 
@@ -37,6 +38,7 @@ interface FluentEditorProps {
 }
 
 export default function FluentEditor({ pageUid, initialContent }: FluentEditorProps) {
+  const [, forceUpdate] = useState(0)
   const lastSavedRef = useRef<string>('')
   const hasUnsavedRef = useRef(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -86,8 +88,8 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
         render() {
           const el = document.createElement('div')
           el.className = 'drag-handle'
-          el.draggable = true
-          el.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          el.style.cursor = 'grab'
+          el.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
             <circle cx="5" cy="2.5" r="1.3" fill="currentColor"/>
             <circle cx="9" cy="2.5" r="1.3" fill="currentColor"/>
             <circle cx="5" cy="7" r="1.3" fill="currentColor"/>
@@ -97,9 +99,24 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
           </svg>`
           return el
         },
+        onNodeChange({ node, editor: e }) {
+          // Debug: log when handle detects a node
+          if (node && typeof window !== 'undefined') {
+            console.log('[DragHandle] hovering:', node.type.name)
+          }
+        },
+        onElementDragStart(e) {
+          console.log('[DragHandle] dragstart fired')
+        },
+        onElementDragEnd(e) {
+          console.log('[DragHandle] dragend fired')
+        },
       }),
     ],
     content: initialContent || { type: 'doc', content: [{ type: 'paragraph' }] },
+    onSelectionUpdate: () => {
+      forceUpdate(n => n + 1)
+    },
     onUpdate: ({ editor: ed }) => {
       const json = ed.getJSON()
       const content = JSON.stringify(json)
@@ -172,8 +189,9 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
   if (!editor) return null
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', overflow: 'visible' }}>
       <FloatingToolbar editor={editor} />
+      <TableMenu editor={editor} />
       <EditorContent editor={editor} />
     </div>
   )
