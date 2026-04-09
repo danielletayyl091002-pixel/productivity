@@ -3,7 +3,6 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Editor } from '@tiptap/react'
 import { Node as PmNode } from '@tiptap/pm/model'
-import { CellSelection } from '@tiptap/pm/tables'
 
 interface TableFormulasProps {
   editor: Editor
@@ -25,35 +24,48 @@ function parseSingleCell(ref: string): { row: number; col: number } | null {
   return { col: m[1].charCodeAt(0) - 65, row: parseInt(m[2]) - 1 }
 }
 
-function extractTableData(tableNode: PmNode): { numbers: number[][]; texts: string[][] } {
-  const numbers: number[][] = []
-  const texts: string[][] = []
+// Always read fresh table data from current editor state
+function findTableInDoc(editor: Editor): { node: PmNode; pos: number } | null {
+  const { $from } = editor.state.selection
+  // First try: walk up from selection
+  for (let d = $from.depth; d >= 0; d--) {
+    if ($from.node(d).type.name === 'table') {
+      return { node: $from.node(d), pos: $from.before(d) }
+    }
+  }
+  // Fallback: find first table in document
+  let result: { node: PmNode; pos: number } | null = null
+  editor.state.doc.descendants((node, pos) => {
+    if (node.type.name === 'table' && !result) {
+      result = { node, pos }
+      return false
+    }
+  })
+  return result
+}
+
+function extractNumbers(tableNode: PmNode): number[][] {
+  const data: number[][] = []
   tableNode.forEach(row => {
-    const numRow: number[] = []
-    const textRow: string[] = []
+    const rowData: number[] = []
     row.forEach(cell => {
       const text = cell.textContent.trim()
-      textRow.push(text)
       const num = parseFloat(text.replace(/[,$%]/g, ''))
-      numRow.push(isNaN(num) ? 0 : num)
+      rowData.push(isNaN(num) ? 0 : num)
     })
-    numbers.push(numRow)
-    texts.push(textRow)
+    data.push(rowData)
   })
-  return { numbers, texts }
+  return data
 }
 
 function evaluateFormula(formula: string, data: number[][]): { result: number | string; error?: string } {
   const f = formula.trim().toUpperCase()
   if (!f.startsWith('=')) return { result: formula, error: undefined }
-
-  // Single cell reference: =A1
   const singleRef = parseSingleCell(f.slice(1))
   if (singleRef) {
     const val = data[singleRef.row]?.[singleRef.col]
     return { result: val !== undefined ? val : 0 }
   }
-
   const funcMatch = f.slice(1).match(/^(SUM|AVG|AVERAGE|MIN|MAX|COUNT)\((.+)\)$/)
   if (!funcMatch) return { result: '', error: 'Use =SUM(A1:B3)' }
   const range = parseRange(funcMatch[2].trim())
@@ -81,26 +93,21 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
   const [cellValue, setCellValue] = useState('')
   const [tableRect, setTableRect] = useState<DOMRect | null>(null)
   const [isInTable, setIsInTable] = useState(false)
-  const cachedTableNode = useRef<PmNode | null>(null)
-  const cachedTablePos = useRef<number>(-1)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const lastTablePos = useRef<number>(-1)
+  const formulaRef = useRef('')
 
-  const getTableNode = useCallback((): PmNode | null => {
-    if (cachedTableNode.current) return cachedTableNode.current
-    let found: PmNode | null = null
-    editor.state.doc.descendants((node) => {
-      if (node.type.name === 'table' && !found) found = node
-    })
-    return found
-  }, [editor])
+  // Keep ref in sync so the transaction handler can read it
+  formulaRef.current = formula
 
-  const autoEvaluate = useCallback((f: string) => {
-    const tableNode = getTableNode()
-    if (!tableNode) return
-    const { numbers } = extractTableData(tableNode)
-    const { result: r, error: e } = evaluateFormula(f, numbers)
+  const runEval = useCallback((f: string) => {
+    if (!f.startsWith('=')) { setResult(''); setError(''); return }
+    // Always read fresh from editor state
+    const table = findTableInDoc(editor)
+    if (!table) { setError('No table'); return }
+    const data = extractNumbers(table.node)
+    const { result: r, error: e } = evaluateFormula(f, data)
     if (e) { setError(e); setResult('') } else { setResult(r); setError('') }
-  }, [getTableNode])
+  }, [editor])
 
   const updateCellInfo = useCallback(() => {
     const { $from } = editor.state.selection
@@ -108,9 +115,8 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
     for (let d = $from.depth; d >= 0; d--) {
       if ($from.node(d).type.name === 'table') {
         found = true
-        cachedTableNode.current = $from.node(d)
-        cachedTablePos.current = $from.before(d)
-        const dom = editor.view.nodeDOM(cachedTablePos.current) as HTMLElement | null
+        lastTablePos.current = $from.before(d)
+        const dom = editor.view.nodeDOM(lastTablePos.current) as HTMLElement | null
         if (dom) setTableRect(dom.getBoundingClientRect())
         let row = -1, col = -1
         for (let dd = $from.depth; dd > d; dd--) {
@@ -118,53 +124,57 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
           if ($from.node(dd).type.name === 'tableCell' || $from.node(dd).type.name === 'tableHeader') col = $from.index(dd - 1)
         }
         if (row >= 0 && col >= 0) {
-          const ref = getCellRef(row, col)
-          setCellRef(ref)
-          // Show current cell content in formula bar
-          const cellNode = cachedTableNode.current.child(row)?.child(col)
+          setCellRef(getCellRef(row, col))
+          const cellNode = $from.node(d).child(row)?.child(col)
           if (cellNode) setCellValue(cellNode.textContent)
         }
         break
       }
     }
     setIsInTable(found)
-    if (!found) { setTableRect(null); cachedTableNode.current = null }
+    if (!found) { setTableRect(null); lastTablePos.current = -1 }
+  }, [editor])
 
-    // Auto-update formula result when cells change
-    if (found && formula.startsWith('=')) {
-      autoEvaluate(formula)
-    }
-  }, [editor, formula, autoEvaluate])
-
+  // FAIL 3 fix: re-evaluate on every document change
   useEffect(() => {
-    editor.on('selectionUpdate', updateCellInfo)
-    editor.on('update', updateCellInfo)
-    return () => {
-      editor.off('selectionUpdate', updateCellInfo)
-      editor.off('update', updateCellInfo)
+    const onTransaction = () => {
+      const f = formulaRef.current
+      if (f.startsWith('=') && isInTable) {
+        // Read fresh table data from the new document state
+        const table = findTableInDoc(editor)
+        if (table) {
+          const data = extractNumbers(table.node)
+          const { result: r, error: e } = evaluateFormula(f, data)
+          if (e) { setError(e); setResult('') } else { setResult(r); setError('') }
+        }
+      }
     }
-  }, [editor, updateCellInfo])
+    editor.on('update', onTransaction)
+    editor.on('selectionUpdate', updateCellInfo)
+    return () => {
+      editor.off('update', onTransaction)
+      editor.off('selectionUpdate', updateCellInfo)
+    }
+  }, [editor, updateCellInfo, isInTable])
 
-  const evaluate = useCallback(() => {
-    if (!formula.trim()) { setResult(''); setError(''); return }
-    autoEvaluate(formula)
-  }, [formula, autoEvaluate])
-
+  // FAIL 4 fix: quick buttons generate formula and evaluate with fresh data
   const insertQuick = useCallback((func: string) => {
-    const tableNode = getTableNode()
-    if (!tableNode) return
-    const { numbers } = extractTableData(tableNode)
-    const lastCol = String.fromCharCode(65 + (numbers[0]?.length || 1) - 1)
-    const f = `=${func}(A1:${lastCol}${numbers.length})`
+    const table = findTableInDoc(editor)
+    if (!table) return
+    const data = extractNumbers(table.node)
+    const lastCol = String.fromCharCode(65 + (data[0]?.length || 1) - 1)
+    const f = `=${func}(A1:${lastCol}${data.length})`
     setFormula(f)
-    autoEvaluate(f)
-  }, [getTableNode, autoEvaluate])
+    const { result: r, error: e } = evaluateFormula(f, data)
+    if (e) { setError(e); setResult('') } else { setResult(r); setError('') }
+  }, [editor])
 
+  // FAIL 5 fix: write result into current cell
   const writeResultToCell = useCallback(() => {
-    if (result === '' || !cellRef) return
-    // Replace current cell content with the formula result
-    editor.chain().focus().insertContent(String(result)).run()
-  }, [editor, result, cellRef])
+    if (result === '') return
+    // Focus editor first, then select all content in current cell and replace
+    editor.chain().focus().deleteSelection().insertContent(String(result)).run()
+  }, [editor, result])
 
   if (!isInTable || !tableRect) return null
 
@@ -185,37 +195,30 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
         <span style={{
           padding: '2px 8px', background: 'var(--bg-hover)', borderRadius: '4px',
           fontWeight: 700, color: 'var(--accent)', minWidth: '32px', textAlign: 'center',
-          fontSize: '11px', letterSpacing: '0.02em',
+          fontSize: '11px',
         }}>{cellRef}</span>
       )}
       <span style={{ color: 'var(--text-tertiary)', fontWeight: 600, fontSize: '13px' }}>fx</span>
       <input
-        ref={inputRef}
         value={formula || cellValue}
         onChange={e => {
           const v = e.target.value
           setFormula(v)
-          if (v.startsWith('=')) autoEvaluate(v)
+          if (v.startsWith('=')) runEval(v)
           else { setResult(''); setError('') }
         }}
         onKeyDown={e => {
           if (e.key === 'Enter') {
             e.preventDefault()
-            if (formula.startsWith('=')) {
-              evaluate()
-            }
+            if (formula.startsWith('=')) runEval(formula)
             editor.commands.focus()
           }
           if (e.key === 'Escape') {
-            setFormula('')
-            setResult('')
-            setError('')
+            setFormula(''); setResult(''); setError('')
             editor.commands.focus()
           }
         }}
-        onFocus={() => {
-          if (!formula && cellValue) setFormula(cellValue)
-        }}
+        onFocus={() => { if (!formula && cellValue) setFormula(cellValue) }}
         placeholder="Type value or =SUM(A1:A3)"
         style={{
           flex: 1, border: 'none', outline: 'none', background: 'transparent',
@@ -227,16 +230,16 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
         <button key={fn} onClick={() => insertQuick(fn)} title={`=${fn}(all cells)`} style={{
           padding: '3px 7px', borderRadius: '4px', border: '1px solid var(--border)',
           background: 'var(--bg-primary)', cursor: 'pointer', fontSize: '10px',
-          fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.02em',
+          fontWeight: 700, color: 'var(--accent)',
         }}
-        onMouseEnter={e => { (e.currentTarget).style.background = 'var(--accent-light)' }}
-        onMouseLeave={e => { (e.currentTarget).style.background = 'var(--bg-primary)' }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-light)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-primary)' }}
         >{fn}</button>
       ))}
       {result !== '' && (
         <span
           onClick={writeResultToCell}
-          title="Click to insert result into current cell"
+          title="Click to insert into current cell"
           style={{
             padding: '3px 10px', background: 'var(--accent-light)', borderRadius: '4px',
             fontWeight: 700, color: 'var(--accent)', fontFamily: 'monospace',
