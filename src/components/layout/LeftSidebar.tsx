@@ -341,6 +341,7 @@ function ThemeToggle() {
     setTheme(next)
     localStorage.setItem('theme', next)
     document.documentElement.setAttribute('data-theme', next)
+    window.dispatchEvent(new CustomEvent('fluent-theme-changed', { detail: { theme: next } }))
     db.settings.where('key').equals('theme').modify({ value: next })
 
     if (next === 'dark') {

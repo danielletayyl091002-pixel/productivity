@@ -78,9 +78,16 @@ export default function CmdK() {
     }
     window.addEventListener('storage', onStorage)
 
+    const handleThemeChange = (e: Event) => {
+      const theme = (e as CustomEvent).detail.theme
+      setTheme(theme)
+    }
+    window.addEventListener('fluent-theme-changed', handleThemeChange)
+
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('storage', onStorage)
+      window.removeEventListener('fluent-theme-changed', handleThemeChange)
     }
   }, [])
 
