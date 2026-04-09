@@ -47,19 +47,43 @@ export const suggestion: Omit<SuggestionOptions, 'editor'> = {
   char: '/',
   command: ({ editor, range, props }: { editor: Editor; range: Range; props: any }) => {
     const { type, attrs } = props
-    editor.chain().focus().deleteRange(range).run()
+    // Delete the slash text first, then apply the block command in one chain
+    // For node types that use setNode, chain works directly
+    // For toggle types (lists, blockquote), we must deleteRange first then toggle
     switch (type) {
-      case 'paragraph': editor.chain().focus().setNode('paragraph').run(); break
-      case 'heading': editor.chain().focus().setNode('heading', attrs).run(); break
-      case 'bulletList': editor.chain().focus().toggleBulletList().run(); break
-      case 'orderedList': editor.chain().focus().toggleOrderedList().run(); break
-      case 'taskList': editor.chain().focus().toggleTaskList().run(); break
-      case 'blockquote': editor.chain().focus().toggleBlockquote().run(); break
-      case 'codeBlock': editor.chain().focus().toggleCodeBlock().run(); break
-      case 'horizontalRule': editor.chain().focus().setHorizontalRule().run(); break
-      case 'callout': editor.chain().focus().setCallout().run(); break
-      case 'table': editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(); break
-      default: editor.chain().focus().setNode('paragraph').run(); break
+      case 'paragraph':
+        editor.chain().focus().deleteRange(range).setNode('paragraph').run()
+        break
+      case 'heading':
+        editor.chain().focus().deleteRange(range).setNode('heading', attrs).run()
+        break
+      case 'bulletList':
+        editor.chain().focus().deleteRange(range).toggleBulletList().run()
+        break
+      case 'orderedList':
+        editor.chain().focus().deleteRange(range).toggleOrderedList().run()
+        break
+      case 'taskList':
+        editor.chain().focus().deleteRange(range).toggleTaskList().run()
+        break
+      case 'blockquote':
+        editor.chain().focus().deleteRange(range).toggleBlockquote().run()
+        break
+      case 'codeBlock':
+        editor.chain().focus().deleteRange(range).toggleCodeBlock().run()
+        break
+      case 'horizontalRule':
+        editor.chain().focus().deleteRange(range).setHorizontalRule().run()
+        break
+      case 'callout':
+        editor.chain().focus().deleteRange(range).setCallout().run()
+        break
+      case 'table':
+        editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+        break
+      default:
+        editor.chain().focus().deleteRange(range).setNode('paragraph').run()
+        break
     }
   },
   items: ({ query }: { query: string }) => {
