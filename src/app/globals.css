@@ -68,7 +68,7 @@ body {
 }
 
 /* ─── TipTap / ProseMirror Editor ─── */
-.ProseMirror { outline: none; min-height: 60vh; padding-bottom: 120px; }
+.ProseMirror { outline: none; min-height: 60vh; padding-bottom: 120px; background: var(--bg-primary); color: var(--text-primary); }
 .ProseMirror > * + * { margin-top: 4px; }
 .ProseMirror p { line-height: 1.7; min-height: 1.5em; color: var(--text-primary); font-size: 16px; margin: 0; }
 .ProseMirror h1 { font-size: 1.875rem; font-weight: 700; color: var(--text-primary); margin: 16px 0 4px; }
@@ -77,7 +77,7 @@ body {
 .ProseMirror blockquote { border-left: 3px solid var(--accent); padding-left: 12px; font-style: italic; color: var(--text-secondary); margin: 4px 0; }
 .ProseMirror pre { background: var(--bg-hover); padding: 12px 16px; border-radius: 8px; font-family: monospace; font-size: 13px; overflow-x: auto; }
 .ProseMirror code:not(pre code) { background: var(--bg-hover); padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 13px; }
-.ProseMirror hr { display: block; border: none; border-top: 2px solid var(--border); margin: 20px 0; padding: 0; height: 0; }
+.ProseMirror hr { display: block; border: none; border-top: 2px solid var(--text-tertiary); margin: 20px 0; padding: 0; height: 0; }
 .ProseMirror ul[data-type="taskList"] { list-style: none; padding: 0; }
 .ProseMirror ul[data-type="taskList"] li { display: flex; gap: 8px; align-items: flex-start; }
 .ProseMirror ul[data-type="taskList"] li > label { margin-top: 2px; }
@@ -165,10 +165,10 @@ body {
   border-radius: 4px;
   color: var(--text-tertiary);
   transition: opacity 0.15s, background 0.15s, color 0.15s;
+  pointer-events: auto !important;
 }
 .drag-handle:hover {
   visibility: visible !important;
-  pointer-events: auto !important;
   background: var(--bg-hover);
   color: var(--text-secondary);
 }
@@ -176,7 +176,6 @@ body {
   cursor: grabbing;
   color: var(--text-primary);
   visibility: visible !important;
-  pointer-events: auto !important;
 }
 .block-wrapper { user-select: none; -webkit-user-select: none; }
 .block-wrapper [contenteditable] {

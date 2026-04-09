@@ -178,8 +178,8 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
     <div style={{ position: 'relative', overflow: 'visible' }}>
       <FloatingToolbar editor={editor} />
       <TableMenu editor={editor} />
-      <TableFormulas editor={editor} />
       <EditorContent editor={editor} />
+      <TableFormulas editor={editor} />
     </div>
   )
 }
