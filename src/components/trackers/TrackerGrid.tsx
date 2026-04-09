@@ -12,7 +12,7 @@ import {
   DollarSign, TrendingUp, BarChart2,
   Leaf, Flower2, TreePine,
   Gamepad2, Tv, Headphones, Camera,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, GripVertical
 } from 'lucide-react'
 import {
   DndContext, DragOverlay, closestCenter,
@@ -258,12 +258,27 @@ function SortableTrackerCard(props: Parameters<typeof TrackerCard>[0] & { uid: s
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
-        opacity: isDragging ? 0.4 : 1
+        opacity: isDragging ? 0.4 : 1,
+        position: 'relative'
       }}
-      {...attributes}
-      {...listeners}
     >
+      <div
+        {...attributes}
+        {...listeners}
+        className="tracker-drag-handle"
+        style={{
+          position: 'absolute', top: '8px', left: '8px',
+          cursor: 'grab', color: 'var(--text-tertiary)',
+          opacity: 0, transition: 'opacity 0.15s',
+          zIndex: 5, touchAction: 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: '20px', height: '20px', borderRadius: '4px'
+        }}
+      >
+        <GripVertical size={12} />
+      </div>
       <TrackerCard {...props} />
+      <style>{`.tracker-drag-handle { opacity: 0; } div:hover > .tracker-drag-handle { opacity: 0.6; }`}</style>
     </div>
   )
 }

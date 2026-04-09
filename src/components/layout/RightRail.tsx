@@ -498,7 +498,7 @@ export default function RightRail() {
               <Ring
                 key={tracker.uid}
                 value={getTodayValue(tracker.uid)}
-                max={tracker.target}
+                max={Math.max(tracker.target, 1)}
                 color={tracker.color}
                 label={tracker.name}
               />
