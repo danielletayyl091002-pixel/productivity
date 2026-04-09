@@ -200,50 +200,58 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
     }
   }, [editor, updateCellInfo])
 
-  // Commit formula: store in map + set cell attr + write result
+  // Commit formula: store in map + set cell attr + write result in ONE transaction
   const commitFormula = useCallback(() => {
     if (!formula.startsWith('=')) return
 
-    // Find table
+    // Find table from current selection
+    const { $from } = editor.state.selection
     let tableNode: PmNode | null = null
     let tablePos = -1
-    const { $from } = editor.state.selection
+    let cellDepth = -1
+
     for (let d = $from.depth; d >= 0; d--) {
-      if ($from.node(d).type.name === 'table') {
-        tableNode = $from.node(d)
+      const n = $from.node(d)
+      if (n.type.name === 'table') {
+        tableNode = n
         tablePos = $from.before(d)
-        break
+      }
+      if (n.type.name === 'tableCell' || n.type.name === 'tableHeader') {
+        cellDepth = d
       }
     }
-    if (!tableNode || tablePos < 0) return
+    if (!tableNode || tablePos < 0 || cellDepth < 0) return
 
+    // Evaluate
     const data = readTable(tableNode)
     const { val, err } = evalFormula(formula, data, cellRow, cellCol)
-
     if (err) { setError(err); return }
 
     // Store in map
     const key = `${tablePos}-${cellRow}-${cellCol}`
     formulaMap.set(key, formula)
 
-    // Set formula attribute on the cell
-    editor.chain().focus().setCellAttribute('formula', formula).run()
+    // Build ONE transaction: set formula attr + replace cell text
+    const cellNode = $from.node(cellDepth)
+    const cellPos = $from.before(cellDepth) // position of the <td>/<th> node
+    const contentStart = cellPos + 1         // inside the cell
+    const contentEnd = contentStart + cellNode.content.size
 
-    // Write result into cell text
-    const { $from: $f } = editor.state.selection
-    for (let d = $f.depth; d >= 0; d--) {
-      const n = $f.node(d)
-      if (n.type.name === 'tableCell' || n.type.name === 'tableHeader') {
-        const cellStart = $f.before(d) + 1
-        const cellEnd = cellStart + n.content.size
-        const textNode = editor.state.schema.text(String(val ?? 0))
-        const para = editor.state.schema.nodes.paragraph.create(null, textNode)
-        const tr = editor.state.tr.replaceWith(cellStart, cellEnd, para)
-        tr.setMeta('formulaRecalc', true)
-        editor.view.dispatch(tr)
-        break
-      }
-    }
+    const resultText = String(val ?? 0)
+    const textNode = editor.state.schema.text(resultText)
+    const para = editor.state.schema.nodes.paragraph.create(null, textNode)
+
+    let tr = editor.state.tr
+
+    // Set the formula attribute on the cell node
+    tr = tr.setNodeMarkup(cellPos, undefined, { ...cellNode.attrs, formula: formula })
+
+    // Replace cell content with the result paragraph
+    // After setNodeMarkup, positions haven't changed (it's an in-place attr update)
+    tr = tr.replaceWith(contentStart, contentEnd, para)
+
+    tr.setMeta('formulaRecalc', true)
+    editor.view.dispatch(tr)
     setError('')
   }, [editor, formula, cellRow, cellCol])
 
