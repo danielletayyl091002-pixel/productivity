@@ -118,7 +118,6 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
   const [cellValue, setCellValue] = useState('')
   const [tableRect, setTableRect] = useState<DOMRect | null>(null)
   const [isInTable, setIsInTable] = useState(false)
-  const recalcTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const runEval = useCallback((f: string) => {
     if (!f.startsWith('=')) { setResult(''); setError(''); return }
@@ -175,21 +174,13 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
     if (!found) { setTableRect(null) }
   }, [editor, runEval])
 
+  const refreshFormulas = useCallback(() => {
+    recalcAllFormulas(editor)
+  }, [editor])
+
   useEffect(() => {
-    const onUpdate = () => {
-      // Debounce recalc to avoid infinite loops (recalc changes doc → triggers update)
-      clearTimeout(recalcTimer.current)
-      recalcTimer.current = setTimeout(() => {
-        recalcAllFormulas(editor)
-      }, 300)
-    }
     editor.on('selectionUpdate', updateCellInfo)
-    editor.on('update', onUpdate)
-    return () => {
-      editor.off('selectionUpdate', updateCellInfo)
-      editor.off('update', onUpdate)
-      clearTimeout(recalcTimer.current)
-    }
+    return () => { editor.off('selectionUpdate', updateCellInfo) }
   }, [editor, updateCellInfo])
 
   // Commit formula: store as cell attr + write result
@@ -314,6 +305,14 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
         onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-primary)' }}
         >{fn}</button>
       ))}
+      <button onClick={refreshFormulas} title="Recalculate all formula cells" style={{
+        padding: '3px 7px', borderRadius: '4px', border: '1px solid var(--border)',
+        background: 'var(--bg-primary)', cursor: 'pointer', fontSize: '10px',
+        fontWeight: 700, color: 'var(--text-secondary)',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-primary)' }}
+      >↻ Refresh</button>
       {result !== '' && (
         <span style={{
           padding: '3px 10px', background: 'var(--accent-light)', borderRadius: '4px',
