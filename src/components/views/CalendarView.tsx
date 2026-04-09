@@ -70,7 +70,6 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
           const dx = Math.abs(e.clientX - moveStartPos.current.x)
           const dy = Math.abs(e.clientY - moveStartPos.current.y)
           if (dx < 3 && dy < 3) return
-          console.log('[DRAG] move threshold passed')
           moveStartPos.current = null
         }
         const pos = getHourFromEvent(e)
@@ -89,7 +88,6 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
       if (movingTask && moveGhost) {
         const newStart = moveGhost.startHour
         const newEnd = newStart + moveDuration.current
-        console.log('[DRAG] drop — moving', movingTask.title, 'to', moveGhost.dateStr, fmtDB(newStart))
         await db.tasks.where('uid').equals(movingTask.uid).modify({
           scheduledDate: moveGhost.dateStr,
           dueDate: moveGhost.dateStr,
@@ -106,7 +104,6 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
       }
       if (resizingTask && resizeEndHour !== null) {
         const newEnd = fmtDB(resizeEndHour)
-        console.log('[DRAG] resize done —', resizingTask.title, 'new end:', newEnd)
         await db.tasks.where('uid').equals(resizingTask.uid).modify({ endTime: newEnd })
         setTasks(prev => prev.map(t => t.uid === resizingTask.uid ? { ...t, endTime: newEnd } : t))
       }
@@ -230,20 +227,13 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
   }
 
   function handleMouseDown(e: React.MouseEvent) {
-    // Check resize handle first
     const resizeHandle = (e.target as HTMLElement).closest('[data-resize]')
-    if (resizeHandle) {
-      console.log('[DRAG] resize handle clicked')
-      // handleResizeStart is called by the resize div's own onMouseDown
-      return
-    }
-    // Check if clicking on an event — start move
+    if (resizeHandle) return
     const eventEl = (e.target as HTMLElement).closest('[data-event-uid]') as HTMLElement | null
     if (eventEl) {
       e.preventDefault()
       const uid = eventEl.getAttribute('data-event-uid')
       const task = tasks.find(t => t.uid === uid)
-      console.log('[DRAG] mousedown on event:', uid, task?.title)
       if (!task) return
       const startMin = toMinutes(task.startTime!)
       const endMin = toMinutes(task.endTime!)
@@ -256,7 +246,6 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
     e.preventDefault()
     const pos = getColAndHour(e)
     if (!pos) return
-    console.log('[DRAG] create mode at', pos.dateStr, pos.hour)
     setDragState({ dateStr: pos.dateStr, startHour: pos.hour, endHour: pos.hour })
     setIsDragging(true)
   }
@@ -268,7 +257,6 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
         const dx = Math.abs(e.clientX - moveStartPos.current.x)
         const dy = Math.abs(e.clientY - moveStartPos.current.y)
         if (dx < 3 && dy < 3) return
-        console.log('[DRAG] move threshold passed, starting visual drag')
         moveStartPos.current = null
       }
       const pos = getColAndHour(e)
@@ -299,7 +287,6 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
       const newStart = moveGhost.startHour
       const newEnd = newStart + moveDuration.current
       const task = movingTask
-      console.log('[DRAG] mouseup — moving', task.title, 'to', moveGhost.dateStr, fmtDB(newStart), '-', fmtDB(snap(newEnd)))
       await db.tasks.where('uid').equals(task.uid).modify({
         scheduledDate: moveGhost.dateStr,
         dueDate: moveGhost.dateStr,
