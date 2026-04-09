@@ -87,6 +87,21 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       }
     }
     loadSettings()
+
+    // When theme changes, ensure dark mode clears palette bg overrides
+    const handleThemeChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      if (detail?.theme === 'dark') {
+        document.documentElement.style.removeProperty('--bg-primary')
+        document.documentElement.style.removeProperty('--bg-secondary')
+        document.documentElement.style.removeProperty('--bg-sidebar')
+      } else if (detail?.theme === 'light') {
+        // Re-apply palette bg on switch back to light
+        loadSettings()
+      }
+    }
+    window.addEventListener('fluent-theme-changed', handleThemeChange)
+    return () => window.removeEventListener('fluent-theme-changed', handleThemeChange)
   }, [])
 
   return <>{children}</>

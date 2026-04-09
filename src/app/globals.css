@@ -164,31 +164,18 @@ body {
   justify-content: center;
   cursor: grab;
   user-select: none;
-  touch-action: none;
   border-radius: 4px;
   color: var(--text-tertiary);
-  opacity: 0;
-  transition: opacity 0.2s, background 0.15s, color 0.15s;
   pointer-events: auto !important;
-  position: absolute;
-  left: -28px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.ProseMirror:hover .drag-handle {
-  opacity: 1;
+  visibility: visible !important;
 }
 .drag-handle:hover {
-  opacity: 1 !important;
-  visibility: visible !important;
   background: var(--bg-hover);
   color: var(--text-secondary);
 }
 .drag-handle:active {
-  opacity: 1 !important;
   cursor: grabbing;
   color: var(--text-primary);
-  visibility: visible !important;
 }
 .block-wrapper { user-select: none; -webkit-user-select: none; }
 .block-wrapper [contenteditable] {
