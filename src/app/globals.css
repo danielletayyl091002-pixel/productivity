@@ -104,6 +104,8 @@ body {
 .block-wrapper:hover .drag-handle {
   opacity: 1;
 }
+.block-wrapper { user-select: text !important; }
+.block-wrapper * { user-select: text !important; }
 
 [data-theme="dark"] .board-column {
   border: 1px solid var(--border);

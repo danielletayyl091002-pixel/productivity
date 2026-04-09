@@ -35,15 +35,14 @@ class SmartPointerSensor extends PointerSensor {
       }) => {
         const target = event.target as HTMLElement
 
-        const isHandle = !!target.closest('.drag-handle')
-        if (!isHandle) return false
+        // Only activate from drag handle
+        if (!target.closest('.drag-handle')) return false
 
-        if (
-          target.isContentEditable ||
-          target.closest('[contenteditable="true"]')
-        ) {
-          return false
-        }
+        // Never activate on editable content
+        if (target.isContentEditable || target.closest('[contenteditable="true"]')) return false
+
+        // Don't interfere with double/triple click text selection
+        if (event.detail > 1) return false
 
         return true
       }
@@ -358,18 +357,6 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
     <div
       ref={setNodeRef}
       className="block-wrapper"
-      onMouseDown={(e) => {
-        const target = e.target as HTMLElement
-        if (!target.closest('.drag-handle')) {
-          e.stopPropagation()
-        }
-      }}
-      onPointerDown={(e) => {
-        const target = e.target as HTMLElement
-        if (!target.closest('.drag-handle')) {
-          e.stopPropagation()
-        }
-      }}
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
@@ -499,8 +486,6 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
           data-block-uid={block.uid}
           onKeyUp={handleKeyUp}
           onKeyDown={handleKeyDown}
-          onPointerDown={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
           onPaste={(e) => {
             e.preventDefault()
             const text = e.clipboardData.getData('text/plain')
