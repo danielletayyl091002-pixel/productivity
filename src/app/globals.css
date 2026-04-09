@@ -123,9 +123,9 @@ body {
 .slash-item:hover, .slash-item.selected {
   background: var(--accent-light);
 }
-[data-theme="dark"] .slash-item.selected { background-color: #3b82f6 !important; color: white !important; }
-[data-theme="dark"] .slash-item.selected .slash-title { color: white !important; }
-[data-theme="dark"] .slash-item.selected .slash-icon { color: white !important; }
+[data-theme="dark"] .slash-item.selected, .dark .slash-item.selected { background-color: #3b82f6 !important; color: white !important; }
+[data-theme="dark"] .slash-item.selected .slash-title, .dark .slash-item.selected .slash-title { color: white !important; }
+[data-theme="dark"] .slash-item.selected .slash-icon, .dark .slash-item.selected .slash-icon { color: white !important; }
 .slash-icon {
   width: 28px;
   height: 28px;
@@ -170,6 +170,10 @@ body {
   opacity: 0;
   transition: opacity 0.2s, background 0.15s, color 0.15s;
   pointer-events: auto !important;
+  position: absolute;
+  left: -28px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 .ProseMirror:hover .drag-handle {
   opacity: 1;

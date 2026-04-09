@@ -59,16 +59,22 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
   const [result, setResult] = useState<string | number>('')
   const [error, setError] = useState('')
   const [cellRef, setCellRef] = useState<string | null>(null)
-  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null)
+  const [tableRect, setTableRect] = useState<DOMRect | null>(null)
+  const [isInTable, setIsInTable] = useState(false)
   const cachedTableNode = useRef<PmNode | null>(null)
 
   const updateCellInfo = useCallback(() => {
     const { $from } = editor.state.selection
-    let tablePos = -1
+    let found = false
     for (let d = $from.depth; d >= 0; d--) {
       if ($from.node(d).type.name === 'table') {
-        tablePos = $from.before(d)
+        found = true
         cachedTableNode.current = $from.node(d)
+        const tablePos = $from.before(d)
+        // Get DOM rect for positioning
+        const dom = editor.view.nodeDOM(tablePos) as HTMLElement | null
+        if (dom) setTableRect(dom.getBoundingClientRect())
+        // Get cell ref
         let row = -1, col = -1
         for (let dd = $from.depth; dd > d; dd--) {
           if ($from.node(dd).type.name === 'tableRow') row = $from.index(dd - 1)
@@ -78,37 +84,13 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
         break
       }
     }
-
-    if (tablePos >= 0) {
-      // Find the table's DOM element and place portal container after it
-      const tableDom = editor.view.nodeDOM(tablePos) as HTMLElement | null
-      // The table might be wrapped in .tableWrapper by TipTap
-      const wrapper = tableDom?.closest('.tableWrapper') || tableDom
-      if (wrapper) {
-        let container = wrapper.nextElementSibling as HTMLElement | null
-        if (!container || !container.hasAttribute('data-formula-bar')) {
-          container = document.createElement('div')
-          container.setAttribute('data-formula-bar', 'true')
-          wrapper.parentNode?.insertBefore(container, wrapper.nextSibling)
-        }
-        setPortalTarget(container)
-      }
-    } else {
-      // Clean up portal target when leaving table
-      setPortalTarget(prev => {
-        if (prev?.hasAttribute('data-formula-bar') && !prev.hasChildNodes()) {
-          prev.remove()
-        }
-        return null
-      })
-    }
+    setIsInTable(found)
+    if (!found) setTableRect(null)
   }, [editor])
 
   useEffect(() => {
     editor.on('selectionUpdate', updateCellInfo)
-    return () => {
-      editor.off('selectionUpdate', updateCellInfo)
-    }
+    return () => { editor.off('selectionUpdate', updateCellInfo) }
   }, [editor, updateCellInfo])
 
   const evaluate = useCallback(() => {
@@ -141,14 +123,24 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
     if (e) { setError(e); setResult('') } else { setResult(r); setError('') }
   }, [editor])
 
-  if (!portalTarget) return null
+  if (!isInTable || !tableRect) return null
 
-  const bar = (
+  // Position below the table using fixed positioning
+  const scrollParent = editor.view.dom.closest('[style*="overflow"]') || editor.view.dom.parentElement?.parentElement
+  const scrollOffset = scrollParent ? scrollParent.scrollTop : 0
+
+  return createPortal(
     <div style={{
+      position: 'fixed',
+      top: tableRect.bottom + 4,
+      left: tableRect.left,
+      width: tableRect.width,
+      zIndex: 50,
       display: 'flex', alignItems: 'center', gap: '6px',
-      padding: '4px 8px', margin: '4px 0 8px',
+      padding: '4px 8px',
       background: 'var(--bg-secondary)', border: '1px solid var(--border)',
       borderRadius: '6px', fontSize: '12px',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
     }}>
       {cellRef && (
         <span style={{
@@ -184,8 +176,7 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
         }}>{result}</span>
       )}
       {error && <span style={{ color: '#EF4444', fontSize: '11px' }}>{error}</span>}
-    </div>
+    </div>,
+    document.body
   )
-
-  return createPortal(bar, portalTarget)
 }
