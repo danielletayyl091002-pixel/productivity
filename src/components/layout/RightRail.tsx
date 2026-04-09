@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { db, Task } from '@/db/schema'
+import { useTrackerStore } from '@/stores/trackers'
 
 
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 6)
@@ -301,6 +302,7 @@ function Ring({ value, max, color, label }: {
 }
 
 export default function RightRail() {
+  const { definitions: trackerDefs, loaded: trackersLoaded, load: loadTrackers, getTodayValue } = useTrackerStore()
   const [upcoming, setUpcoming] = useState<Task[]>([])
   const [todayTasks, setTodayTasks] = useState<Task[]>([])
   const [today, setToday] = useState<Date | null>(null)
@@ -308,6 +310,12 @@ export default function RightRail() {
   const [dateStr, setDateStr] = useState('')
   const [newEvent, setNewEvent] = useState<{ startTime: string, endTime: string, title: string } | null>(null)
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!trackersLoaded) loadTrackers()
+  }, [trackersLoaded, loadTrackers])
+
+  const ringTrackers = trackerDefs.slice(0, 3)
 
   useEffect(() => {
     const d = new Date()
@@ -469,13 +477,23 @@ export default function RightRail() {
           letterSpacing: '0.06em', textTransform: 'uppercase',
           color: 'var(--text-tertiary)', marginBottom: '10px'
         }}>Daily Progress</div>
-        <div style={{
-          display: 'flex', justifyContent: 'space-around'
-        }}>
-          <Ring value={3} max={8} color="#3B82F6" label="Focus"/>
-          <Ring value={5} max={8} color="#0EA5E9" label="Water"/>
-          <Ring value={20} max={30} color="#10B981" label="Exercise"/>
-        </div>
+        {trackersLoaded && ringTrackers.length > 0 ? (
+          <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+            {ringTrackers.map(tracker => (
+              <Ring
+                key={tracker.uid}
+                value={getTodayValue(tracker.uid)}
+                max={tracker.target}
+                color={tracker.color}
+                label={tracker.name}
+              />
+            ))}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+            <Ring value={0} max={1} color="var(--text-tertiary)" label="No trackers"/>
+          </div>
+        )}
       </div>
 
       {/* Upcoming */}

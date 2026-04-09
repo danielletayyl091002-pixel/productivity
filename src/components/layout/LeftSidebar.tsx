@@ -336,12 +336,25 @@ function ThemeToggle() {
     document.documentElement.setAttribute('data-theme', saved)
   }, [])
 
-  function toggle() {
+  async function toggle() {
     const next = theme === 'light' ? 'dark' : 'light'
     setTheme(next)
     localStorage.setItem('theme', next)
     document.documentElement.setAttribute('data-theme', next)
     db.settings.where('key').equals('theme').modify({ value: next })
+
+    if (next === 'dark') {
+      document.documentElement.style.setProperty('--bg-primary', '#1A1A1B')
+      document.documentElement.style.setProperty('--bg-secondary', '#222224')
+      document.documentElement.style.setProperty('--bg-sidebar', '#191919')
+    } else {
+      const bgPrimary = await db.settings.where('key').equals('palette_bg_primary').first()
+      const bgSecondary = await db.settings.where('key').equals('palette_bg_secondary').first()
+      const bgSidebar = await db.settings.where('key').equals('palette_bg_sidebar').first()
+      if (bgPrimary?.value) document.documentElement.style.setProperty('--bg-primary', bgPrimary.value)
+      if (bgSecondary?.value) document.documentElement.style.setProperty('--bg-secondary', bgSecondary.value)
+      if (bgSidebar?.value) document.documentElement.style.setProperty('--bg-sidebar', bgSidebar.value)
+    }
   }
 
   return (
