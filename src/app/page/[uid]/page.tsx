@@ -173,6 +173,37 @@ export default function PageCanvas() {
     }
   }
 
+  async function mergeWithPrevious(blockUid: string, content: string) {
+    const idx = blocks.findIndex(b => b.uid === blockUid)
+    if (idx <= 0) return
+    const prev = blocks[idx - 1]
+    if (!prev.id) return
+    const prevContent = prev.content || ''
+    const mergedContent = prevContent + content
+    await db.blocks.update(prev.id, { content: mergedContent })
+    const current = blocks[idx]
+    if (current.id) await db.blocks.delete(current.id)
+    const newBlocks = blocks.filter(b => b.uid !== blockUid)
+    newBlocks[idx - 1] = { ...prev, content: mergedContent }
+    setBlocks(newBlocks)
+    setTimeout(() => {
+      const el = document.querySelector(`[data-block-uid="${prev.uid}"]`) as HTMLElement
+      if (el) {
+        el.focus()
+        el.textContent = mergedContent
+        const textNode = el.firstChild
+        if (textNode) {
+          const range = document.createRange()
+          const sel = window.getSelection()
+          range.setStart(textNode, prevContent.length)
+          range.collapse(true)
+          sel?.removeAllRanges()
+          sel?.addRange(range)
+        }
+      }
+    }, 20)
+  }
+
   async function convertBlock(blockUid: string, type: Block['type']) {
     const block = blocks.find(b => b.uid === blockUid)
     if (!block?.id) return
@@ -309,6 +340,7 @@ export default function PageCanvas() {
                       el?.focus()
                     }
                   }}
+                  onMergeWithPrevious={(content) => mergeWithPrevious(block.uid, content)}
                 />
               </div>
             ))}
@@ -356,6 +388,7 @@ interface BlockRowProps {
   onConvert: (type: Block['type']) => void
   onFocusNext: () => void
   onFocusPrev: () => void
+  onMergeWithPrevious: (content: string) => void
   displayNumber?: number
 }
 
@@ -408,7 +441,7 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
   )
 }
 
-function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, showSlash, slashQuery, slashPos, onConvert, onFocusNext, onFocusPrev, displayNumber }: BlockRowProps) {
+function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, showSlash, slashQuery, slashPos, onConvert, onFocusNext, onFocusPrev, onMergeWithPrevious, displayNumber }: BlockRowProps) {
   const divRef = useRef<HTMLDivElement>(null)
   const saveTimer = useRef<NodeJS.Timeout>(undefined)
   const style = getBlockStyle(block.type)
@@ -430,7 +463,15 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
                 ? block.type : 'text')
       return
     }
-    if (e.key === 'Backspace' && text === '') { e.preventDefault(); onDelete(); return }
+    if (e.key === 'Backspace') {
+      if (text === '') { e.preventDefault(); onDelete(); return }
+      const sel = window.getSelection()
+      if (sel?.isCollapsed && sel?.anchorOffset === 0) {
+        e.preventDefault()
+        onMergeWithPrevious(text)
+        return
+      }
+    }
     if (e.key === 'Escape' && showSlash) { onSlashClose(); return }
     if (e.key === 'ArrowDown') { e.preventDefault(); onFocusNext(); return }
     if (e.key === 'ArrowUp') { e.preventDefault(); onFocusPrev(); return }
