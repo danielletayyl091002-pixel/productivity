@@ -101,6 +101,25 @@ export default function PageCanvas() {
     load()
   }, [uid])
 
+  // Prevent cross-block selection
+  useEffect(() => {
+    const handleMouseMove = () => {
+      const selection = window.getSelection()
+      if (!selection || selection.isCollapsed) return
+      const anchorBlock = (selection.anchorNode?.nodeType === Node.TEXT_NODE
+        ? selection.anchorNode.parentElement
+        : selection.anchorNode as Element)?.closest('[data-block-uid]')
+      const focusBlock = (selection.focusNode?.nodeType === Node.TEXT_NODE
+        ? selection.focusNode.parentElement
+        : selection.focusNode as Element)?.closest('[data-block-uid]')
+      if (anchorBlock && focusBlock && anchorBlock !== focusBlock) {
+        selection.removeAllRanges()
+      }
+    }
+    document.addEventListener('mousemove', handleMouseMove)
+    return () => document.removeEventListener('mousemove', handleMouseMove)
+  }, [])
+
   async function updateTitle(title: string) {
     if (!page?.id) return
     await db.pages.update(page.id, { title, updatedAt: new Date().toISOString() })
@@ -543,6 +562,19 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
           data-block-uid={block.uid}
           onKeyUp={handleKeyUp}
           onKeyDown={handleKeyDown}
+          onMouseDown={(e) => {
+            if (e.detail === 3) {
+              e.preventDefault()
+              const blockDiv = divRef.current
+              if (blockDiv) {
+                const range = document.createRange()
+                range.selectNodeContents(blockDiv)
+                const sel = window.getSelection()
+                sel?.removeAllRanges()
+                sel?.addRange(range)
+              }
+            }
+          }}
           onPaste={(e) => {
             e.preventDefault()
             const text = e.clipboardData.getData('text/plain')

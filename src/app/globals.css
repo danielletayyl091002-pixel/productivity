@@ -104,12 +104,13 @@ body {
 .block-wrapper:hover .drag-handle {
   opacity: 1;
 }
-.block-wrapper { user-select: none; }
+.block-wrapper { user-select: none; -webkit-user-select: none; }
 .block-wrapper [contenteditable] {
   user-select: text !important;
   -webkit-user-select: text !important;
   cursor: text !important;
 }
+[data-block-uid]::selection { background: var(--accent-light); }
 
 [data-theme="dark"] .board-column {
   border: 1px solid var(--border);
