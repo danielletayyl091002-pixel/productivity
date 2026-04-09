@@ -181,14 +181,18 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
                   if (n.type.name === 'tableCell' || n.type.name === 'tableHeader') tableCol = $from.index(d - 1)
                 }
                 if (tableNode) {
-                  // Build data array from table, but use 0 for the formula cell itself
+                  // Build data array from table, skipping header row (row 0)
+                  // so A1 = first data row, A2 = second data row, etc.
                   const data: number[][] = []
                   let ri = 0
+                  // Adjust tableRow to be relative to data rows (skip header)
+                  const dataRow = tableRow - 1
                   tableNode.forEach((row: any) => {
+                    if (ri === 0) { ri++; return } // skip header row
                     const rowData: number[] = []
                     let ci = 0
                     row.forEach((cell: any) => {
-                      if (ri === tableRow && ci === tableCol) {
+                      if ((ri - 1) === dataRow && ci === tableCol) {
                         rowData.push(0) // skip self
                       } else {
                         const num = parseFloat(cell.textContent.trim().replace(/[,$%]/g, ''))

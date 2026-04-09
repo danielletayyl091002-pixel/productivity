@@ -16,13 +16,16 @@ function parseRange(s: string): { sr: number; sc: number; er: number; ec: number
 
 function readTable(tableNode: PmNode): number[][] {
   const out: number[][] = []
+  let ri = 0
   tableNode.forEach(row => {
+    if (ri === 0) { ri++; return } // skip header row
     const r: number[] = []
     row.forEach(cell => {
       const n = parseFloat(cell.textContent.trim().replace(/[,$%]/g, ''))
       r.push(isNaN(n) ? 0 : n)
     })
     out.push(r)
+    ri++
   })
   return out
 }
@@ -73,18 +76,20 @@ function recalcAll(editor: Editor) {
 
   doc.descendants((tableNode, tablePos) => {
     if (tableNode.type.name !== 'table') return true
-    const data = readTable(tableNode)
-    let rowIdx = 0
+    const data = readTable(tableNode) // already skips header
+    let tableRowIdx = 0
     let offset = tablePos + 1
     tableNode.forEach(row => {
+      if (tableRowIdx === 0) { offset += row.nodeSize; tableRowIdx++; return } // skip header
+      const dataRowIdx = tableRowIdx - 1 // formula row index (0-based, header excluded)
       let colIdx = 0
       let cellOffset = offset + 1
       row.forEach(cell => {
-        const key = `${rowIdx}-${colIdx}`
+        const key = `${dataRowIdx}-${colIdx}`
         const raw = formulaMap.get(key) || cell.attrs?.formula
         if (raw && typeof raw === 'string' && raw.startsWith('=')) {
           formulaMap.set(key, raw)
-          const { val, err } = evalFormula(raw, data, rowIdx, colIdx)
+          const { val, err } = evalFormula(raw, data, dataRowIdx, colIdx)
           const displayText = err ?? String(val ?? 0)
           if (cell.textContent.trim() !== displayText) {
             const from = cellOffset + 1
@@ -99,7 +104,7 @@ function recalcAll(editor: Editor) {
         colIdx++
       })
       offset += row.nodeSize
-      rowIdx++
+      tableRowIdx++
     })
     return false
   })
@@ -149,12 +154,14 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
           }
         }
         if (row >= 0 && col >= 0 && cellDepth >= 0) {
-          setCellRef(getCellRef(row, col))
+          // row is the table row index (0=header). Data row = row-1.
+          const dataRow = Math.max(0, row - 1)
+          setCellRef(getCellRef(dataRow, col))
           const cellNode = $from.node(cellDepth)
           cached.current = {
             tablePos,
             cellPos: $from.before(cellDepth),
-            cellRow: row,
+            cellRow: dataRow,
             cellCol: col,
             cellContentSize: cellNode.content.size,
           }
