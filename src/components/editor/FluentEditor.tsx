@@ -112,19 +112,48 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
     },
     editorProps: {
       handleKeyDown: (view, event) => {
+        const { state } = view
+        const { $from } = state.selection
+
+        // Arrow keys in table: move between cells
+        if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && !event.shiftKey) {
+          let inTable = false
+          for (let d = $from.depth; d >= 0; d--) {
+            if ($from.node(d).type.name === 'table') { inTable = true; break }
+          }
+          if (inTable) {
+            if (event.key === 'ArrowDown') {
+              // goToNextCell with direction simulates moving down
+              const moved = editor?.commands.goToNextCell()
+              if (moved) return true
+            }
+            if (event.key === 'ArrowUp') {
+              const moved = editor?.commands.goToPreviousCell()
+              if (moved) return true
+            }
+          }
+        }
+
+        // Enter in table: move to next row (same as Tab then back)
+        if (event.key === 'Enter' && !event.shiftKey) {
+          let inTable = false
+          for (let d = $from.depth; d >= 0; d--) {
+            if ($from.node(d).type.name === 'table') { inTable = true; break }
+          }
+          if (inTable) {
+            const moved = editor?.commands.goToNextCell()
+            if (moved) { event.preventDefault(); return true }
+          }
+        }
+
         // Tab inside blockquote: nest deeper
         if (event.key === 'Tab' && !event.metaKey && !event.ctrlKey) {
-          const { state } = view
-          const { $from } = state.selection
-          // Check if inside a blockquote
           for (let d = $from.depth; d > 0; d--) {
             if ($from.node(d).type.name === 'blockquote') {
               event.preventDefault()
               if (event.shiftKey) {
-                // Shift+Tab: lift out of blockquote
                 editor?.commands.lift('blockquote')
               } else {
-                // Tab: wrap in another blockquote
                 editor?.commands.wrapIn('blockquote')
               }
               return true
