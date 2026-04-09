@@ -167,12 +167,16 @@ body {
   transition: opacity 0.15s, background 0.15s, color 0.15s;
 }
 .drag-handle:hover {
+  visibility: visible !important;
+  pointer-events: auto !important;
   background: var(--bg-hover);
   color: var(--text-secondary);
 }
 .drag-handle:active {
   cursor: grabbing;
   color: var(--text-primary);
+  visibility: visible !important;
+  pointer-events: auto !important;
 }
 .block-wrapper { user-select: none; -webkit-user-select: none; }
 .block-wrapper [contenteditable] {

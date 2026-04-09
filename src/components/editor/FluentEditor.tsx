@@ -70,6 +70,7 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
         heading: { levels: [1, 2, 3] },
         codeBlock: { HTMLAttributes: { class: '' } },
         horizontalRule: false,
+        dropcursor: { color: '#3B82F6', width: 2 },
       }),
       HorizontalRule,
       TaskList,
@@ -96,15 +97,6 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
             <circle cx="9" cy="11.5" r="1.3" fill="currentColor"/>
           </svg>`
           return el
-        },
-        onNodeChange({ node }) {
-          if (node) console.log('[DRAG] node:', node.type.name)
-        },
-        onElementDragStart() {
-          console.log('[DRAG] dragstart')
-        },
-        onElementDragEnd() {
-          console.log('[DRAG] dragend')
         },
       }),
     ],
@@ -154,44 +146,6 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
     }
   }, [initialContent])
 
-  // Debug drag events on the editor DOM
-  useEffect(() => {
-    if (!editor) return
-    const dom = editor.view.dom
-    const parent = dom.parentElement
-    const onDragStart = (e: Event) => {
-      const t = e.target as HTMLElement
-      console.log('[DEBUG] dragstart on:', t.tagName, t.className, 'dragging:', (editor.view as any).dragging)
-    }
-    const onDrop = (e: Event) => {
-      console.log('[DEBUG] drop fired, dragging:', (editor.view as any).dragging)
-    }
-    const onDragOver = (e: Event) => {
-      // Only log once per second
-      if (!(window as any).__lastDragOver || Date.now() - (window as any).__lastDragOver > 1000) {
-        console.log('[DEBUG] dragover on editor')
-        ;(window as any).__lastDragOver = Date.now()
-      }
-    }
-    const onDragEnd = (e: Event) => {
-      console.log('[DEBUG] dragend')
-    }
-    // Listen on parent (which contains both handle and editor)
-    if (parent) {
-      parent.addEventListener('dragstart', onDragStart, true)
-      parent.addEventListener('drop', onDrop, true)
-      parent.addEventListener('dragover', onDragOver, true)
-      parent.addEventListener('dragend', onDragEnd, true)
-    }
-    return () => {
-      if (parent) {
-        parent.removeEventListener('dragstart', onDragStart, true)
-        parent.removeEventListener('drop', onDrop, true)
-        parent.removeEventListener('dragover', onDragOver, true)
-        parent.removeEventListener('dragend', onDragEnd, true)
-      }
-    }
-  }, [editor])
 
   // Cmd+S save
   useEffect(() => {
