@@ -122,7 +122,7 @@ export default function TrackerGrid() {
   }, [])
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 3 } })
   )
 
   async function handleDragEnd(event: DragEndEvent) {
@@ -308,6 +308,7 @@ function SortableTrackerCard(props: Parameters<typeof TrackerCard>[0] & { uid: s
   return (
     <div
       ref={setNodeRef}
+      className="sortable-tracker-card"
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
@@ -323,7 +324,7 @@ function SortableTrackerCard(props: Parameters<typeof TrackerCard>[0] & { uid: s
           position: 'absolute', top: '8px', left: '8px',
           cursor: 'grab', color: 'var(--text-tertiary)',
           opacity: 0, transition: 'opacity 0.15s',
-          zIndex: 5, touchAction: 'none',
+          zIndex: 5, touchAction: 'none', pointerEvents: 'auto',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           width: '20px', height: '20px', borderRadius: '4px'
         }}

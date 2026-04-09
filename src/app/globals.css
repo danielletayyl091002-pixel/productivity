@@ -115,4 +115,5 @@ body {
 
 .tracker-drag-handle { opacity: 0; transition: opacity 0.15s; }
 div:hover > .tracker-drag-handle { opacity: 0.6 !important; }
+.sortable-tracker-card:hover .tracker-drag-handle { opacity: 0.6 !important; }
 
