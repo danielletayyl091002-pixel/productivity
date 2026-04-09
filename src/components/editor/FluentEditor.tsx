@@ -14,6 +14,7 @@ import { Table, TableCell, TableHeader } from '@tiptap/extension-table'
 import TableRow from '@tiptap/extension-table-row'
 import FloatingToolbar from './FloatingToolbar'
 import TableMenu from './TableMenu'
+import TableFormulas from './TableFormulas'
 import { DragHandle } from '@tiptap/extension-drag-handle'
 import { db, Block } from '@/db/schema'
 
@@ -177,6 +178,7 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
     <div style={{ position: 'relative', overflow: 'visible' }}>
       <FloatingToolbar editor={editor} />
       <TableMenu editor={editor} />
+      <TableFormulas editor={editor} />
       <EditorContent editor={editor} />
     </div>
   )
