@@ -12,6 +12,23 @@ import { suggestion } from './slash-menu'
 import { Callout } from './CalloutExtension'
 import { Table, TableCell, TableHeader } from '@tiptap/extension-table'
 import TableRow from '@tiptap/extension-table-row'
+
+const FormulaCell = TableCell.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      formula: { default: null, parseHTML: el => el.getAttribute('data-formula'), renderHTML: attrs => attrs.formula ? { 'data-formula': attrs.formula } : {} },
+    }
+  },
+})
+const FormulaHeader = TableHeader.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      formula: { default: null, parseHTML: el => el.getAttribute('data-formula'), renderHTML: attrs => attrs.formula ? { 'data-formula': attrs.formula } : {} },
+    }
+  },
+})
 import FloatingToolbar from './FloatingToolbar'
 import TableMenu from './TableMenu'
 import TableFormulas from './TableFormulas'
@@ -83,8 +100,8 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
       Callout,
       Table.configure({ resizable: true }),
       TableRow,
-      TableCell,
-      TableHeader,
+      FormulaCell,
+      FormulaHeader,
       DragHandle.configure({
         render() {
           const el = document.createElement('div')
