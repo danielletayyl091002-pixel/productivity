@@ -4,8 +4,6 @@ import { createPortal } from 'react-dom'
 import { Editor } from '@tiptap/react'
 import { Node as PmNode } from '@tiptap/pm/model'
 
-// ── helpers ──
-
 function getCellRef(row: number, col: number): string {
   return String.fromCharCode(65 + col) + (row + 1)
 }
@@ -14,10 +12,6 @@ function parseRange(s: string): { sr: number; sc: number; er: number; ec: number
   const m = s.match(/^([A-Z])(\d+):([A-Z])(\d+)$/)
   if (!m) return null
   return { sc: m[1].charCodeAt(0) - 65, sr: +m[2] - 1, ec: m[3].charCodeAt(0) - 65, er: +m[4] - 1 }
-}
-
-function getValue(data: number[][], row: number, col: number): number {
-  return data[row]?.[col] ?? 0
 }
 
 function readTable(tableNode: PmNode): number[][] {
@@ -34,36 +28,29 @@ function readTable(tableNode: PmNode): number[][] {
 }
 
 function evalFormula(
-  formula: string,
-  data: number[][],
-  ownRow: number,
-  ownCol: number,
+  formula: string, data: number[][], ownRow: number, ownCol: number,
 ): { val: number | null; err: string | null } {
   const f = formula.trim().toUpperCase()
   if (!f.startsWith('=')) return { val: null, err: 'Not a formula' }
 
-  // single cell ref =A1
   const single = f.slice(1).match(/^([A-Z])(\d+)$/)
   if (single) {
     const c = single[1].charCodeAt(0) - 65, r = +single[2] - 1
     if (r === ownRow && c === ownCol) return { val: null, err: '#CIRC!' }
-    return { val: getValue(data, r, c), err: null }
+    return { val: data[r]?.[c] ?? 0, err: null }
   }
 
   const fm = f.slice(1).match(/^(SUM|AVG|AVERAGE|MIN|MAX|COUNT)\((.+)\)$/)
   if (!fm) return { val: null, err: 'Unknown formula' }
   const range = parseRange(fm[2].trim())
   if (!range) return { val: null, err: 'Bad range' }
-
-  // circular: own cell inside range
-  if (ownRow >= range.sr && ownRow <= range.er && ownCol >= range.sc && ownCol <= range.ec) {
+  if (ownRow >= range.sr && ownRow <= range.er && ownCol >= range.sc && ownCol <= range.ec)
     return { val: null, err: '#CIRC!' }
-  }
 
   const vals: number[] = []
   for (let r = range.sr; r <= range.er; r++)
     for (let c = range.sc; c <= range.ec; c++)
-      vals.push(getValue(data, r, c))
+      vals.push(data[r]?.[c] ?? 0)
 
   if (!vals.length) return { val: 0, err: null }
   switch (fm[1]) {
@@ -76,9 +63,7 @@ function evalFormula(
   }
 }
 
-// ── recalc engine ──
-// formulaMap: "tablePos-row-col" → raw formula string
-// We keep it module-level so the transaction handler can access it
+// Module-level formula store: "row-col" → formula string
 const formulaMap = new Map<string, string>()
 
 function recalcAll(editor: Editor) {
@@ -89,17 +74,15 @@ function recalcAll(editor: Editor) {
   doc.descendants((tableNode, tablePos) => {
     if (tableNode.type.name !== 'table') return true
     const data = readTable(tableNode)
-
     let rowIdx = 0
-    let offset = tablePos + 1 // inside <table>
+    let offset = tablePos + 1
     tableNode.forEach(row => {
       let colIdx = 0
-      let cellOffset = offset + 1 // inside <tr>
+      let cellOffset = offset + 1
       row.forEach(cell => {
-        const key = `${tablePos}-${rowIdx}-${colIdx}`
-        const raw = formulaMap.get(key) || cell.attrs.formula
+        const key = `${rowIdx}-${colIdx}`
+        const raw = formulaMap.get(key) || cell.attrs?.formula
         if (raw && typeof raw === 'string' && raw.startsWith('=')) {
-          // make sure it's in the map
           formulaMap.set(key, raw)
           const { val, err } = evalFormula(raw, data, rowIdx, colIdx)
           const displayText = err ?? String(val ?? 0)
@@ -127,19 +110,25 @@ function recalcAll(editor: Editor) {
   }
 }
 
-// ── component ──
+interface TableFormulasProps { editor: Editor }
 
 export default function TableFormulas({ editor }: TableFormulasProps) {
   const [formula, setFormula] = useState('')
   const [error, setError] = useState('')
   const [cellRef, setCellRef] = useState<string | null>(null)
-  const [cellRow, setCellRow] = useState(-1)
-  const [cellCol, setCellCol] = useState(-1)
   const [tableRect, setTableRect] = useState<DOMRect | null>(null)
   const [isInTable, setIsInTable] = useState(false)
   const recalcScheduled = useRef(false)
 
-  // On selection change, read current cell info + show stored formula
+  // Cache cell position so commitFormula works even when formula bar has focus
+  const cached = useRef<{
+    tablePos: number
+    cellPos: number
+    cellRow: number
+    cellCol: number
+    cellContentSize: number
+  } | null>(null)
+
   const updateCellInfo = useCallback(() => {
     const { $from } = editor.state.selection
     let found = false
@@ -149,24 +138,30 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
         const tablePos = $from.before(d)
         const dom = editor.view.nodeDOM(tablePos) as HTMLElement | null
         if (dom) setTableRect(dom.getBoundingClientRect())
-        let row = -1, col = -1
+
+        let row = -1, col = -1, cellDepth = -1
         for (let dd = $from.depth; dd > d; dd--) {
           const n = $from.node(dd)
           if (n.type.name === 'tableRow') row = $from.index(dd - 1)
-          if (n.type.name === 'tableCell' || n.type.name === 'tableHeader') col = $from.index(dd - 1)
-        }
-        if (row >= 0 && col >= 0) {
-          setCellRef(getCellRef(row, col))
-          setCellRow(row)
-          setCellCol(col)
-          // Show stored formula if any
-          const key = `${tablePos}-${row}-${col}`
-          const stored = formulaMap.get(key)
-          if (stored) {
-            setFormula(stored)
-          } else {
-            setFormula('')
+          if (n.type.name === 'tableCell' || n.type.name === 'tableHeader') {
+            col = $from.index(dd - 1)
+            cellDepth = dd
           }
+        }
+        if (row >= 0 && col >= 0 && cellDepth >= 0) {
+          setCellRef(getCellRef(row, col))
+          const cellNode = $from.node(cellDepth)
+          cached.current = {
+            tablePos,
+            cellPos: $from.before(cellDepth),
+            cellRow: row,
+            cellCol: col,
+            cellContentSize: cellNode.content.size,
+          }
+          // Show stored formula or clear
+          const key = `${row}-${col}`
+          const stored = formulaMap.get(key)
+          setFormula(stored || '')
           setError('')
         }
         break
@@ -176,20 +171,13 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
     if (!found) setTableRect(null)
   }, [editor])
 
-  // Auto-recalc on every doc change (debounced to batch)
   useEffect(() => {
     const onUpdate = () => {
-      // Skip if this update was caused by our own recalc
-      const lastTr = editor.state.tr
-      // Use a flag to avoid infinite loop
       if (recalcScheduled.current) return
       recalcScheduled.current = true
       requestAnimationFrame(() => {
         recalcScheduled.current = false
-        // Only recalc if there are formulas
-        if (formulaMap.size > 0) {
-          recalcAll(editor)
-        }
+        if (formulaMap.size > 0) recalcAll(editor)
       })
     }
     editor.on('update', onUpdate)
@@ -200,62 +188,42 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
     }
   }, [editor, updateCellInfo])
 
-  // Commit formula: store in map + set cell attr + write result in ONE transaction
   const commitFormula = useCallback(() => {
-    if (!formula.startsWith('=')) return
+    if (!formula.startsWith('=') || !cached.current) return
+    const { tablePos, cellPos, cellRow, cellCol } = cached.current
 
-    // Find table from current selection
-    const { $from } = editor.state.selection
-    let tableNode: PmNode | null = null
-    let tablePos = -1
-    let cellDepth = -1
+    // Re-read table from current doc (fresh data)
+    const tableNode = editor.state.doc.nodeAt(tablePos)
+    if (!tableNode || tableNode.type.name !== 'table') return
 
-    for (let d = $from.depth; d >= 0; d--) {
-      const n = $from.node(d)
-      if (n.type.name === 'table') {
-        tableNode = n
-        tablePos = $from.before(d)
-      }
-      if (n.type.name === 'tableCell' || n.type.name === 'tableHeader') {
-        cellDepth = d
-      }
-    }
-    if (!tableNode || tablePos < 0 || cellDepth < 0) return
-
-    // Evaluate
     const data = readTable(tableNode)
     const { val, err } = evalFormula(formula, data, cellRow, cellCol)
     if (err) { setError(err); return }
 
-    // Store in map
-    const key = `${tablePos}-${cellRow}-${cellCol}`
+    // Store formula
+    const key = `${cellRow}-${cellCol}`
     formulaMap.set(key, formula)
 
-    // Build ONE transaction: set formula attr + replace cell text
-    const cellNode = $from.node(cellDepth)
-    const cellPos = $from.before(cellDepth) // position of the <td>/<th> node
-    const contentStart = cellPos + 1         // inside the cell
+    // Re-read the cell node from current doc to get fresh content size
+    const cellNode = editor.state.doc.nodeAt(cellPos)
+    if (!cellNode) return
+    const contentStart = cellPos + 1
     const contentEnd = contentStart + cellNode.content.size
 
     const resultText = String(val ?? 0)
     const textNode = editor.state.schema.text(resultText)
     const para = editor.state.schema.nodes.paragraph.create(null, textNode)
 
-    let tr = editor.state.tr
-
-    // Set the formula attribute on the cell node
-    tr = tr.setNodeMarkup(cellPos, undefined, { ...cellNode.attrs, formula: formula })
-
-    // Replace cell content with the result paragraph
-    // After setNodeMarkup, positions haven't changed (it's an in-place attr update)
-    tr = tr.replaceWith(contentStart, contentEnd, para)
-
+    const tr = editor.state.tr
+    // Set formula attr
+    tr.setNodeMarkup(cellPos, undefined, { ...cellNode.attrs, formula: formula })
+    // Replace content
+    tr.replaceWith(contentStart, contentEnd, para)
     tr.setMeta('formulaRecalc', true)
     editor.view.dispatch(tr)
     setError('')
-  }, [editor, formula, cellRow, cellCol])
+  }, [editor, formula])
 
-  // Quick button: fill formula for full table range
   const insertQuick = useCallback((func: string) => {
     let tableNode: PmNode | null = null
     editor.state.doc.descendants(node => {
@@ -274,17 +242,14 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
     <div style={{
       position: 'fixed', top: tableRect.bottom + 4, left: tableRect.left,
       width: Math.max(tableRect.width, 420), zIndex: 50,
-      display: 'flex', alignItems: 'center', gap: '6px',
-      padding: '5px 10px',
+      display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 10px',
       background: 'var(--bg-primary)', border: '1px solid var(--border)',
-      borderRadius: '6px', fontSize: '12px',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+      borderRadius: '6px', fontSize: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
     }}>
       {cellRef && (
         <span style={{
           padding: '2px 8px', background: 'var(--bg-hover)', borderRadius: '4px',
-          fontWeight: 700, color: 'var(--accent)', minWidth: '32px', textAlign: 'center',
-          fontSize: '11px',
+          fontWeight: 700, color: 'var(--accent)', minWidth: '32px', textAlign: 'center', fontSize: '11px',
         }}>{cellRef}</span>
       )}
       <span style={{ color: 'var(--text-tertiary)', fontWeight: 600, fontSize: '13px' }}>fx</span>
@@ -314,8 +279,7 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
       {['SUM', 'AVG', 'MIN', 'MAX'].map(fn => (
         <button key={fn} onClick={() => insertQuick(fn)} title={`=${fn}(all)`} style={{
           padding: '3px 7px', borderRadius: '4px', border: '1px solid var(--border)',
-          background: 'var(--bg-primary)', cursor: 'pointer', fontSize: '10px',
-          fontWeight: 700, color: 'var(--accent)',
+          background: 'var(--bg-primary)', cursor: 'pointer', fontSize: '10px', fontWeight: 700, color: 'var(--accent)',
         }}
         onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-light)' }}
         onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-primary)' }}
@@ -325,8 +289,4 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
     </div>,
     document.body
   )
-}
-
-interface TableFormulasProps {
-  editor: Editor
 }
