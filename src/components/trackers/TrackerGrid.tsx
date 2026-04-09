@@ -170,11 +170,8 @@ export default function TrackerGrid() {
     <div>
       <div style={{
         display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', marginBottom: '16px'
+        justifyContent: 'flex-end', marginBottom: '16px'
       }}>
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-          Trackers
-        </h2>
         <button onClick={() => setShowAdd(true)} style={{
           padding: '5px 12px', borderRadius: '8px',
           border: '1px solid var(--border)',

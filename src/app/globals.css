@@ -110,10 +110,24 @@ body {
 }
 
 .tracker-card {
-  background: color-mix(in srgb, var(--bg-primary) 88%, transparent) !important;
+  background: var(--bg-primary);
+  background: color-mix(in srgb, var(--bg-primary) 85%, transparent) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .tracker-drag-handle { opacity: 0; transition: opacity 0.15s; }
 div:hover > .tracker-drag-handle { opacity: 0.6 !important; }
 .sortable-tracker-card:hover .tracker-drag-handle { opacity: 0.6 !important; }
+
+.has-bg-image { position: relative; }
+.has-bg-image::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: var(--bg-primary);
+  opacity: var(--bg-overlay-opacity, 0);
+  pointer-events: none;
+  z-index: 0;
+}
 

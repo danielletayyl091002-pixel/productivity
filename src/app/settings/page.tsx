@@ -111,6 +111,7 @@ export default function SettingsPage() {
   const [weekStart, setWeekStart] = useState('sunday')
   const [tintStrength, setTintStrength] = useState(8)
   const [bgImages, setBgImages] = useState<Record<string, string>>({})
+  const [bgOpacities, setBgOpacities] = useState<Record<string, number>>({})
 
   useEffect(() => {
     // Load saved settings
@@ -128,6 +129,12 @@ export default function SettingsPage() {
         if (setting?.value) imgs[key] = setting.value
       }
       setBgImages(imgs)
+      const opacities: Record<string, number> = {}
+      for (const key of bgImgKeys) {
+        const opSetting = await db.settings.where('key').equals(`${key}_opacity`).first()
+        if (opSetting?.value) opacities[key] = Number(opSetting.value)
+      }
+      setBgOpacities(opacities)
     }
     loadSettings()
 
@@ -454,6 +461,24 @@ export default function SettingsPage() {
                 >
                   Remove
                 </button>
+              )}
+              {bgImages[key] && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', width: '100%' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', flexShrink: 0 }}>Opacity</span>
+                  <input
+                    type="range" min="0" max="60" value={bgOpacities[key] ?? 0}
+                    onChange={async e => {
+                      const val = Number(e.target.value)
+                      setBgOpacities(p => ({ ...p, [key]: val }))
+                      document.documentElement.style.setProperty('--bg-overlay-opacity', String(val / 100))
+                      const exist = await db.settings.where('key').equals(`${key}_opacity`).first()
+                      if (exist?.id) await db.settings.update(exist.id, { value: String(val) })
+                      else await db.settings.add({ key: `${key}_opacity`, value: String(val) })
+                    }}
+                    style={{ flex: 1, accentColor: 'var(--accent)' }}
+                  />
+                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', minWidth: '28px' }}>{bgOpacities[key] ?? 0}%</span>
+                </div>
               )}
             </div>
           ))}

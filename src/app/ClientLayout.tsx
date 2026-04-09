@@ -74,6 +74,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         const setting = await db.settings.where('key').equals(key).first()
         if (setting?.value) {
           document.documentElement.style.setProperty(`--${key}`, `url(${setting.value})`)
+          const opSetting = await db.settings.where('key').equals(`${key}_opacity`).first()
+          if (opSetting?.value) {
+            document.documentElement.style.setProperty('--bg-overlay-opacity', String(Number(opSetting.value) / 100))
+          }
         }
       }
     }
