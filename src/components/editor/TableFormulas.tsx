@@ -1,5 +1,6 @@
 'use client'
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Editor } from '@tiptap/react'
 import { Node as PmNode } from '@tiptap/pm/model'
 
@@ -34,20 +35,15 @@ function extractTableData(tableNode: PmNode): number[][] {
 function evaluateFormula(formula: string, data: number[][]): { result: number | string; error?: string } {
   const f = formula.trim().toUpperCase()
   if (!f.startsWith('=')) return { result: '', error: 'Must start with =' }
-
   const funcMatch = f.slice(1).match(/^(SUM|AVG|AVERAGE|MIN|MAX|COUNT)\((.+)\)$/)
   if (!funcMatch) return { result: '', error: 'Use =SUM(A1:B3)' }
-
   const range = parseRange(funcMatch[2].trim())
   if (!range) return { result: '', error: 'Bad range' }
-
   const values: number[] = []
   for (let r = range.sr; r <= range.er; r++)
     for (let c = range.sc; c <= range.ec; c++)
       if (data[r]?.[c] !== undefined) values.push(data[r][c])
-
   if (!values.length) return { result: 0 }
-
   switch (funcMatch[1]) {
     case 'SUM': return { result: Math.round(values.reduce((a, b) => a + b, 0) * 100) / 100 }
     case 'AVG': case 'AVERAGE': return { result: Math.round(values.reduce((a, b) => a + b, 0) / values.length * 100) / 100 }
@@ -63,18 +59,16 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
   const [result, setResult] = useState<string | number>('')
   const [error, setError] = useState('')
   const [cellRef, setCellRef] = useState<string | null>(null)
-  const [isInTable, setIsInTable] = useState(false)
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null)
   const cachedTableNode = useRef<PmNode | null>(null)
 
   const updateCellInfo = useCallback(() => {
     const { $from } = editor.state.selection
-    let inTable = false
+    let tablePos = -1
     for (let d = $from.depth; d >= 0; d--) {
-      const node = $from.node(d)
-      if (node.type.name === 'table') {
-        inTable = true
-        cachedTableNode.current = node
-        // Find row/col
+      if ($from.node(d).type.name === 'table') {
+        tablePos = $from.before(d)
+        cachedTableNode.current = $from.node(d)
         let row = -1, col = -1
         for (let dd = $from.depth; dd > d; dd--) {
           if ($from.node(dd).type.name === 'tableRow') row = $from.index(dd - 1)
@@ -84,17 +78,41 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
         break
       }
     }
-    setIsInTable(inTable)
+
+    if (tablePos >= 0) {
+      // Find the table's DOM element and place portal container after it
+      const tableDom = editor.view.nodeDOM(tablePos) as HTMLElement | null
+      // The table might be wrapped in .tableWrapper by TipTap
+      const wrapper = tableDom?.closest('.tableWrapper') || tableDom
+      if (wrapper) {
+        let container = wrapper.nextElementSibling as HTMLElement | null
+        if (!container || !container.hasAttribute('data-formula-bar')) {
+          container = document.createElement('div')
+          container.setAttribute('data-formula-bar', 'true')
+          wrapper.parentNode?.insertBefore(container, wrapper.nextSibling)
+        }
+        setPortalTarget(container)
+      }
+    } else {
+      // Clean up portal target when leaving table
+      setPortalTarget(prev => {
+        if (prev?.hasAttribute('data-formula-bar') && !prev.hasChildNodes()) {
+          prev.remove()
+        }
+        return null
+      })
+    }
   }, [editor])
 
   useEffect(() => {
     editor.on('selectionUpdate', updateCellInfo)
-    return () => { editor.off('selectionUpdate', updateCellInfo) }
+    return () => {
+      editor.off('selectionUpdate', updateCellInfo)
+    }
   }, [editor, updateCellInfo])
 
   const evaluate = useCallback(() => {
     if (!formula.trim()) { setResult(''); setError(''); return }
-    // Try cached table node, or walk the doc to find any table
     let tableNode = cachedTableNode.current
     if (!tableNode) {
       editor.state.doc.descendants((node) => {
@@ -119,24 +137,18 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
     const lastCol = String.fromCharCode(65 + (data[0]?.length || 1) - 1)
     const f = `=${func}(A1:${lastCol}${data.length})`
     setFormula(f)
-    // Auto-evaluate
     const { result: r, error: e } = evaluateFormula(f, data)
     if (e) { setError(e); setResult('') } else { setResult(r); setError('') }
   }, [editor])
 
-  if (!isInTable) return null
+  if (!portalTarget) return null
 
-  return (
+  const bar = (
     <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      padding: '4px 8px',
-      marginTop: '4px',
-      background: 'var(--bg-secondary)',
-      border: '1px solid var(--border)',
-      borderRadius: '6px',
-      fontSize: '12px',
+      display: 'flex', alignItems: 'center', gap: '6px',
+      padding: '4px 8px', margin: '4px 0 8px',
+      background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+      borderRadius: '6px', fontSize: '12px',
     }}>
       {cellRef && (
         <span style={{
@@ -174,4 +186,6 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
       {error && <span style={{ color: '#EF4444', fontSize: '11px' }}>{error}</span>}
     </div>
   )
+
+  return createPortal(bar, portalTarget)
 }
