@@ -91,14 +91,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     // When theme changes, ensure dark mode clears palette bg overrides
     const handleThemeChange = (e: Event) => {
       const detail = (e as CustomEvent).detail
-      console.log('[THEME] fluent-theme-changed:', detail?.theme, 'current data-theme:', document.documentElement.getAttribute('data-theme'))
       if (detail?.theme === 'dark') {
         document.documentElement.style.removeProperty('--bg-primary')
         document.documentElement.style.removeProperty('--bg-secondary')
         document.documentElement.style.removeProperty('--bg-sidebar')
-        console.log('[THEME] cleared bg inline styles, --bg-primary is now:', getComputedStyle(document.documentElement).getPropertyValue('--bg-primary'))
       } else if (detail?.theme === 'light') {
-        // Re-apply palette bg on switch back to light
         loadSettings()
       }
     }
