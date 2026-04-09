@@ -1,69 +1,44 @@
 'use client'
-import { useEffect, useState, useRef, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { db, Page, Block } from '@/db/schema'
 import { nanoid } from 'nanoid'
-import SlashMenu from '@/components/blocks/SlashMenu'
 import BoardView from '@/components/views/BoardView'
 import CalendarView from '@/components/views/CalendarView'
-import TableBlock from '@/components/blocks/TableBlock'
-import {
-  DndContext,
-  DragOverlay,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent
-} from '@dnd-kit/core'
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable,
-  arrayMove
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
+import FluentEditor from '@/components/editor/FluentEditor'
 
-class SmartPointerSensor extends PointerSensor {
-  static activators = [
-    {
-      eventName: 'onPointerDown' as const,
-      handler: ({ nativeEvent: event }: {
-        nativeEvent: PointerEvent
-      }) => {
-        const target = event.target as HTMLElement
-
-        // Only activate from drag handle
-        if (!target.closest('.drag-handle')) return false
-
-        // Never activate on editable content
-        if (target.isContentEditable || target.closest('[contenteditable="true"]')) return false
-
-        // Don't interfere with double/triple click text selection
-        if (event.detail > 1) return false
-
-        return true
-      }
-    }
-  ]
+function legacyToTipTap(blocks: Block[]): Record<string, unknown> {
+  return {
+    type: 'doc',
+    content: blocks
+      .filter(b => b.type !== 'document')
+      .map(block => {
+        const text = block.content || ''
+        const textNode = text ? [{ type: 'text', text }] : []
+        switch (block.type) {
+          case 'heading1': return { type: 'heading', attrs: { level: 1 }, content: textNode }
+          case 'heading2': return { type: 'heading', attrs: { level: 2 }, content: textNode }
+          case 'heading3': return { type: 'heading', attrs: { level: 3 }, content: textNode }
+          case 'bullet': return { type: 'bulletList', content: [{ type: 'listItem', content: [{ type: 'paragraph', content: textNode }] }] }
+          case 'numbered': return { type: 'orderedList', content: [{ type: 'listItem', content: [{ type: 'paragraph', content: textNode }] }] }
+          case 'todo': return { type: 'taskList', content: [{ type: 'taskItem', attrs: { checked: block.checked || false }, content: [{ type: 'paragraph', content: textNode }] }] }
+          case 'quote': return { type: 'blockquote', content: [{ type: 'paragraph', content: textNode }] }
+          case 'code': return { type: 'codeBlock', attrs: { language: null }, content: text ? [{ type: 'text', text }] : [] }
+          case 'divider': return { type: 'horizontalRule' }
+          case 'table': return { type: 'paragraph', content: [{ type: 'text', text: '[Table]' }] }
+          case 'callout': return { type: 'blockquote', content: [{ type: 'paragraph', content: textNode }] }
+          default: return { type: 'paragraph', content: textNode }
+        }
+      })
+  }
 }
 
 export default function PageCanvas() {
   const { uid } = useParams<{ uid: string }>()
   const [page, setPage] = useState<Page | null>(null)
-  const [blocks, setBlocks] = useState<Block[]>([])
   const [loading, setLoading] = useState(true)
-  const [slashMenu, setSlashMenu] = useState<{
-    blockUid: string
-    query: string
-    position: { top: number; left: number }
-  } | null>(null)
-  const [activeBlock, setActiveBlock] = useState<Block | null>(null)
   const [view, setView] = useState<'page' | 'board' | 'calendar'>('page')
-  const [selectedBlocks, setSelectedBlocks] = useState<Set<string>>(new Set())
-  const [lastClickedBlock, setLastClickedBlock] = useState<string | null>(null)
+  const [editorContent, setEditorContent] = useState<Record<string, unknown> | null>(null)
 
   useEffect(() => {
     if (!uid) return
@@ -75,111 +50,46 @@ export default function PageCanvas() {
       const allBlocks = await db.blocks
         .where('pageUid').equals(uid)
         .sortBy('order')
-      // Sanitize legacy bullet characters in content
-      for (const b of allBlocks) {
-        const cleaned = b.content.replace(/^•\s?/, '')
-        if (cleaned !== b.content && b.id) {
-          b.content = cleaned
-          await db.blocks.update(b.id, { content: cleaned })
+
+      // Check for existing TipTap document
+      const docBlock = allBlocks.find(b => b.type === 'document')
+      if (docBlock) {
+        try {
+          setEditorContent(JSON.parse(docBlock.content))
+        } catch {
+          setEditorContent({ type: 'doc', content: [{ type: 'paragraph' }] })
         }
+      } else if (allBlocks.length > 0) {
+        // Migrate legacy blocks to TipTap format
+        const tiptapJson = legacyToTipTap(allBlocks)
+        setEditorContent(tiptapJson)
+
+        // Save migrated content and clean up old blocks
+        const docUid = uid + '_doc'
+        await db.blocks.add({
+          uid: docUid,
+          pageUid: uid,
+          type: 'document' as Block['type'],
+          content: JSON.stringify(tiptapJson),
+          checked: false,
+          order: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
+        // Delete legacy blocks
+        for (const block of allBlocks) {
+          if (block.id && block.type !== 'document') {
+            await db.blocks.delete(block.id)
+          }
+        }
+      } else {
+        setEditorContent({ type: 'doc', content: [{ type: 'paragraph' }] })
       }
-      // Delete ALL empty text blocks except one at the very end
-      const toDelete = allBlocks.filter((b, i) => {
-        const isEmpty = b.content.trim() === ''
-        const isLast = i === allBlocks.length - 1
-        return isEmpty && !isLast
-      })
-      for (const b of toDelete) {
-        if (b.id) await db.blocks.delete(b.id)
-      }
-      const remaining = allBlocks.filter(b =>
-        b.content.trim() !== '' ||
-        b === allBlocks[allBlocks.length - 1]
-      )
-      setBlocks(remaining)
 
       setLoading(false)
     }
     load()
   }, [uid])
-
-  // Prevent cross-block selection
-  useEffect(() => {
-    const handleMouseMove = () => {
-      const selection = window.getSelection()
-      if (!selection || selection.isCollapsed) return
-      const anchorBlock = (selection.anchorNode?.nodeType === Node.TEXT_NODE
-        ? selection.anchorNode.parentElement
-        : selection.anchorNode as Element)?.closest('[data-block-uid]')
-      const focusBlock = (selection.focusNode?.nodeType === Node.TEXT_NODE
-        ? selection.focusNode.parentElement
-        : selection.focusNode as Element)?.closest('[data-block-uid]')
-      if (anchorBlock && focusBlock && anchorBlock !== focusBlock) {
-        selection.removeAllRanges()
-      }
-    }
-    document.addEventListener('mousemove', handleMouseMove)
-
-    // Cmd/Ctrl+A selects all blocks
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
-        const target = e.target as HTMLElement
-        if (target.closest('[contenteditable]')) return // let native select-all work inside a block
-        e.preventDefault()
-        setSelectedBlocks(new Set(blocks.map(b => b.uid)))
-      }
-      if (e.key === 'Escape') setSelectedBlocks(new Set())
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedBlocks.size > 0) {
-        e.preventDefault()
-        deleteSelectedBlocks()
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-
-    // Click outside blocks clears selection
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (!target.closest('.block-wrapper') && !target.closest('.selection-toolbar')) {
-        setSelectedBlocks(new Set())
-      }
-    }
-    document.addEventListener('click', handleClick)
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('keydown', handleKeyDown)
-      document.removeEventListener('click', handleClick)
-    }
-  }, [blocks, selectedBlocks])
-
-  async function deleteSelectedBlocks() {
-    for (const uid of selectedBlocks) {
-      const block = blocks.find(b => b.uid === uid)
-      if (block?.id) await db.blocks.delete(block.id)
-    }
-    setBlocks(prev => prev.filter(b => !selectedBlocks.has(b.uid)))
-    setSelectedBlocks(new Set())
-  }
-
-  async function duplicateSelectedBlocks() {
-    const selected = blocks.filter(b => selectedBlocks.has(b.uid))
-    if (selected.length === 0) return
-    const lastSelected = selected[selected.length - 1]
-    const insertAfterIndex = blocks.findIndex(b => b.uid === lastSelected.uid)
-    const newBlocks: Block[] = selected.map((b, i) => ({
-      ...b,
-      id: undefined,
-      uid: nanoid(),
-      order: insertAfterIndex + 1 + i,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }))
-    await db.blocks.bulkAdd(newBlocks)
-    const updated = [...blocks]
-    updated.splice(insertAfterIndex + 1, 0, ...newBlocks)
-    setBlocks(updated)
-    setSelectedBlocks(new Set(newBlocks.map(b => b.uid)))
-  }
 
   async function updateTitle(title: string) {
     if (!page?.id) return
@@ -188,156 +98,6 @@ export default function PageCanvas() {
     document.title = title
     window.dispatchEvent(new CustomEvent('page-title-updated'))
   }
-
-  async function addBlock(afterUid?: string, type: Block['type'] = 'text') {
-    const pageUid = uid
-
-    const newUid = nanoid()
-    const afterIndex = afterUid
-      ? blocks.findIndex(b => b.uid === afterUid)
-      : blocks.length - 1
-    const newOrder = afterIndex + 1
-
-    const newBlock: Block = {
-      uid: newUid,
-      pageUid: pageUid,
-      type,
-      content: type === 'table' ? JSON.stringify({ columns: ['Column 1', 'Column 2', 'Column 3'], rows: [['', '', ''], ['', '', '']] }) : '',
-      checked: false,
-      order: newOrder,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-
-    await db.blocks.add(newBlock)
-
-    const updated = [...blocks]
-    updated.splice(newOrder, 0, newBlock)
-    setBlocks(updated)
-
-    setTimeout(() => {
-      const el = document.querySelector(
-        `[data-block-uid="${newUid}"]`
-      ) as HTMLElement
-      el?.focus()
-    }, 50)
-  }
-
-  // Content-only update: save to DB, do NOT re-render blocks
-  async function updateBlockContent(blockUid: string, content: string) {
-    const block = blocks.find(b => b.uid === blockUid)
-    if (!block?.id) return
-    await db.blocks.update(block.id, { content, updatedAt: new Date().toISOString() })
-  }
-
-  async function deleteBlock(blockUid: string) {
-    const block = blocks.find(b => b.uid === blockUid)
-    if (!block?.id) return
-    const prevIndex = blocks.findIndex(b => b.uid === blockUid) - 1
-    const prevBlock = prevIndex >= 0 ? blocks[prevIndex] : null
-    await db.blocks.delete(block.id)
-    setBlocks(prev => prev.filter(b => b.uid !== blockUid))
-    if (prevBlock) {
-      setTimeout(() => {
-        const el = document.querySelector(`[data-block-uid="${prevBlock.uid}"]`) as HTMLElement
-        if (el) {
-          el.focus()
-          const range = document.createRange()
-          const sel = window.getSelection()
-          range.selectNodeContents(el)
-          range.collapse(false)
-          sel?.removeAllRanges()
-          sel?.addRange(range)
-        }
-      }, 50)
-    }
-  }
-
-  async function mergeWithPrevious(blockUid: string, content: string) {
-    const idx = blocks.findIndex(b => b.uid === blockUid)
-    if (idx <= 0) return
-    const prev = blocks[idx - 1]
-    if (!prev.id) return
-    const prevContent = prev.content || ''
-    const mergedContent = prevContent + content
-    await db.blocks.update(prev.id, { content: mergedContent })
-    const current = blocks[idx]
-    if (current.id) await db.blocks.delete(current.id)
-    const newBlocks = blocks.filter(b => b.uid !== blockUid)
-    newBlocks[idx - 1] = { ...prev, content: mergedContent }
-    setBlocks(newBlocks)
-    setTimeout(() => {
-      const el = document.querySelector(`[data-block-uid="${prev.uid}"]`) as HTMLElement
-      if (el) {
-        el.focus()
-        el.textContent = mergedContent
-        const textNode = el.firstChild
-        if (textNode) {
-          const range = document.createRange()
-          const sel = window.getSelection()
-          range.setStart(textNode, prevContent.length)
-          range.collapse(true)
-          sel?.removeAllRanges()
-          sel?.addRange(range)
-        }
-      }
-    }, 20)
-  }
-
-  async function convertBlock(blockUid: string, type: Block['type']) {
-    const block = blocks.find(b => b.uid === blockUid)
-    if (!block?.id) return
-    await db.blocks.update(block.id, { type })
-    setBlocks(prev => prev.map(b =>
-      b.uid === blockUid ? { ...b, type } : b
-    ))
-    setSlashMenu(null)
-
-    setTimeout(() => {
-      const el = document.querySelector(
-        `[data-block-uid="${blockUid}"]`
-      ) as HTMLElement
-      if (el) {
-        // Restore content after re-render wipes it
-        const currentContent = block.content
-        if (el.textContent === '' && currentContent) {
-          el.textContent = currentContent
-        }
-        el.focus()
-        const range = document.createRange()
-        const sel = window.getSelection()
-        range.selectNodeContents(el)
-        range.collapse(false)
-        sel?.removeAllRanges()
-        sel?.addRange(range)
-      }
-    }, 50)
-  }
-
-  const sensors = useSensors(useSensor(SmartPointerSensor))
-
-  async function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-
-    const oldIndex = blocks.findIndex(b => b.uid === active.id)
-    const newIndex = blocks.findIndex(b => b.uid === over.id)
-    const newBlocks = arrayMove(blocks, oldIndex, newIndex)
-
-    setBlocks(newBlocks)
-
-    for (let i = 0; i < newBlocks.length; i++) {
-      const b = newBlocks[i]
-      if (b.id) await db.blocks.update(b.id, { order: i })
-    }
-  }
-
-  const blockDisplayNumbers = useMemo(() => {
-    let counter = 0
-    return blocks.map(b =>
-      b.type === 'numbered' ? ++counter : (counter = 0, 0)
-    )
-  }, [blocks])
 
   if (loading) return <div style={{ padding: '40px', color: 'var(--text-tertiary)' }}>Loading...</div>
   if (!page) return <div style={{ padding: '40px', color: 'var(--text-tertiary)' }}>Page not found</div>
@@ -371,390 +131,12 @@ export default function PageCanvas() {
       ) : view === 'calendar' ? (
         <CalendarView pageUid={uid} />
       ) : (
-      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 80px 120px 48px', position: 'relative' }}>
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={(e) => {
-            const block = blocks.find(b => b.uid === e.active.id)
-            setActiveBlock(block || null)
-          }}
-          onDragEnd={(e) => {
-            setActiveBlock(null)
-            handleDragEnd(e)
-          }}
-        >
-          <SortableContext
-            items={blocks.map(b => b.uid)}
-            strategy={verticalListSortingStrategy}
-          >
-            {blocks.map((block, index) => (
-              <div key={block.uid}>
-                <InsertZone onClick={() => addBlock(
-                  index === 0 ? undefined : blocks[index - 1].uid, 'text'
-                )} />
-                <SortableBlockRow
-                  uid={block.uid}
-                  block={block}
-                  displayNumber={blockDisplayNumbers[index]}
-                  onChange={content => updateBlockContent(block.uid, content)}
-                  onDelete={() => deleteBlock(block.uid)}
-                  onEnter={(type) => addBlock(block.uid, type)}
-                  onSlash={(query, pos) => setSlashMenu({ blockUid: block.uid, query, position: pos })}
-                  onSlashClose={() => setSlashMenu(null)}
-                  showSlash={slashMenu?.blockUid === block.uid}
-                  slashQuery={slashMenu?.blockUid === block.uid ? slashMenu.query : ''}
-                  slashPos={slashMenu?.position || { top: 0, left: 0 }}
-                  onConvert={(type) => convertBlock(block.uid, type)}
-                  onFocusNext={() => {
-                    const next = blocks[index + 1]
-                    if (next) {
-                      const el = document.querySelector(`[data-block-uid="${next.uid}"]`) as HTMLElement
-                      el?.focus()
-                    }
-                  }}
-                  onFocusPrev={() => {
-                    const prev = blocks[index - 1]
-                    if (prev) {
-                      const el = document.querySelector(`[data-block-uid="${prev.uid}"]`) as HTMLElement
-                      el?.focus()
-                    }
-                  }}
-                  onMergeWithPrevious={(content) => mergeWithPrevious(block.uid, content)}
-                  isSelected={selectedBlocks.has(block.uid)}
-                  onBlockClick={(e) => {
-                    if (e.shiftKey && lastClickedBlock) {
-                      const lastIdx = blocks.findIndex(b => b.uid === lastClickedBlock)
-                      const curIdx = index
-                      const start = Math.min(lastIdx, curIdx)
-                      const end = Math.max(lastIdx, curIdx)
-                      setSelectedBlocks(new Set(blocks.slice(start, end + 1).map(b => b.uid)))
-                    } else {
-                      setLastClickedBlock(block.uid)
-                    }
-                  }}
-                />
-              </div>
-            ))}
-            <InsertZone onClick={() => addBlock(
-              blocks[blocks.length - 1]?.uid, 'text'
-            )} />
-          </SortableContext>
-          <DragOverlay>
-            {activeBlock ? (
-              <div style={{
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--border)',
-                borderRadius: '6px',
-                padding: '4px 12px',
-                fontSize: '14px',
-                color: 'var(--text-primary)',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                zIndex: 1000
-              }}>
-                {activeBlock.type === 'table' ? 'Table' : activeBlock.content || '...'}
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-        <div onClick={() => addBlock('text')}
-          style={{ padding: '8px 0', color: 'var(--text-tertiary)', fontSize: '14px', cursor: 'text', minHeight: '40px' }}>
-          {blocks.length === 0 && "Click here or type '/' to start writing..."}
+        <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 80px 120px' }}>
+          {editorContent && (
+            <FluentEditor pageUid={uid} initialContent={editorContent} />
+          )}
         </div>
-
-        {/* Selection toolbar */}
-        {selectedBlocks.size > 0 && (
-          <div className="selection-toolbar" style={{
-            position: 'sticky', bottom: '20px',
-            display: 'flex', justifyContent: 'center', zIndex: 50
-          }}>
-            <div style={{
-              display: 'flex', gap: '8px', padding: '8px 16px',
-              borderRadius: '10px', background: 'var(--bg-primary)',
-              border: '1px solid var(--border)',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
-            }}>
-              <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', alignSelf: 'center', marginRight: '4px' }}>
-                {selectedBlocks.size} selected
-              </span>
-              <button onClick={duplicateSelectedBlocks} style={{
-                padding: '4px 12px', borderRadius: '6px', border: 'none',
-                background: 'var(--accent)', color: 'white',
-                fontSize: '12px', cursor: 'pointer', fontWeight: 500
-              }}>Duplicate</button>
-              <button onClick={deleteSelectedBlocks} style={{
-                padding: '4px 12px', borderRadius: '6px', border: 'none',
-                background: '#EF4444', color: 'white',
-                fontSize: '12px', cursor: 'pointer', fontWeight: 500
-              }}>Delete</button>
-              <button onClick={() => setSelectedBlocks(new Set())} style={{
-                padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border)',
-                background: 'none', color: 'var(--text-tertiary)',
-                fontSize: '12px', cursor: 'pointer'
-              }}>Clear</button>
-            </div>
-          </div>
-        )}
-      </div>
       )}
     </div>
   )
-}
-
-interface BlockRowProps {
-  block: Block
-  onChange: (content: string) => void
-  onDelete: () => void
-  onEnter: (type?: Block['type']) => void
-  onSlash: (query: string, pos: { top: number; left: number }) => void
-  onSlashClose: () => void
-  showSlash: boolean
-  slashQuery: string
-  slashPos: { top: number; left: number }
-  onConvert: (type: Block['type']) => void
-  onFocusNext: () => void
-  onFocusPrev: () => void
-  onMergeWithPrevious: (content: string) => void
-  displayNumber?: number
-  isSelected?: boolean
-  onBlockClick?: (e: React.MouseEvent) => void
-}
-
-function SortableBlockRow(props: BlockRowProps & { uid: string }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({ id: props.uid })
-
-  return (
-    <div
-      ref={setNodeRef}
-      className="block-wrapper"
-      onClick={props.onBlockClick}
-      style={{
-        transform: CSS.Translate.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
-        position: 'relative',
-        paddingLeft: '32px',
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
-        background: props.isSelected ? 'rgba(99,102,241,0.12)' : 'transparent',
-        borderRadius: props.isSelected ? '6px' : '0'
-      }}
-    >
-      <div
-        className="drag-handle"
-        {...attributes}
-        {...listeners}
-        style={{
-          position: 'absolute',
-          left: '8px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          cursor: 'grab',
-          color: '#CBD5E1',
-          fontSize: '12px',
-          zIndex: 50,
-          userSelect: 'none',
-          lineHeight: 1,
-          touchAction: 'none'
-        }}
-      >
-        ⠿
-      </div>
-      <BlockRow {...props} />
-    </div>
-  )
-}
-
-function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, showSlash, slashQuery, slashPos, onConvert, onFocusNext, onFocusPrev, onMergeWithPrevious, displayNumber }: BlockRowProps) {
-  const divRef = useRef<HTMLDivElement>(null)
-  const saveTimer = useRef<NodeJS.Timeout>(undefined)
-  const style = getBlockStyle(block.type)
-
-  // Set initial content once on mount only — DOM owns content after this
-  useEffect(() => {
-    if (divRef.current && block.content) {
-      divRef.current.textContent = block.content
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
-    const text = e.currentTarget.textContent || ''
-    if (e.key === 'Enter' && !showSlash) {
-      e.preventDefault()
-      onEnter(block.type === 'bullet' ||
-              block.type === 'numbered' ||
-              block.type === 'todo'
-                ? block.type : 'text')
-      return
-    }
-    if (e.key === 'Backspace') {
-      if (text === '') { e.preventDefault(); onDelete(); return }
-      const sel = window.getSelection()
-      if (sel?.isCollapsed && sel?.anchorOffset === 0) {
-        e.preventDefault()
-        onMergeWithPrevious(text)
-        return
-      }
-    }
-    if (e.key === 'Escape' && showSlash) { onSlashClose(); return }
-    if (e.key === 'ArrowDown') { e.preventDefault(); onFocusNext(); return }
-    if (e.key === 'ArrowUp') { e.preventDefault(); onFocusPrev(); return }
-  }
-
-  function handleKeyUp(e: React.KeyboardEvent<HTMLDivElement>) {
-    const text = e.currentTarget.textContent || ''
-
-    // Auto-convert "> " to quote
-    if (text === '> ' && block.type === 'text' && divRef.current) {
-      divRef.current.textContent = ''
-      onChange('')
-      onConvert('quote')
-      return
-    }
-
-    // Always save to DB (debounced to reduce writes)
-    clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => onChange(text), 500)
-
-    // Slash detection
-    const slashIndex = text.lastIndexOf('/')
-    if (slashIndex !== -1) {
-      const query = text.slice(slashIndex + 1)
-      const rect = divRef.current?.getBoundingClientRect()
-      if (rect) {
-        onSlash(query, {
-          top: rect.bottom + window.scrollY + 4,
-          left: rect.left + window.scrollX
-        })
-      }
-    } else {
-      if (showSlash) onSlashClose()
-    }
-  }
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '1px 0', position: 'relative' }}>
-      {block.type === 'todo' && (
-        <input type="checkbox" defaultChecked={block.checked}
-          style={{ marginTop: '4px', accentColor: 'var(--accent)', flexShrink: 0 }} />
-      )}
-      {block.type === 'bullet' && (
-        <span style={{ color: 'var(--text-tertiary)', marginTop: '3px', flexShrink: 0 }}>•</span>
-      )}
-      {block.type === 'numbered' && (
-        <span style={{ color: 'var(--text-tertiary)', marginTop: '3px', flexShrink: 0, fontSize: '14px', minWidth: '18px' }}>{displayNumber || 1}.</span>
-      )}
-      {block.type === 'table' ? (
-        <div style={{ flex: 1 }}>
-          <TableBlock
-            block={block}
-            onChange={onChange}
-            onFocusNext={onFocusNext}
-          />
-        </div>
-      ) : block.type === 'divider' ? (
-        <div
-          data-block-uid={block.uid}
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') { e.preventDefault(); onEnter('text') }
-            if (e.key === 'Backspace') { e.preventDefault(); onDelete() }
-            if (e.key === 'ArrowDown') { e.preventDefault(); onFocusNext() }
-            if (e.key === 'ArrowUp') { e.preventDefault(); onFocusPrev() }
-          }}
-          onClick={() => onEnter('text')}
-          style={{ flex: 1, padding: '8px 0', cursor: 'pointer', outline: 'none' }}
-        >
-          <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
-        </div>
-      ) : (
-        <div
-          ref={divRef}
-          contentEditable
-          suppressContentEditableWarning
-          data-block-uid={block.uid}
-          onKeyUp={handleKeyUp}
-          onKeyDown={handleKeyDown}
-          onMouseDown={(e) => {
-            if (e.detail === 3) {
-              e.preventDefault()
-              const blockDiv = divRef.current
-              if (blockDiv) {
-                const range = document.createRange()
-                range.selectNodeContents(blockDiv)
-                const sel = window.getSelection()
-                sel?.removeAllRanges()
-                sel?.addRange(range)
-              }
-            }
-          }}
-          onPaste={(e) => {
-            e.preventDefault()
-            const text = e.clipboardData.getData('text/plain')
-            document.execCommand('insertText', false, text)
-          }}
-          style={{ flex: 1, outline: 'none', color: 'var(--text-primary)', lineHeight: 1.7, minHeight: '28px', wordBreak: 'break-word', userSelect: 'text', WebkitUserSelect: 'text', cursor: 'text', ...style }}
-        />
-      )}
-      {showSlash && (
-        <SlashMenu query={slashQuery} position={slashPos}
-          onSelect={(type) => {
-            if (divRef.current) {
-              const text = divRef.current.textContent || ''
-              const slashIndex = text.lastIndexOf('/')
-              const cleanText = text.slice(0, slashIndex)
-              divRef.current.textContent = cleanText
-              onChange(cleanText)
-            }
-            onConvert(type)
-            onSlashClose()
-          }}
-          onClose={onSlashClose}
-        />
-      )}
-    </div>
-  )
-}
-
-function InsertZone({ onClick }: { onClick: () => void }) {
-  const [hovered, setHovered] = useState(false)
-  return (
-    <div
-      style={{ height: '8px', position: 'relative', margin: '1px 0' }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={onClick}
-    >
-      {hovered && (
-        <div style={{
-          position: 'absolute',
-          left: '-8px', right: 0,
-          top: '50%', transform: 'translateY(-50%)',
-          height: '2px',
-          background: 'var(--accent)',
-          borderRadius: '1px',
-          cursor: 'pointer'
-        }} />
-      )}
-    </div>
-  )
-}
-
-function getBlockStyle(type: Block['type']): React.CSSProperties {
-  switch (type) {
-    case 'heading1': return { fontSize: '1.875rem', fontWeight: 700 }
-    case 'heading2': return { fontSize: '1.375rem', fontWeight: 600 }
-    case 'heading3': return { fontSize: '1.125rem', fontWeight: 600 }
-    case 'quote': return { borderLeft: '3px solid var(--accent)', paddingLeft: '12px', fontStyle: 'italic', color: 'var(--text-secondary)' }
-    case 'code': return { fontFamily: 'monospace', fontSize: '13px', background: 'var(--bg-hover)', padding: '12px 16px', borderRadius: '8px' }
-    case 'callout': return { background: 'var(--accent-light)', borderLeft: '3px solid var(--accent)', padding: '12px 16px', borderRadius: '8px', fontSize: '15px' }
-    default: return { fontSize: '16px' }
-  }
 }
