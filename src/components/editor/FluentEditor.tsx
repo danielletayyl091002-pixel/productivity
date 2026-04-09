@@ -13,7 +13,7 @@ import { Callout } from './CalloutExtension'
 import { Table, TableCell, TableHeader } from '@tiptap/extension-table'
 import TableRow from '@tiptap/extension-table-row'
 import FloatingToolbar from './FloatingToolbar'
-import DragHandle from './DragHandle'
+import { DragHandle } from '@tiptap/extension-drag-handle'
 import { db, Block } from '@/db/schema'
 
 const SlashCommand = Extension.create({
@@ -82,6 +82,22 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
       TableRow,
       TableCell,
       TableHeader,
+      DragHandle.configure({
+        render() {
+          const el = document.createElement('div')
+          el.className = 'drag-handle'
+          el.draggable = true
+          el.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <circle cx="5" cy="2.5" r="1.3" fill="currentColor"/>
+            <circle cx="9" cy="2.5" r="1.3" fill="currentColor"/>
+            <circle cx="5" cy="7" r="1.3" fill="currentColor"/>
+            <circle cx="9" cy="7" r="1.3" fill="currentColor"/>
+            <circle cx="5" cy="11.5" r="1.3" fill="currentColor"/>
+            <circle cx="9" cy="11.5" r="1.3" fill="currentColor"/>
+          </svg>`
+          return el
+        },
+      }),
     ],
     content: initialContent || { type: 'doc', content: [{ type: 'paragraph' }] },
     onUpdate: ({ editor: ed }) => {
@@ -158,7 +174,6 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
   return (
     <div style={{ position: 'relative' }}>
       <FloatingToolbar editor={editor} />
-      <DragHandle editor={editor} />
       <EditorContent editor={editor} />
     </div>
   )

@@ -154,15 +154,25 @@ body {
 }
 
 .drag-handle {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: grab;
   user-select: none;
   touch-action: none;
-  opacity: 0;
-  transition: opacity 0.15s;
+  border-radius: 4px;
+  color: var(--text-tertiary);
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
 }
-
-.block-wrapper:hover .drag-handle {
-  opacity: 1;
+.drag-handle:hover {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+.drag-handle:active {
+  cursor: grabbing;
+  color: var(--text-primary);
 }
 .block-wrapper { user-select: none; -webkit-user-select: none; }
 .block-wrapper [contenteditable] {
