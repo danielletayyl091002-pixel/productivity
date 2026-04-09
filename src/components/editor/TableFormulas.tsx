@@ -169,12 +169,6 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
     if (e) { setError(e); setResult('') } else { setResult(r); setError('') }
   }, [editor])
 
-  // FAIL 5 fix: write result into current cell
-  const writeResultToCell = useCallback(() => {
-    if (result === '') return
-    // Focus editor first, then select all content in current cell and replace
-    editor.chain().focus().deleteSelection().insertContent(String(result)).run()
-  }, [editor, result])
 
   if (!isInTable || !tableRect) return null
 
@@ -210,7 +204,23 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
         onKeyDown={e => {
           if (e.key === 'Enter') {
             e.preventDefault()
-            if (formula.startsWith('=')) runEval(formula)
+            if (formula.startsWith('=')) {
+              // Evaluate and write result directly into the current cell
+              const table = findTableInDoc(editor)
+              if (table) {
+                const data = extractNumbers(table.node)
+                const { result: r, error: err } = evaluateFormula(formula, data)
+                if (!err && r !== '') {
+                  // Select all text in current cell and replace with result
+                  editor.chain().focus().selectParentNode().insertContent(String(r)).run()
+                  setFormula('')
+                  setResult('')
+                  setError('')
+                } else if (err) {
+                  setError(err)
+                }
+              }
+            }
             editor.commands.focus()
           }
           if (e.key === 'Escape') {
@@ -237,15 +247,11 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
         >{fn}</button>
       ))}
       {result !== '' && (
-        <span
-          onClick={writeResultToCell}
-          title="Click to insert into current cell"
-          style={{
-            padding: '3px 10px', background: 'var(--accent-light)', borderRadius: '4px',
-            fontWeight: 700, color: 'var(--accent)', fontFamily: 'monospace',
-            cursor: 'pointer', fontSize: '12px',
-          }}
-        >= {result}</span>
+        <span style={{
+          padding: '3px 10px', background: 'var(--accent-light)', borderRadius: '4px',
+          fontWeight: 700, color: 'var(--accent)', fontFamily: 'monospace',
+          fontSize: '12px',
+        }}>{result}</span>
       )}
       {error && <span style={{ color: '#EF4444', fontSize: '11px' }}>{error}</span>}
     </div>,
