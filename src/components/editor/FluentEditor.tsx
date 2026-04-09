@@ -73,7 +73,7 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
         horizontalRule: false,
         dropcursor: { color: '#3B82F6', width: 2 },
       }),
-      HorizontalRule,
+      HorizontalRule.configure({ HTMLAttributes: { class: 'horizontal-rule' } }),
       TaskList,
       TaskItem.configure({ nested: false }),
       Placeholder.configure({

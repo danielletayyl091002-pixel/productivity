@@ -77,7 +77,7 @@ body {
 .ProseMirror blockquote { border-left: 3px solid var(--accent); padding-left: 12px; font-style: italic; color: var(--text-secondary); margin: 4px 0; }
 .ProseMirror pre { background: var(--bg-hover); padding: 12px 16px; border-radius: 8px; font-family: monospace; font-size: 13px; overflow-x: auto; }
 .ProseMirror code:not(pre code) { background: var(--bg-hover); padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 13px; }
-.ProseMirror hr { display: block; border: none; border-top: 2px solid var(--text-tertiary); margin: 8px 0; padding: 12px 0; background-clip: content-box; cursor: default; }
+.ProseMirror hr, .ProseMirror .horizontal-rule { display: block; border: none; border-top: 2px solid var(--border); margin: 16px 0; padding: 8px 0; cursor: grab; }
 .ProseMirror ul[data-type="taskList"] { list-style: none; padding: 0; }
 .ProseMirror ul[data-type="taskList"] li { display: flex; gap: 8px; align-items: flex-start; }
 .ProseMirror ul[data-type="taskList"] li > label { margin-top: 2px; }
@@ -91,9 +91,9 @@ body {
 .ProseMirror .callout-content { flex: 1; min-width: 0; }
 .ProseMirror .callout-content p { margin: 0; }
 .ProseMirror blockquote blockquote { margin: 4px 0; }
-.ProseMirror table { border-collapse: collapse; width: 100%; margin: 8px 0; overflow: hidden; table-layout: fixed; }
-.ProseMirror td, .ProseMirror th { border: 1px solid var(--border); padding: 6px 10px; vertical-align: top; min-width: 80px; position: relative; }
-.ProseMirror th { background: var(--bg-hover); font-weight: 600; font-size: 13px; }
+.ProseMirror table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+.ProseMirror td, .ProseMirror th { border: 1px solid var(--border); padding: 8px 12px; vertical-align: top; min-width: 80px; position: relative; }
+.ProseMirror th { background-color: var(--bg-secondary); font-weight: 600; font-size: 13px; }
 .ProseMirror td p, .ProseMirror th p { margin: 0; }
 .ProseMirror .selectedCell { background: var(--accent-light); }
 .ProseMirror .column-resize-handle { position: absolute; right: -2px; top: 0; bottom: 0; width: 4px; background: var(--accent); pointer-events: none; }
@@ -123,6 +123,9 @@ body {
 .slash-item:hover, .slash-item.selected {
   background: var(--accent-light);
 }
+[data-theme="dark"] .slash-item.selected { background-color: #3b82f6 !important; color: white !important; }
+[data-theme="dark"] .slash-item.selected .slash-title { color: white !important; }
+[data-theme="dark"] .slash-item.selected .slash-icon { color: white !important; }
 .slash-icon {
   width: 28px;
   height: 28px;
@@ -164,15 +167,21 @@ body {
   touch-action: none;
   border-radius: 4px;
   color: var(--text-tertiary);
-  transition: opacity 0.15s, background 0.15s, color 0.15s;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.15s, color 0.15s;
   pointer-events: auto !important;
 }
+.ProseMirror:hover .drag-handle {
+  opacity: 1;
+}
 .drag-handle:hover {
+  opacity: 1 !important;
   visibility: visible !important;
   background: var(--bg-hover);
   color: var(--text-secondary);
 }
 .drag-handle:active {
+  opacity: 1 !important;
   cursor: grabbing;
   color: var(--text-primary);
   visibility: visible !important;
