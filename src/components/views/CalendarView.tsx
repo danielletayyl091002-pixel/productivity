@@ -46,6 +46,85 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
   const [resizingTask, setResizingTask] = useState<Task | null>(null)
   const [resizeEndHour, setResizeEndHour] = useState<number | null>(null)
 
+  // Helper: get hour from raw mouse event (window coords)
+  function getHourFromEvent(e: MouseEvent): { dateStr: string; hour: number } | null {
+    if (!gridRef.current) return null
+    const rect = gridRef.current.getBoundingClientRect()
+    const scrollTop = gridRef.current.scrollTop
+    const relX = e.clientX - rect.left - 48
+    const relY = e.clientY - rect.top + scrollTop
+    const colW = (rect.width - 48) / 7
+    const colIdx = Math.max(0, Math.min(6, Math.floor(relX / colW)))
+    const hour = snap(START + relY / HOUR_H)
+    const dateStr = weekDays[colIdx].toISOString().split('T')[0]
+    return { dateStr, hour }
+  }
+
+  // Window-level listeners for drag move/resize (fires even if mouse leaves grid)
+  useEffect(() => {
+    if (!movingTask && !resizingTask) return
+
+    const onMove = (e: MouseEvent) => {
+      if (movingTask) {
+        if (moveStartPos.current) {
+          const dx = Math.abs(e.clientX - moveStartPos.current.x)
+          const dy = Math.abs(e.clientY - moveStartPos.current.y)
+          if (dx < 3 && dy < 3) return
+          console.log('[DRAG] move threshold passed')
+          moveStartPos.current = null
+        }
+        const pos = getHourFromEvent(e)
+        if (!pos) return
+        setMoveGhost({ dateStr: pos.dateStr, startHour: pos.hour, endHour: snap(pos.hour + moveDuration.current) })
+      }
+      if (resizingTask) {
+        const pos = getHourFromEvent(e)
+        if (!pos) return
+        const startHour = toMinutes(resizingTask.startTime!) / 60
+        setResizeEndHour(Math.max(startHour + 0.25, pos.hour))
+      }
+    }
+
+    const onUp = async () => {
+      if (movingTask && moveGhost) {
+        const newStart = moveGhost.startHour
+        const newEnd = newStart + moveDuration.current
+        console.log('[DRAG] drop — moving', movingTask.title, 'to', moveGhost.dateStr, fmtDB(newStart))
+        await db.tasks.where('uid').equals(movingTask.uid).modify({
+          scheduledDate: moveGhost.dateStr,
+          dueDate: moveGhost.dateStr,
+          startTime: fmtDB(newStart),
+          endTime: fmtDB(snap(newEnd)),
+        })
+        setTasks(prev => prev.map(t => t.uid === movingTask.uid ? {
+          ...t,
+          scheduledDate: moveGhost.dateStr,
+          dueDate: moveGhost.dateStr,
+          startTime: fmtDB(newStart),
+          endTime: fmtDB(snap(newEnd)),
+        } : t))
+      }
+      if (resizingTask && resizeEndHour !== null) {
+        const newEnd = fmtDB(resizeEndHour)
+        console.log('[DRAG] resize done —', resizingTask.title, 'new end:', newEnd)
+        await db.tasks.where('uid').equals(resizingTask.uid).modify({ endTime: newEnd })
+        setTasks(prev => prev.map(t => t.uid === resizingTask.uid ? { ...t, endTime: newEnd } : t))
+      }
+      setMovingTask(null)
+      setMoveGhost(null)
+      setResizingTask(null)
+      setResizeEndHour(null)
+      moveStartPos.current = null
+    }
+
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+  }, [movingTask, resizingTask, moveGhost, resizeEndHour])
+
   const snap = (h: number) => Math.max(START, Math.min(22, Math.round(h * 4) / 4))
 
   const fmt = (h: number) => {
@@ -151,15 +230,20 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
   }
 
   function handleMouseDown(e: React.MouseEvent) {
-    // Resize handle click
-    if ((e.target as HTMLElement).closest('[data-resize]')) return
-    // Event click — start move
+    // Check resize handle first
+    const resizeHandle = (e.target as HTMLElement).closest('[data-resize]')
+    if (resizeHandle) {
+      console.log('[DRAG] resize handle clicked')
+      // handleResizeStart is called by the resize div's own onMouseDown
+      return
+    }
+    // Check if clicking on an event — start move
     const eventEl = (e.target as HTMLElement).closest('[data-event-uid]') as HTMLElement | null
     if (eventEl) {
       e.preventDefault()
-      e.stopPropagation()
       const uid = eventEl.getAttribute('data-event-uid')
       const task = tasks.find(t => t.uid === uid)
+      console.log('[DRAG] mousedown on event:', uid, task?.title)
       if (!task) return
       const startMin = toMinutes(task.startTime!)
       const endMin = toMinutes(task.endTime!)
@@ -168,10 +252,11 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
       setMovingTask(task)
       return
     }
-    // Empty space click — start create-new drag
+    // Empty space — start create-new drag
     e.preventDefault()
     const pos = getColAndHour(e)
     if (!pos) return
+    console.log('[DRAG] create mode at', pos.dateStr, pos.hour)
     setDragState({ dateStr: pos.dateStr, startHour: pos.hour, endHour: pos.hour })
     setIsDragging(true)
   }
@@ -179,11 +264,11 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
   function handleMouseMove(e: React.MouseEvent) {
     // Moving an event
     if (movingTask) {
-      // Require 3px movement before starting visual drag
       if (moveStartPos.current) {
         const dx = Math.abs(e.clientX - moveStartPos.current.x)
         const dy = Math.abs(e.clientY - moveStartPos.current.y)
         if (dx < 3 && dy < 3) return
+        console.log('[DRAG] move threshold passed, starting visual drag')
         moveStartPos.current = null
       }
       const pos = getColAndHour(e)
@@ -197,7 +282,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
       const pos = getColAndHour(e)
       if (!pos) return
       const startHour = toMinutes(resizingTask.startTime!) / 60
-      const minEnd = startHour + 0.25 // minimum 15 minutes
+      const minEnd = startHour + 0.25
       setResizeEndHour(Math.max(minEnd, pos.hour))
       return
     }
@@ -214,6 +299,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
       const newStart = moveGhost.startHour
       const newEnd = newStart + moveDuration.current
       const task = movingTask
+      console.log('[DRAG] mouseup — moving', task.title, 'to', moveGhost.dateStr, fmtDB(newStart), '-', fmtDB(snap(newEnd)))
       await db.tasks.where('uid').equals(task.uid).modify({
         scheduledDate: moveGhost.dateStr,
         dueDate: moveGhost.dateStr,
