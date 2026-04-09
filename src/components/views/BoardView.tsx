@@ -47,6 +47,7 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [addingTo, setAddingTo] = useState<string | null>(null)
   const [newTaskTitle, setNewTaskTitle] = useState('')
+  const [editTask, setEditTask] = useState<Task | null>(null)
   const pendingStatus = useRef<{ uid: string; status: Task['status'] } | null>(null)
 
   const sensors = useSensors(
@@ -226,6 +227,7 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
                           t.uid === task.uid ? { ...t, priority } : t
                         ))
                       }}
+                      onEdit={() => setEditTask(task)}
                     />
                   ))}
                 </div>
@@ -310,14 +312,118 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {editTask && (
+        <EditTaskModal
+          task={editTask}
+          onClose={() => setEditTask(null)}
+          onSave={async (updates) => {
+            if (editTask.id) await db.tasks.update(editTask.id, updates)
+            setTasks(prev => prev.map(t =>
+              t.uid === editTask.uid ? { ...t, ...updates } : t
+            ))
+            setEditTask(null)
+          }}
+        />
+      )}
     </div>
   )
 }
 
-function TaskCard({ task, onDelete, onPriorityChange }: {
+function EditTaskModal({ task, onClose, onSave }: {
+  task: Task
+  onClose: () => void
+  onSave: (updates: Partial<Task>) => Promise<void>
+}) {
+  const [title, setTitle] = useState(task.title)
+  const [status, setStatus] = useState(task.status)
+  const [priority, setPriority] = useState<string>(task.priority || '')
+  const [dueDate, setDueDate] = useState(task.dueDate || '')
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 2000,
+      background: 'rgba(0,0,0,0.4)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: 'var(--bg-primary)', borderRadius: '14px',
+        padding: '24px', width: '400px', maxWidth: '90vw',
+        boxShadow: '0 16px 48px rgba(0,0,0,0.2)',
+        border: '1px solid var(--border)'
+      }}>
+        <h3 style={{ margin: '0 0 20px', fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
+          Edit Task
+        </h3>
+        <div style={{ marginBottom: '14px' }}>
+          <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Title</label>
+          <input value={title} onChange={e => setTitle(e.target.value)} autoFocus style={{
+            width: '100%', padding: '8px 12px', borderRadius: '8px',
+            border: '1px solid var(--border)', background: 'var(--bg-secondary)',
+            color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box'
+          }} />
+        </div>
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Status</label>
+            <select value={status} onChange={e => setStatus(e.target.value as Task['status'])} style={{
+              width: '100%', padding: '8px 12px', borderRadius: '8px',
+              border: '1px solid var(--border)', background: 'var(--bg-secondary)',
+              color: 'var(--text-primary)', fontSize: '13px'
+            }}>
+              <option value="todo">To Do</option>
+              <option value="in_progress">In Progress</option>
+              <option value="done">Done</option>
+            </select>
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Priority</label>
+            <select value={priority} onChange={e => setPriority(e.target.value)} style={{
+              width: '100%', padding: '8px 12px', borderRadius: '8px',
+              border: '1px solid var(--border)', background: 'var(--bg-secondary)',
+              color: 'var(--text-primary)', fontSize: '13px'
+            }}>
+              <option value="">None</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+        </div>
+        <div style={{ marginBottom: '14px' }}>
+          <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Due Date</label>
+          <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} style={{
+            width: '100%', padding: '8px 12px', borderRadius: '8px',
+            border: '1px solid var(--border)', background: 'var(--bg-secondary)',
+            color: 'var(--text-primary)', fontSize: '13px', outline: 'none', boxSizing: 'border-box'
+          }} />
+        </div>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{
+            padding: '8px 16px', borderRadius: '8px',
+            border: '1px solid var(--border)', background: 'transparent',
+            color: 'var(--text-secondary)', fontSize: '13px', cursor: 'pointer'
+          }}>Cancel</button>
+          <button onClick={() => onSave({
+            title, status,
+            priority: (priority || null) as Task['priority'],
+            dueDate: dueDate || null
+          })} style={{
+            padding: '8px 20px', borderRadius: '8px', border: 'none',
+            background: 'var(--accent)', color: 'white',
+            fontSize: '13px', fontWeight: 600, cursor: 'pointer'
+          }}>Save</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TaskCard({ task, onDelete, onPriorityChange, onEdit }: {
   task: Task
   onDelete: () => void
   onPriorityChange: (p: Task['priority']) => void
+  onEdit: () => void
 }) {
   const {
     attributes, listeners, setNodeRef,
@@ -343,10 +449,15 @@ function TaskCard({ task, onDelete, onPriorityChange }: {
       }}
     >
       <div style={{ padding: '12px 12px 8px' }}>
-        <div style={{
-          fontSize: '13px', fontWeight: 500,
-          color: 'var(--text-primary)', lineHeight: 1.4
-        }}>
+        <div
+          onClick={e => { e.stopPropagation(); onEdit() }}
+          onPointerDown={e => e.stopPropagation()}
+          style={{
+            fontSize: '13px', fontWeight: 500,
+            color: 'var(--text-primary)', lineHeight: 1.4,
+            cursor: 'pointer'
+          }}
+        >
           {task.title}
         </div>
       </div>

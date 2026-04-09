@@ -70,7 +70,18 @@ export default function CmdK() {
       }
     }
     window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+
+    function onStorage(e: StorageEvent) {
+      if (e.key === 'theme' && e.newValue) {
+        setTheme(e.newValue as 'light' | 'dark')
+      }
+    }
+    window.addEventListener('storage', onStorage)
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('storage', onStorage)
+    }
   }, [])
 
   // Navigation keys when open
