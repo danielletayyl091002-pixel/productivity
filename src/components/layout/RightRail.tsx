@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { db, Task } from '@/db/schema'
 import { useTrackerStore } from '@/stores/trackers'
 
@@ -87,10 +87,11 @@ function WeekStrip({ today, onDayClick, selectedDay }: {
   )
 }
 
-function Timeline({ now, tasks, onAddEvent }: {
+function Timeline({ now, tasks, onAddEvent, onUpdateTask }: {
   now: number
   tasks: Task[]
   onAddEvent?: (startTime: string, endTime: string) => void
+  onUpdateTask?: (uid: string, changes: Partial<Task>) => void
 }) {
   const HOUR_H = 52
   const START = 6
@@ -98,12 +99,74 @@ function Timeline({ now, tasks, onAddEvent }: {
   const [dragStart, setDragStart] = useState<number | null>(null)
   const [dragEnd, setDragEnd] = useState<number | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Move state
+  const [movingTask, setMovingTask] = useState<Task | null>(null)
+  const [moveHour, setMoveHour] = useState<number | null>(null)
+  const moveDuration = useRef(0)
+  const moveStartPos = useRef<{ x: number; y: number } | null>(null)
+
+  // Resize state
+  const [resizingTask, setResizingTask] = useState<Task | null>(null)
+  const [resizeEndHour, setResizeEndHour] = useState<number | null>(null)
 
   function yToHour(y: number, containerTop: number): number {
     const relY = y - containerTop
     const hour = START + relY / HOUR_H
     return Math.max(START, Math.min(22, Math.round(hour * 4) / 4))
   }
+
+  function getHourFromMouseEvent(e: MouseEvent): number {
+    if (!containerRef.current) return START
+    const rect = containerRef.current.getBoundingClientRect()
+    const scrollTop = containerRef.current.scrollTop
+    return yToHour(e.clientY, rect.top - scrollTop)
+  }
+
+  // Window-level listeners for move/resize
+  useEffect(() => {
+    if (!movingTask && !resizingTask) return
+    const onMove = (e: MouseEvent) => {
+      if (movingTask) {
+        if (moveStartPos.current) {
+          const dy = Math.abs(e.clientY - moveStartPos.current.y)
+          if (dy < 3) return
+          moveStartPos.current = null
+        }
+        setMoveHour(getHourFromMouseEvent(e))
+      }
+      if (resizingTask) {
+        const h = getHourFromMouseEvent(e)
+        const startH = resizingTask.startTime ? parseInt(resizingTask.startTime.split(':')[0]) + parseInt(resizingTask.startTime.split(':')[1]) / 60 : 9
+        setResizeEndHour(Math.max(startH + 0.25, h))
+      }
+    }
+    const onUp = () => {
+      if (movingTask && moveHour !== null && onUpdateTask) {
+        const newStart = moveHour
+        const newEnd = newStart + moveDuration.current
+        onUpdateTask(movingTask.uid, {
+          startTime: fmt(newStart),
+          endTime: fmt(Math.min(22, newEnd)),
+        })
+      }
+      if (resizingTask && resizeEndHour !== null && onUpdateTask) {
+        onUpdateTask(resizingTask.uid, { endTime: fmt(resizeEndHour) })
+      }
+      setMovingTask(null)
+      setMoveHour(null)
+      setResizingTask(null)
+      setResizeEndHour(null)
+      moveStartPos.current = null
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+  }, [movingTask, resizingTask, moveHour, resizeEndHour, onUpdateTask])
 
   function fmt(h: number) {
     const hrs = Math.floor(h)
@@ -121,11 +184,30 @@ function Timeline({ now, tasks, onAddEvent }: {
 
   return (
     <div
+      ref={containerRef}
       style={{
         flex: 1, overflowY: 'auto', position: 'relative',
-        cursor: 'crosshair', userSelect: 'none'
+        cursor: movingTask ? 'grabbing' : resizingTask ? 'ns-resize' : 'crosshair',
+        userSelect: 'none'
       }}
       onMouseDown={(e) => {
+        // Resize handle
+        if ((e.target as HTMLElement).closest('[data-rail-resize]')) return
+        // Event click — start move
+        const eventEl = (e.target as HTMLElement).closest('[data-rail-event]') as HTMLElement | null
+        if (eventEl) {
+          e.preventDefault()
+          const uid = eventEl.getAttribute('data-rail-event')
+          const task = tasks.find(t => t.uid === uid)
+          if (!task) return
+          const startH = task.startTime ? parseInt(task.startTime.split(':')[0]) + parseInt(task.startTime.split(':')[1]) / 60 : 9
+          const endH = task.endTime ? parseInt(task.endTime.split(':')[0]) + parseInt(task.endTime.split(':')[1]) / 60 : startH + 1
+          moveDuration.current = endH - startH
+          moveStartPos.current = { x: e.clientX, y: e.clientY }
+          setMovingTask(task)
+          return
+        }
+        // Empty space — create drag
         const rect = e.currentTarget.getBoundingClientRect()
         const hour = yToHour(e.clientY, rect.top + e.currentTarget.scrollTop)
         setDragStart(hour)
@@ -183,16 +265,34 @@ function Timeline({ now, tasks, onAddEvent }: {
         </div>
       )}
 
+      {/* Move ghost */}
+      {movingTask && moveHour !== null && (() => {
+        const color = movingTask.color && movingTask.color.startsWith('#') ? movingTask.color : '#6366F1'
+        const topPx = (moveHour - START) * HOUR_H
+        const heightPx = Math.max(moveDuration.current * HOUR_H - 2, 20)
+        return (
+          <div style={{
+            position: 'absolute', top: `${topPx}px`,
+            left: '44px', right: '8px', height: `${heightPx}px`,
+            background: `${color}30`, borderLeft: `3px dashed ${color}`,
+            borderRadius: '4px', pointerEvents: 'none', zIndex: 8,
+            padding: '3px 6px', fontSize: '10px', fontWeight: 600, color,
+          }}>{movingTask.title}</div>
+        )
+      })()}
+
       {tasks.map(task => {
+        const isMoving = movingTask?.uid === task.uid && moveHour !== null
+        const isResizing = resizingTask?.uid === task.uid
         const startHour = task.startTime ? parseInt(task.startTime.split(':')[0]) : 9
         const startMin = task.startTime ? parseInt(task.startTime.split(':')[1]) : 0
-        const endHour = task.endTime ? parseInt(task.endTime.split(':')[0]) : startHour + 1
-        const endMin = task.endTime ? parseInt(task.endTime.split(':')[1]) : 0
+        const endHour = isResizing && resizeEndHour !== null ? Math.floor(resizeEndHour) : (task.endTime ? parseInt(task.endTime.split(':')[0]) : startHour + 1)
+        const endMin = isResizing && resizeEndHour !== null ? Math.round((resizeEndHour % 1) * 60) : (task.endTime ? parseInt(task.endTime.split(':')[1]) : 0)
         const topPx = (startHour - START + startMin / 60) * HOUR_H
         const heightPx = Math.max(((endHour - startHour) + (endMin - startMin) / 60) * HOUR_H - 2, 20)
         const color = task.color && task.color.startsWith('#') ? task.color : '#6366F1'
         return (
-          <div key={task.uid} style={{
+          <div key={task.uid} data-rail-event={task.uid} style={{
             position: 'absolute',
             top: `${topPx}px`,
             left: '44px', right: '8px',
@@ -203,12 +303,28 @@ function Timeline({ now, tasks, onAddEvent }: {
             padding: '3px 6px',
             overflow: 'hidden',
             minHeight: '20px',
-            pointerEvents: 'none'
+            cursor: 'grab',
+            opacity: isMoving ? 0.3 : 1,
+            zIndex: isMoving || isResizing ? 10 : 3,
           }}>
             <span style={{
               fontSize: '10px', fontWeight: 600,
               color: color
             }}>{task.title}</span>
+            <div
+              data-rail-resize="true"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setResizingTask(task)
+                const eH = task.endTime ? parseInt(task.endTime.split(':')[0]) + parseInt(task.endTime.split(':')[1]) / 60 : startHour + 1
+                setResizeEndHour(eH)
+              }}
+              style={{
+                position: 'absolute', bottom: 0, left: 0, right: 0,
+                height: '6px', cursor: 'ns-resize',
+              }}
+            />
           </div>
         )
       })}
@@ -415,6 +531,10 @@ export default function RightRail() {
           now={now}
           tasks={todayTasks}
           onAddEvent={(startTime, endTime) => setNewEvent({ startTime, endTime, title: '' })}
+          onUpdateTask={async (uid, changes) => {
+            await db.tasks.where('uid').equals(uid).modify(changes)
+            setTodayTasks(prev => prev.map(t => t.uid === uid ? { ...t, ...changes } : t))
+          }}
         />
       </div>
 
