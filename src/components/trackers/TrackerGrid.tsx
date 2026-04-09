@@ -14,6 +14,16 @@ import {
   Gamepad2, Tv, Headphones, Camera,
   ChevronLeft, ChevronRight
 } from 'lucide-react'
+import {
+  DndContext, DragOverlay, closestCenter,
+  PointerSensor, useSensor, useSensors,
+  DragStartEvent, DragEndEvent
+} from '@dnd-kit/core'
+import {
+  SortableContext, rectSortingStrategy,
+  useSortable, arrayMove
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useTrackerStore } from '@/stores/trackers'
 import { TrackerDefinition } from '@/db/schema'
 import TrackerLogModal from './TrackerLogModal'
@@ -100,6 +110,23 @@ export default function TrackerGrid() {
   const [activeTracker, setActiveTracker] = useState<TrackerDefinition | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [editTracker, setEditTracker] = useState<TrackerDefinition | null>(null)
+  const [activeDragId, setActiveDragId] = useState<string | null>(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  )
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    setActiveDragId(null)
+    if (!over || active.id === over.id) return
+    const oldIndex = definitions.findIndex(d => d.uid === active.id)
+    const newIndex = definitions.findIndex(d => d.uid === over.id)
+    const reordered = arrayMove(definitions, oldIndex, newIndex)
+    for (let i = 0; i < reordered.length; i++) {
+      await updateDefinition(reordered[i].uid, { order: i })
+    }
+  }
 
   useEffect(() => {
     if (!loaded) load()
@@ -143,14 +170,22 @@ export default function TrackerGrid() {
         }}>+ Add</button>
       </div>
 
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={(e: DragStartEvent) => setActiveDragId(e.active.id as string)}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={definitions.map(d => d.uid)} strategy={rectSortingStrategy}>
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
         gap: '12px'
       }}>
         {definitions.map(tracker => (
-          <TrackerCard
+          <SortableTrackerCard
             key={tracker.uid}
+            uid={tracker.uid}
             tracker={tracker}
             todayValue={getTodayValue(tracker.uid)}
             weekData={getWeekData(tracker.uid)}
@@ -171,6 +206,22 @@ export default function TrackerGrid() {
           />
         ))}
       </div>
+        </SortableContext>
+        <DragOverlay>
+          {activeDragId ? (
+            <div style={{
+              padding: '16px', borderRadius: '12px',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--accent)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+              opacity: 0.9, fontSize: '13px', fontWeight: 600,
+              color: 'var(--text-primary)'
+            }}>
+              {definitions.find(d => d.uid === activeDragId)?.name || '...'}
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       {activeTracker && (
         <TrackerLogModal
@@ -195,6 +246,24 @@ export default function TrackerGrid() {
           }}
         />
       )}
+    </div>
+  )
+}
+
+function SortableTrackerCard(props: Parameters<typeof TrackerCard>[0] & { uid: string }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.uid })
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Translate.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1
+      }}
+      {...attributes}
+      {...listeners}
+    >
+      <TrackerCard {...props} />
     </div>
   )
 }
@@ -298,6 +367,7 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
       }}>
         <div
           onClick={() => router.push(`/trackers/${tracker.uid}`)}
+          onPointerDown={e => e.stopPropagation()}
           style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', flex: 1 }}
         >
           <div style={{ color: tracker.color }}>
@@ -327,6 +397,7 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
       {tracker.type === 'counter' ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
           <button
+            onPointerDown={e => e.stopPropagation()}
             onClick={e => { e.stopPropagation(); onDecrement() }}
             style={{
               width: '28px', height: '28px', borderRadius: '50%',
@@ -347,6 +418,7 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
             </span>
           </div>
           <button
+            onPointerDown={e => e.stopPropagation()}
             onClick={e => { e.stopPropagation(); onIncrement() }}
             style={{
               width: '28px', height: '28px', borderRadius: '50%',
@@ -360,6 +432,7 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
       ) : tracker.type === 'habit' ? (
         <div style={{ marginBottom: '10px' }}>
           <button
+            onPointerDown={e => e.stopPropagation()}
             onClick={e => { e.stopPropagation(); onHabitToggle() }}
             style={{
               padding: '5px 14px', borderRadius: '20px',
@@ -381,6 +454,7 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
               value={inputVal}
               placeholder="0"
               onClick={e => e.stopPropagation()}
+              onPointerDown={e => e.stopPropagation()}
               onChange={e => setInputVal(e.target.value)}
               onKeyDown={e => {
                 e.stopPropagation()

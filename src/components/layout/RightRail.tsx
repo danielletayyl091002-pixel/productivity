@@ -316,7 +316,21 @@ export default function RightRail() {
     if (!trackersLoaded) loadTrackers()
   }, [trackersLoaded, loadTrackers])
 
-  const ringTrackers = trackerDefs.slice(0, 3)
+  const [ringUids, setRingUids] = useState<string[]>([])
+
+  useEffect(() => {
+    async function loadRingPref() {
+      const setting = await db.settings.where('key').equals('daily_progress_trackers').first()
+      if (setting?.value) {
+        try { setRingUids(JSON.parse(setting.value)) } catch {}
+      }
+    }
+    loadRingPref()
+  }, [])
+
+  const ringTrackers = ringUids.length > 0
+    ? ringUids.map(uid => trackerDefs.find(d => d.uid === uid)).filter(Boolean) as typeof trackerDefs
+    : trackerDefs.slice(0, 3)
 
   useEffect(() => {
     const d = new Date()
