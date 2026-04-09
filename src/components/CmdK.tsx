@@ -1,8 +1,9 @@
 'use client'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { db, Page } from '@/db/schema'
+import { db, Page, Block } from '@/db/schema'
 import { nanoid } from 'nanoid'
+import { TEMPLATES } from '@/lib/templates'
 
 export default function CmdK() {
   const router = useRouter()
@@ -15,10 +16,11 @@ export default function CmdK() {
   const creatingRef = useRef(false)
 
   const quickActions = [
-    { label: 'New Page', action: 'new-page' },
-    { label: theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode', action: 'toggle-theme' },
-    { label: 'Go to Finance', action: 'finance' },
-    { label: 'Go to Board', action: 'board' },
+    { label: 'New Page', action: 'new-page', group: 'Actions' },
+    { label: theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode', action: 'toggle-theme', group: 'Actions' },
+    { label: 'Go to Finance', action: 'finance', group: 'Navigate' },
+    { label: 'Go to Kanban', action: 'board', group: 'Navigate' },
+    ...TEMPLATES.map(t => ({ label: t.name, action: `template:${t.name}`, group: 'Templates' })),
   ]
 
   const totalItems = query.trim() === '' ? quickActions.length : results.length
@@ -55,6 +57,25 @@ export default function CmdK() {
       router.push('/finance')
     } else if (action === 'board') {
       router.push('/board')
+    } else if (action.startsWith('template:')) {
+      const templateName = action.slice('template:'.length)
+      const template = TEMPLATES.find(t => t.name === templateName)
+      if (!template) return
+      const uid = nanoid()
+      const count = await db.pages.count()
+      await db.pages.add({
+        uid, title: template.name, icon: null, parentUid: null,
+        isFavorite: false, inTrash: false, order: count,
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+      })
+      const blocksToAdd: Block[] = template.blocks.map((b, i) => ({
+        uid: nanoid(), pageUid: uid, type: b.type as Block['type'],
+        content: b.content, checked: false, order: i,
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+      }))
+      await db.blocks.bulkAdd(blocksToAdd)
+      window.dispatchEvent(new CustomEvent('page-created'))
+      router.push(`/page/${uid}`)
     }
   }, [theme, router])
 
@@ -204,25 +225,41 @@ export default function CmdK() {
         {/* Results / Actions */}
         <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
           {query.trim() === '' ? (
-            quickActions.map((a, i) => (
-              <div
-                key={a.action}
-                onClick={() => { handleQuickAction(a.action); close() }}
-                onMouseEnter={() => setSelectedIndex(i)}
-                style={{
-                  padding: '10px 20px',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  color: 'var(--text-secondary)',
-                  background: selectedIndex === i ? 'var(--bg-hover)' : 'transparent',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-              >
-                <span>{a.label}</span>
-              </div>
-            ))
+            (() => {
+              const groups = Array.from(new Set(quickActions.map(a => a.group)))
+              let globalIdx = 0
+              return groups.map(group => (
+                <div key={group}>
+                  <div style={{
+                    fontSize: '10px', fontWeight: 600, letterSpacing: '0.06em',
+                    textTransform: 'uppercase', color: 'var(--text-tertiary)',
+                    padding: '8px 20px 4px'
+                  }}>{group}</div>
+                  {quickActions.filter(a => a.group === group).map(a => {
+                    const idx = globalIdx++
+                    return (
+                      <div
+                        key={a.action}
+                        onClick={() => { handleQuickAction(a.action); close() }}
+                        onMouseEnter={() => setSelectedIndex(idx)}
+                        style={{
+                          padding: '8px 20px',
+                          fontSize: '14px',
+                          cursor: 'pointer',
+                          color: 'var(--text-secondary)',
+                          background: selectedIndex === idx ? 'var(--bg-hover)' : 'transparent',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        <span>{a.label}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              ))
+            })()
           ) : results.length > 0 ? (
             results.map((p, i) => (
               <div
