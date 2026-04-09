@@ -153,8 +153,24 @@ export default function PageCanvas() {
   async function deleteBlock(blockUid: string) {
     const block = blocks.find(b => b.uid === blockUid)
     if (!block?.id) return
+    const prevIndex = blocks.findIndex(b => b.uid === blockUid) - 1
+    const prevBlock = prevIndex >= 0 ? blocks[prevIndex] : null
     await db.blocks.delete(block.id)
     setBlocks(prev => prev.filter(b => b.uid !== blockUid))
+    if (prevBlock) {
+      setTimeout(() => {
+        const el = document.querySelector(`[data-block-uid="${prevBlock.uid}"]`) as HTMLElement
+        if (el) {
+          el.focus()
+          const range = document.createRange()
+          const sel = window.getSelection()
+          range.selectNodeContents(el)
+          range.collapse(false)
+          sel?.removeAllRanges()
+          sel?.addRange(range)
+        }
+      }, 50)
+    }
   }
 
   async function convertBlock(blockUid: string, type: Block['type']) {
@@ -363,8 +379,8 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
         opacity: isDragging ? 0.5 : 1,
         position: 'relative',
         paddingLeft: '32px',
-        userSelect: 'text',
-        WebkitUserSelect: 'text'
+        userSelect: 'none',
+        WebkitUserSelect: 'none'
       }}
     >
       <div
