@@ -20,6 +20,7 @@ const COMMANDS: {
   { group: 'Lists', icon: '☐', label: 'To-do', description: 'Checkbox item', type: 'todo' },
   { group: 'Code', icon: '</>', label: 'Code', description: 'Code block', type: 'code' },
   { group: 'Basic', icon: '⊞', label: 'Table', description: 'Insert a table', type: 'table' },
+  { group: 'Basic', icon: '!', label: 'Callout', description: 'Highlighted callout box', type: 'callout' },
 ]
 
 interface Props {

@@ -62,6 +62,8 @@ export default function PageCanvas() {
   } | null>(null)
   const [activeBlock, setActiveBlock] = useState<Block | null>(null)
   const [view, setView] = useState<'page' | 'board' | 'calendar'>('page')
+  const [selectedBlocks, setSelectedBlocks] = useState<Set<string>>(new Set())
+  const [lastClickedBlock, setLastClickedBlock] = useState<string | null>(null)
 
   useEffect(() => {
     if (!uid) return
@@ -117,8 +119,67 @@ export default function PageCanvas() {
       }
     }
     document.addEventListener('mousemove', handleMouseMove)
-    return () => document.removeEventListener('mousemove', handleMouseMove)
-  }, [])
+
+    // Cmd/Ctrl+A selects all blocks
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+        const target = e.target as HTMLElement
+        if (target.closest('[contenteditable]')) return // let native select-all work inside a block
+        e.preventDefault()
+        setSelectedBlocks(new Set(blocks.map(b => b.uid)))
+      }
+      if (e.key === 'Escape') setSelectedBlocks(new Set())
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedBlocks.size > 0) {
+        e.preventDefault()
+        deleteSelectedBlocks()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+
+    // Click outside blocks clears selection
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('.block-wrapper') && !target.closest('.selection-toolbar')) {
+        setSelectedBlocks(new Set())
+      }
+    }
+    document.addEventListener('click', handleClick)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('click', handleClick)
+    }
+  }, [blocks, selectedBlocks])
+
+  async function deleteSelectedBlocks() {
+    for (const uid of selectedBlocks) {
+      const block = blocks.find(b => b.uid === uid)
+      if (block?.id) await db.blocks.delete(block.id)
+    }
+    setBlocks(prev => prev.filter(b => !selectedBlocks.has(b.uid)))
+    setSelectedBlocks(new Set())
+  }
+
+  async function duplicateSelectedBlocks() {
+    const selected = blocks.filter(b => selectedBlocks.has(b.uid))
+    if (selected.length === 0) return
+    const lastSelected = selected[selected.length - 1]
+    const insertAfterIndex = blocks.findIndex(b => b.uid === lastSelected.uid)
+    const newBlocks: Block[] = selected.map((b, i) => ({
+      ...b,
+      id: undefined,
+      uid: nanoid(),
+      order: insertAfterIndex + 1 + i,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }))
+    await db.blocks.bulkAdd(newBlocks)
+    const updated = [...blocks]
+    updated.splice(insertAfterIndex + 1, 0, ...newBlocks)
+    setBlocks(updated)
+    setSelectedBlocks(new Set(newBlocks.map(b => b.uid)))
+  }
 
   async function updateTitle(title: string) {
     if (!page?.id) return
@@ -360,6 +421,18 @@ export default function PageCanvas() {
                     }
                   }}
                   onMergeWithPrevious={(content) => mergeWithPrevious(block.uid, content)}
+                  isSelected={selectedBlocks.has(block.uid)}
+                  onBlockClick={(e) => {
+                    if (e.shiftKey && lastClickedBlock) {
+                      const lastIdx = blocks.findIndex(b => b.uid === lastClickedBlock)
+                      const curIdx = index
+                      const start = Math.min(lastIdx, curIdx)
+                      const end = Math.max(lastIdx, curIdx)
+                      setSelectedBlocks(new Set(blocks.slice(start, end + 1).map(b => b.uid)))
+                    } else {
+                      setLastClickedBlock(block.uid)
+                    }
+                  }}
                 />
               </div>
             ))}
@@ -388,6 +461,40 @@ export default function PageCanvas() {
           style={{ padding: '8px 0', color: 'var(--text-tertiary)', fontSize: '14px', cursor: 'text', minHeight: '40px' }}>
           {blocks.length === 0 && "Click here or type '/' to start writing..."}
         </div>
+
+        {/* Selection toolbar */}
+        {selectedBlocks.size > 0 && (
+          <div className="selection-toolbar" style={{
+            position: 'sticky', bottom: '20px',
+            display: 'flex', justifyContent: 'center', zIndex: 50
+          }}>
+            <div style={{
+              display: 'flex', gap: '8px', padding: '8px 16px',
+              borderRadius: '10px', background: 'var(--bg-primary)',
+              border: '1px solid var(--border)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+            }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', alignSelf: 'center', marginRight: '4px' }}>
+                {selectedBlocks.size} selected
+              </span>
+              <button onClick={duplicateSelectedBlocks} style={{
+                padding: '4px 12px', borderRadius: '6px', border: 'none',
+                background: 'var(--accent)', color: 'white',
+                fontSize: '12px', cursor: 'pointer', fontWeight: 500
+              }}>Duplicate</button>
+              <button onClick={deleteSelectedBlocks} style={{
+                padding: '4px 12px', borderRadius: '6px', border: 'none',
+                background: '#EF4444', color: 'white',
+                fontSize: '12px', cursor: 'pointer', fontWeight: 500
+              }}>Delete</button>
+              <button onClick={() => setSelectedBlocks(new Set())} style={{
+                padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border)',
+                background: 'none', color: 'var(--text-tertiary)',
+                fontSize: '12px', cursor: 'pointer'
+              }}>Clear</button>
+            </div>
+          </div>
+        )}
       </div>
       )}
     </div>
@@ -409,6 +516,8 @@ interface BlockRowProps {
   onFocusPrev: () => void
   onMergeWithPrevious: (content: string) => void
   displayNumber?: number
+  isSelected?: boolean
+  onBlockClick?: (e: React.MouseEvent) => void
 }
 
 function SortableBlockRow(props: BlockRowProps & { uid: string }) {
@@ -425,6 +534,7 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
     <div
       ref={setNodeRef}
       className="block-wrapper"
+      onClick={props.onBlockClick}
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
@@ -432,7 +542,9 @@ function SortableBlockRow(props: BlockRowProps & { uid: string }) {
         position: 'relative',
         paddingLeft: '32px',
         userSelect: 'none',
-        WebkitUserSelect: 'none'
+        WebkitUserSelect: 'none',
+        background: props.isSelected ? 'rgba(99,102,241,0.12)' : 'transparent',
+        borderRadius: props.isSelected ? '6px' : '0'
       }}
     >
       <div
@@ -498,6 +610,14 @@ function BlockRow({ block, onChange, onDelete, onEnter, onSlash, onSlashClose, s
 
   function handleKeyUp(e: React.KeyboardEvent<HTMLDivElement>) {
     const text = e.currentTarget.textContent || ''
+
+    // Auto-convert "> " to quote
+    if (text === '> ' && block.type === 'text' && divRef.current) {
+      divRef.current.textContent = ''
+      onChange('')
+      onConvert('quote')
+      return
+    }
 
     // Always save to DB (debounced to reduce writes)
     clearTimeout(saveTimer.current)
@@ -634,6 +754,7 @@ function getBlockStyle(type: Block['type']): React.CSSProperties {
     case 'heading3': return { fontSize: '1.125rem', fontWeight: 600 }
     case 'quote': return { borderLeft: '3px solid var(--accent)', paddingLeft: '12px', fontStyle: 'italic', color: 'var(--text-secondary)' }
     case 'code': return { fontFamily: 'monospace', fontSize: '13px', background: 'var(--bg-hover)', padding: '12px 16px', borderRadius: '8px' }
+    case 'callout': return { background: 'var(--accent-light)', borderLeft: '3px solid var(--accent)', padding: '12px 16px', borderRadius: '8px', fontSize: '15px' }
     default: return { fontSize: '16px' }
   }
 }
