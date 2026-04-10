@@ -184,13 +184,9 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
         }}>{cellRef}</span>
       )}
       <span style={{ color: 'var(--text-tertiary)', fontWeight: 600, fontSize: '13px' }}>fx</span>
-      {storedFormula ? (
+      {storedFormula && (
         <span style={{ fontFamily: 'monospace', color: 'var(--accent)', fontWeight: 600, fontSize: '12px' }}>
           {storedFormula}
-        </span>
-      ) : (
-        <span style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}>
-          Type =SUM(A1:A3) in cell, press Enter
         </span>
       )}
     </div>,

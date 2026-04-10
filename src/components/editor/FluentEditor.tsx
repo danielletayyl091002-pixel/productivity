@@ -22,6 +22,12 @@ const FormulaCell = TableCell.extend({
   },
 })
 const FormulaHeader = TableHeader.extend({
+  addOptions() {
+    return {
+      ...this.parent?.(),
+      HTMLAttributes: { spellcheck: 'false' },
+    }
+  },
   addAttributes() {
     return {
       ...this.parent?.(),
