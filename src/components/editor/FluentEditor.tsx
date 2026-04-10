@@ -78,7 +78,7 @@ function ToggleView({ node, updateAttributes }: any) {
   return (
     <NodeViewWrapper>
       <div style={{
-        margin: '8px 0', padding: '12px 16px 12px 0',
+        margin: '8px 0', padding: '12px 16px',
         background: 'var(--bg-secondary)', borderRadius: 'var(--radius-base, 10px)',
         border: '1px solid var(--border)', overflow: 'hidden',
       }}>
