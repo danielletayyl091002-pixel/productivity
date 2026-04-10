@@ -60,7 +60,7 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: var(--font-size);
+  font-size: var(--font-size-base, var(--font-size));
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.2s, color 0.2s;
 }
@@ -297,9 +297,9 @@ div:hover > .tracker-drag-handle { opacity: 0.6 !important; }
 }
 
 /* ─── Density ─── */
-[data-density="compact"] { --spacing-base: 0.75; }
-[data-density="comfortable"] { --spacing-base: 1; }
-[data-density="relaxed"] { --spacing-base: 1.35; }
+[data-density="compact"] { --spacing-base: 0.75; --density-padding: 6px; --density-gap: 6px; --density-section: 24px; }
+[data-density="comfortable"] { --spacing-base: 1; --density-padding: 12px; --density-gap: 12px; --density-section: 40px; }
+[data-density="relaxed"] { --spacing-base: 1.35; --density-padding: 20px; --density-gap: 20px; --density-section: 56px; }
 
 .has-bg-image { position: relative; }
 .has-bg-image::before {

@@ -87,22 +87,31 @@ const FONT_GROUPS: { group: string; fonts: { name: string; family: string }[] }[
     { name: 'Raleway', family: '"Raleway", sans-serif' },
     { name: 'Outfit', family: '"Outfit", sans-serif' },
     { name: 'Space Grotesk', family: '"Space Grotesk", sans-serif' },
+    { name: 'Nunito', family: '"Nunito", sans-serif' },
+    { name: 'Quicksand', family: '"Quicksand", sans-serif' },
+    { name: 'Plus Jakarta Sans', family: '"Plus Jakarta Sans", sans-serif' },
+    { name: 'Manrope', family: '"Manrope", sans-serif' },
+    { name: 'Sora', family: '"Sora", sans-serif' },
   ]},
   { group: 'Serif', fonts: [
     { name: 'Georgia', family: 'Georgia, "Times New Roman", serif' },
     { name: 'Playfair Display', family: '"Playfair Display", serif' },
     { name: 'Merriweather', family: '"Merriweather", serif' },
     { name: 'Lora', family: '"Lora", serif' },
+    { name: 'Fraunces', family: '"Fraunces", serif' },
+    { name: 'Cormorant Garamond', family: '"Cormorant Garamond", serif' },
   ]},
   { group: 'Monospace', fonts: [
     { name: 'JetBrains Mono', family: '"JetBrains Mono", monospace' },
     { name: 'Fira Code', family: '"Fira Code", monospace' },
     { name: 'Source Code Pro', family: '"Source Code Pro", monospace' },
+    { name: 'Geist Mono', family: '"Geist Mono", monospace' },
+    { name: 'Inconsolata', family: '"Inconsolata", monospace' },
   ]},
 ]
 
 // Google Fonts URL for all the fonts we use
-const GOOGLE_FONTS_URL = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Lexend:wght@400;500;600;700&family=Lato:wght@400;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&family=Merriweather:wght@400;700&family=Lora:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&family=Fira+Code:wght@400;500;700&family=Source+Code+Pro:wght@400;600;700&display=swap'
+const GOOGLE_FONTS_URL = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Lexend:wght@400;500;600;700&family=Lato:wght@400;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&family=Merriweather:wght@400;700&family=Lora:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&family=Fira+Code:wght@400;500;700&family=Source+Code+Pro:wght@400;600;700&family=Nunito:wght@400;600;700&family=Quicksand:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Sora:wght@400;500;600;700&family=Fraunces:wght@400;600;700&family=Cormorant+Garamond:wght@400;600;700&family=Inconsolata:wght@400;500;700&display=swap'
 
 export default function SettingsPage() {
   const [currentPalette, setCurrentPalette] = useState('Default')
@@ -118,6 +127,7 @@ export default function SettingsPage() {
   const [fontBrowseOpen, setFontBrowseOpen] = useState(false)
   const [shadowDepth, setShadowDepth] = useState(50)
   const [layoutDensity, setLayoutDensity] = useState<'compact' | 'comfortable' | 'relaxed'>('comfortable')
+  const [fontSize, setFontSize] = useState<'xs' | 's' | 'm' | 'l' | 'xl'>('m')
 
   useEffect(() => {
     // Load saved settings
@@ -168,6 +178,12 @@ export default function SettingsPage() {
       if (densityS?.value) {
         setLayoutDensity(densityS.value as 'compact' | 'comfortable' | 'relaxed')
         document.documentElement.setAttribute('data-density', densityS.value)
+      }
+      const fontSizeS = await db.settings.where('key').equals('font_size').first()
+      if (fontSizeS?.value) {
+        setFontSize(fontSizeS.value as 'xs' | 's' | 'm' | 'l' | 'xl')
+        const sizeMap: Record<string, string> = { xs: '12px', s: '13px', m: '14px', l: '16px', xl: '18px' }
+        document.documentElement.style.setProperty('font-size', sizeMap[fontSizeS.value] || '14px')
       }
     }
     loadSettings()
@@ -358,12 +374,14 @@ export default function SettingsPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', minWidth: '32px' }}>None</span>
               <input
-                type="range" min="0" max="3" step="0.5" value={borderStrength}
+                type="range" min="0" max="3" step="1" value={borderStrength}
                 onChange={e => {
                   const v = Number(e.target.value)
                   setBorderStrength(v)
-                  document.documentElement.style.setProperty('--border-opacity', String(v / 3))
-                  document.documentElement.style.setProperty('--border-width', v === 0 ? '0px' : v <= 1 ? '1px' : '2px')
+                  const opacities = [0, 0.10, 0.25, 0.45]
+                  const widths = ['0px', '1px', '1px', '2px']
+                  document.documentElement.style.setProperty('--border-color', `rgba(0,0,0,${opacities[v]})`)
+                  document.documentElement.style.setProperty('--border-width', widths[v])
                   db.settings.where('key').equals('border_strength').first().then(ex => {
                     if (ex?.id) db.settings.update(ex.id, { value: String(v) })
                     else db.settings.add({ key: 'border_strength', value: String(v) })
@@ -373,6 +391,12 @@ export default function SettingsPage() {
               />
               <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', minWidth: '40px', textAlign: 'right' }}>Strong</span>
             </div>
+            <div style={{
+              marginTop: '12px', padding: '12px 16px',
+              borderRadius: 'var(--radius-base, 8px)',
+              border: `${borderStrength === 0 ? '0px' : borderStrength <= 1 ? '1px' : '2px'} solid rgba(0,0,0,${[0, 0.10, 0.25, 0.45][borderStrength] || 0.12})`,
+              background: 'var(--bg-secondary)', fontSize: '12px', color: 'var(--text-tertiary)',
+            }}>Border preview</div>
           </div>
 
           {/* Shadow Depth */}
@@ -409,26 +433,33 @@ export default function SettingsPage() {
             <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Layout Density</div>
             <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '12px' }}>Spacing between elements</div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              {(['compact', 'comfortable', 'relaxed'] as const).map(d => (
+              {([
+                { key: 'compact' as const, gap: 3 },
+                { key: 'comfortable' as const, gap: 6 },
+                { key: 'relaxed' as const, gap: 10 },
+              ]).map(d => (
                 <button
-                  key={d}
+                  key={d.key}
                   onClick={() => {
-                    setLayoutDensity(d)
-                    document.documentElement.setAttribute('data-density', d)
+                    setLayoutDensity(d.key)
+                    document.documentElement.setAttribute('data-density', d.key)
                     db.settings.where('key').equals('layout_density').first().then(ex => {
-                      if (ex?.id) db.settings.update(ex.id, { value: d })
-                      else db.settings.add({ key: 'layout_density', value: d })
+                      if (ex?.id) db.settings.update(ex.id, { value: d.key })
+                      else db.settings.add({ key: 'layout_density', value: d.key })
                     })
                   }}
                   style={{
-                    flex: 1, padding: '8px 12px', borderRadius: 'var(--radius-base, 8px)',
-                    border: layoutDensity === d ? '2px solid var(--accent)' : '1px solid var(--border)',
-                    background: layoutDensity === d ? 'var(--accent-light)' : 'transparent',
-                    color: layoutDensity === d ? 'var(--accent)' : 'var(--text-secondary)',
-                    fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-                    textTransform: 'capitalize',
+                    flex: 1, padding: '12px', borderRadius: 'var(--radius-base, 8px)',
+                    border: layoutDensity === d.key ? '2px solid var(--accent)' : '1px solid var(--border)',
+                    background: layoutDensity === d.key ? 'var(--accent-light)' : 'transparent',
+                    cursor: 'pointer', textAlign: 'center',
                   }}
-                >{d}</button>
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: `${d.gap}px`, marginBottom: '6px', alignItems: 'center' }}>
+                    {[1,2,3].map(i => <div key={i} style={{ height: '3px', width: '80%', borderRadius: '2px', background: layoutDensity === d.key ? 'var(--accent)' : 'var(--text-tertiary)', opacity: 0.5 }} />)}
+                  </div>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: layoutDensity === d.key ? 'var(--accent)' : 'var(--text-secondary)', textTransform: 'capitalize' }}>{d.key}</span>
+                </button>
               ))}
             </div>
           </div>
@@ -488,6 +519,40 @@ export default function SettingsPage() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Font Size */}
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px', marginTop: '20px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Font Size</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '12px' }}>Base text size across the interface</div>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {([
+                { key: 'xs' as const, label: 'XS', size: '12px' },
+                { key: 's' as const, label: 'S', size: '13px' },
+                { key: 'm' as const, label: 'M', size: '14px' },
+                { key: 'l' as const, label: 'L', size: '16px' },
+                { key: 'xl' as const, label: 'XL', size: '18px' },
+              ]).map(opt => (
+                <button
+                  key={opt.key}
+                  onClick={() => {
+                    setFontSize(opt.key)
+                    document.documentElement.style.setProperty('font-size', opt.size)
+                    db.settings.where('key').equals('font_size').first().then(ex => {
+                      if (ex?.id) db.settings.update(ex.id, { value: opt.key })
+                      else db.settings.add({ key: 'font_size', value: opt.key })
+                    })
+                  }}
+                  style={{
+                    flex: 1, padding: '8px 4px', borderRadius: 'var(--radius-base, 8px)',
+                    border: fontSize === opt.key ? '2px solid var(--accent)' : '1px solid var(--border)',
+                    background: fontSize === opt.key ? 'var(--accent-light)' : 'transparent',
+                    color: fontSize === opt.key ? 'var(--accent)' : 'var(--text-secondary)',
+                    fontSize: opt.size, fontWeight: 700, cursor: 'pointer',
+                  }}
+                >{opt.label}</button>
+              ))}
+            </div>
           </div>
         </section>
 

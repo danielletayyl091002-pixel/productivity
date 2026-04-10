@@ -112,6 +112,21 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       if (densityS?.value) {
         document.documentElement.setAttribute('data-density', densityS.value)
       }
+      // Load font size
+      const fontSizeS = await db.settings.where('key').equals('font_size').first()
+      if (fontSizeS?.value) {
+        const sizeMap: Record<string, string> = { xs: '12px', s: '13px', m: '14px', l: '16px', xl: '18px' }
+        document.documentElement.style.setProperty('font-size', sizeMap[fontSizeS.value] || '14px')
+      }
+      // Load border strength
+      const borderS2 = await db.settings.where('key').equals('border_strength').first()
+      if (borderS2?.value) {
+        const v = Number(borderS2.value)
+        const opacities = [0, 0.10, 0.25, 0.45]
+        const widths = ['0px', '1px', '1px', '2px']
+        document.documentElement.style.setProperty('--border-color', `rgba(0,0,0,${opacities[v] ?? 0.12})`)
+        document.documentElement.style.setProperty('--border-width', widths[v] ?? '1px')
+      }
     }
     loadSettings()
 
