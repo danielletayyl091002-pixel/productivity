@@ -849,7 +849,7 @@ export default function CalendarView({
   const router = useRouter()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [tasks, setTasks] = useState<Task[]>([])
-  const [viewMode, setViewMode] = useState<'month' | 'week'>('month')
+  const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month')
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [showAddTask, setShowAddTask] = useState(false)
   const [newTaskTitle, setNewTaskTitle] = useState('')
@@ -979,7 +979,9 @@ export default function CalendarView({
         <div style={{ display: 'flex',
           alignItems: 'center', gap: '12px' }}>
           <button onClick={() => {
-            if (viewMode === 'week') {
+            if (viewMode === 'day') {
+              const d = new Date(currentDate); d.setDate(d.getDate() - 1); setCurrentDate(d)
+            } else if (viewMode === 'week') {
               const d = new Date(currentDate); d.setDate(d.getDate() - 7); setCurrentDate(d)
             } else {
               setCurrentDate(new Date(year, month - 1, 1))
@@ -996,7 +998,7 @@ export default function CalendarView({
             color: 'var(--text-primary)', minWidth: '180px',
             textAlign: 'center'
           }}>
-            {viewMode === 'week' ? (() => {
+            {viewMode === 'day' ? currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : viewMode === 'week' ? (() => {
               const mondayStart = typeof localStorage !== 'undefined' && localStorage.getItem('week_start') === 'monday'
               const dow = currentDate.getDay()
               const offset = mondayStart ? (dow === 0 ? 6 : dow - 1) : dow
@@ -1012,7 +1014,9 @@ export default function CalendarView({
           </h2>
 
           <button onClick={() => {
-            if (viewMode === 'week') {
+            if (viewMode === 'day') {
+              const d = new Date(currentDate); d.setDate(d.getDate() + 1); setCurrentDate(d)
+            } else if (viewMode === 'week') {
               const d = new Date(currentDate); d.setDate(d.getDate() + 7); setCurrentDate(d)
             } else {
               setCurrentDate(new Date(year, month + 1, 1))
@@ -1036,7 +1040,7 @@ export default function CalendarView({
         </div>
 
         <div style={{ display: 'flex', gap: '4px' }}>
-          {(['month', 'week'] as const).map(v => (
+          {(['month', 'week', 'day'] as const).map(v => (
             <button key={v} onClick={() => setViewMode(v)}
               style={{
                 padding: '4px 12px', borderRadius: '6px',
@@ -1217,7 +1221,7 @@ export default function CalendarView({
           )
         })}
       </div>
-      ) : (
+      ) : viewMode === 'week' ? (
         <WeekView
           currentDate={currentDate}
           tasks={tasks}
@@ -1225,6 +1229,56 @@ export default function CalendarView({
           pageUid={pageUid}
           setTasks={setTasks}
         />
+      ) : (
+        /* Day view — single day column */
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+          <div style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '48px 1fr', height: `${24 * 60}px`, position: 'relative' }}>
+              {/* Time labels */}
+              <div style={{ position: 'relative' }}>
+                {Array.from({ length: 24 }, (_, h) => (
+                  <div key={h} style={{ position: 'absolute', top: `${h * 60}px`, left: 0, right: 0, height: '60px', padding: '4px 8px', fontSize: '10px', color: 'var(--text-tertiary)', pointerEvents: 'none' }}>
+                    {h === 0 ? '12 AM' : h === 12 ? '12 PM' : h > 12 ? `${h - 12} PM` : `${h} AM`}
+                  </div>
+                ))}
+              </div>
+              {/* Day column */}
+              <div style={{ borderLeft: '1px solid var(--border)', position: 'relative', height: '100%' }}>
+                {Array.from({ length: 24 }, (_, h) => (
+                  <div key={h} style={{ position: 'absolute', top: `${h * 60}px`, left: 0, right: 0, height: '60px', borderBottom: '1px solid var(--border)', pointerEvents: 'none' }} />
+                ))}
+                {/* Current time line */}
+                {currentDate.toISOString().split('T')[0] === new Date().toISOString().split('T')[0] && (() => {
+                  const now = new Date(); const nowH = now.getHours() + now.getMinutes() / 60
+                  return <div style={{ position: 'absolute', top: `${nowH * 60}px`, left: 0, right: 0, height: '2px', background: '#EF4444', zIndex: 20, pointerEvents: 'none' }}><div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', position: 'absolute', left: '-4px', top: '-3px' }} /></div>
+                })()}
+                {/* Events */}
+                {(() => {
+                  const dateStr = currentDate.toISOString().split('T')[0]
+                  const dayTasks = expandedMonthTasks.filter(t => (t.dueDate === dateStr || t.scheduledDate === dateStr) && t.startTime && t.endTime)
+                  return dayTasks.map(task => {
+                    const [sh, sm] = (task.startTime || '0:0').split(':').map(Number)
+                    const [eh, em] = (task.endTime || '1:0').split(':').map(Number)
+                    const top = (sh + sm / 60) * 60
+                    const height = Math.max(((eh + em / 60) - (sh + sm / 60)) * 60, 20)
+                    const color = task.color || 'var(--accent)'
+                    return (
+                      <div key={task.uid} onClick={() => { /* TODO: open edit modal */ }} style={{
+                        position: 'absolute', top: `${top}px`, left: '4px', right: '4px', height: `${height}px`,
+                        background: `${color}20`, borderLeft: `3px solid ${color}`, borderRadius: 'var(--radius-base, 4px)',
+                        padding: '4px 8px', overflow: 'hidden', cursor: 'pointer', zIndex: 3,
+                      }}>
+                        <div style={{ fontSize: '12px', fontWeight: 600, color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.title}</div>
+                        {height > 32 && <div style={{ fontSize: '11px', opacity: 0.8, color }}>{task.startTime} - {task.endTime}</div>}
+                        {height > 50 && task.location && <div style={{ fontSize: '10px', opacity: 0.7, color }}>{task.location}</div>}
+                      </div>
+                    )
+                  })
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Selected date panel */}
