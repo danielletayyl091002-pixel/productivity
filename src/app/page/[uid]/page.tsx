@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { db, Page, Block } from '@/db/schema'
 import { nanoid } from 'nanoid'
@@ -108,18 +108,38 @@ export default function PageCanvas() {
   return (
     <div style={{ height: '100vh', overflowY: 'auto', background: 'var(--bg-primary)' }}>
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '80px 80px 0' }}>
-        <input
-          defaultValue={page.title}
-          onChange={e => updateTitle(e.target.value)}
-          placeholder="Untitled"
-          style={{
-            fontSize: '2.5rem', fontWeight: 700, lineHeight: 1.2,
-            border: 'none', outline: 'none', background: 'transparent',
-            boxShadow: 'none', padding: 0, width: '100%',
-            color: 'var(--text-primary)', fontFamily: 'inherit',
-            margin: '0 0 8px 0',
-          }}
-        />
+        {/* Page emoji icon */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+          <button
+            onClick={async () => {
+              const emoji = prompt('Enter an emoji for this page:')
+              if (emoji && page?.id) {
+                await db.pages.update(page.id, { icon: emoji })
+                setPage(prev => prev ? { ...prev, icon: emoji } : null)
+                window.dispatchEvent(new CustomEvent('page-title-updated'))
+              }
+            }}
+            style={{
+              fontSize: '2rem', background: 'none', border: 'none', cursor: 'pointer',
+              padding: '4px', borderRadius: '6px', lineHeight: 1, marginTop: '4px',
+            }}
+            onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
+            onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
+            title="Click to set page icon"
+          >{page.icon || '📄'}</button>
+          <input
+            defaultValue={page.title}
+            onChange={e => updateTitle(e.target.value)}
+            placeholder="Untitled"
+            style={{
+              fontSize: '2.5rem', fontWeight: 700, lineHeight: 1.2,
+              border: 'none', outline: 'none', background: 'transparent',
+              boxShadow: 'none', padding: 0, flex: 1,
+              color: 'var(--text-primary)', fontFamily: 'inherit',
+              margin: '0 0 8px 0',
+            }}
+          />
+        </div>
         <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
           {(['page', 'board', 'calendar'] as const).map(v => (
             <button key={v} onClick={() => setView(v)}

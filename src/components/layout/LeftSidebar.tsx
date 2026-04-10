@@ -10,6 +10,8 @@ export default function LeftSidebar() {
   const [pages, setPages] = useState<Page[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [searchQuery, setSearchQuery] = useState('')
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     async function init() {
@@ -135,6 +137,18 @@ export default function LeftSidebar() {
       </div>
 
       <div style={{ padding: '8px' }}>
+        <input
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Search pages..."
+          style={{
+            width: '100%', padding: '5px 10px', marginBottom: '4px',
+            borderRadius: 'var(--radius-base, 6px)', border: '1px solid var(--border)',
+            background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+            fontSize: '12px', outline: 'none', boxSizing: 'border-box',
+            display: searchQuery || pages.length > 5 ? 'block' : 'none',
+          }}
+        />
         <button
           onClick={() => createPage(null)}
           style={{
@@ -156,14 +170,14 @@ export default function LeftSidebar() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px' }}>
         {!loading && favorites.length > 0 && (
           <>
-            <SectionLabel>Favorites</SectionLabel>
-            {favorites.map(p => renderPageTree(p, 0))}
+            <SectionLabel onClick={() => setCollapsedSections(prev => { const n = new Set(prev); n.has('fav') ? n.delete('fav') : n.add('fav'); return n })} collapsed={collapsedSections.has('fav')}>Favorites</SectionLabel>
+            {!collapsedSections.has('fav') && favorites.filter(p => !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase())).map(p => renderPageTree(p, 0))}
           </>
         )}
         {!loading && regular.length > 0 && (
           <>
-            <SectionLabel>Private</SectionLabel>
-            {regular.map(p => renderPageTree(p, 0))}
+            <SectionLabel onClick={() => setCollapsedSections(prev => { const n = new Set(prev); n.has('priv') ? n.delete('priv') : n.add('priv'); return n })} collapsed={collapsedSections.has('priv')}>Private</SectionLabel>
+            {!collapsedSections.has('priv') && regular.filter(p => !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase())).map(p => renderPageTree(p, 0))}
           </>
         )}
       </div>
@@ -185,14 +199,18 @@ export default function LeftSidebar() {
   )
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children, onClick, collapsed }: { children: React.ReactNode; onClick?: () => void; collapsed?: boolean }) {
   return (
-    <div style={{
+    <div onClick={onClick} style={{
       fontSize: '11px', fontWeight: 600,
       letterSpacing: '0.08em', textTransform: 'uppercase',
       color: 'var(--text-secondary)',
-      padding: '8px 8px 4px'
+      padding: '8px 8px 4px',
+      cursor: onClick ? 'pointer' : 'default',
+      display: 'flex', alignItems: 'center', gap: '4px',
+      userSelect: 'none',
     }}>
+      {onClick && <span style={{ fontSize: '8px', transform: collapsed ? 'rotate(0deg)' : 'rotate(90deg)', transition: 'transform 0.15s' }}>{'\u25B6'}</span>}
       {children}
     </div>
   )
@@ -251,12 +269,13 @@ function PageItem({ page, active, depth, hasChildren, isExpanded, onToggle, onCl
           color: active ? 'var(--accent)' : 'var(--text-primary)'
         }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24"
-          fill="none" stroke="currentColor" strokeWidth="2"
-          style={{ flexShrink: 0, color: 'var(--text-tertiary)' }}>
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-        </svg>
+        {page.icon ? (
+          <span style={{ fontSize: '14px', flexShrink: 0, lineHeight: 1 }}>{page.icon}</span>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, color: 'var(--text-tertiary)' }}>
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          </svg>
+        )}
         <span style={{
           flex: 1, overflow: 'hidden',
           textOverflow: 'ellipsis', whiteSpace: 'nowrap'

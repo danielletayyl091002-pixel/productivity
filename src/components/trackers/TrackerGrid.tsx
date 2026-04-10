@@ -454,6 +454,19 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          {/* Streak counter */}
+          {(() => {
+            let streak = 0
+            for (let i = weekData.length - 1; i >= 0; i--) {
+              if (weekData[i] > 0) streak++
+              else break
+            }
+            return streak >= 2 ? (
+              <span style={{ fontSize: '10px', fontWeight: 700, color: tracker.color, background: `${tracker.color}18`, padding: '1px 6px', borderRadius: '9999px' }}>
+                {streak}d
+              </span>
+            ) : null
+          })()}
           {isComplete && <CheckCircle size={14} color={tracker.color} />}
           {hovered && (
             <button
@@ -657,6 +670,16 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
           ))}
         </div>
       </div>
+
+      {/* Weekly summary */}
+      {tracker.type !== 'select' && (
+        <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', textAlign: 'center', marginTop: '4px' }}>
+          {(() => {
+            const daysHit = offsetWeekData.filter(v => v >= tracker.target).length
+            return `${daysHit}/7 days on target`
+          })()}
+        </div>
+      )}
       </div>
     </div>
   )

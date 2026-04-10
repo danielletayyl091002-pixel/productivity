@@ -545,6 +545,24 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                   }} />
                 ))}
 
+                {/* Current time line */}
+                {dateStr === todayStr && (() => {
+                  const now = new Date()
+                  const nowH = now.getHours() + now.getMinutes() / 60
+                  if (nowH >= START && nowH <= 22) {
+                    return (
+                      <div style={{
+                        position: 'absolute', top: `${(nowH - START) * HOUR_H}px`,
+                        left: 0, right: 0, height: '2px', background: '#EF4444',
+                        zIndex: 20, pointerEvents: 'none',
+                      }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', position: 'absolute', left: '-4px', top: '-3px' }} />
+                      </div>
+                    )
+                  }
+                  return null
+                })()}
+
                 {/* Drag preview */}
                 {isDraggingThisDay && dragState && (
                   <div style={{
