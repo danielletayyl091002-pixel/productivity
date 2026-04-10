@@ -3,6 +3,8 @@ import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { ReactRenderer } from '@tiptap/react'
 import tippy, { Instance } from 'tippy.js'
 import { Editor, Range } from '@tiptap/core'
+import { nanoid } from 'nanoid'
+import { db } from '@/db/schema'
 import { SuggestionOptions, SuggestionProps, SuggestionKeyDownProps } from '@tiptap/suggestion'
 import Fuse from 'fuse.js'
 
@@ -27,6 +29,7 @@ const commands: SlashItem[] = [
   { title: 'Divider', command: 'horizontalRule', icon: '\u2014', shortcut: '' },
   { title: 'Callout', command: 'callout', icon: '\uD83D\uDCA1', shortcut: '' },
   { title: 'Table', command: 'table', icon: '\u229E', shortcut: '' },
+  { title: 'Database', command: 'database', icon: '\u25A6', shortcut: '' },
 ]
 
 const fuse = new Fuse(commands, { keys: ['title'], threshold: 0.3 })
@@ -81,6 +84,25 @@ export const suggestion: Omit<SuggestionOptions, 'editor'> = {
       case 'table':
         editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
         break
+      case 'database': {
+        const uid = nanoid()
+        const pageUid = (editor.options as any)?.editorProps?.attributes?.['data-page-uid'] || ''
+        db.databases.add({ uid, pageUid, name: 'Untitled Database', createdAt: new Date().toISOString() }).then(async () => {
+          const colUids = [nanoid(), nanoid(), nanoid()]
+          await db.databaseColumns.bulkAdd([
+            { uid: colUids[0], databaseUid: uid, name: 'Name', type: 'text' as const, order: 0, options: null },
+            { uid: colUids[1], databaseUid: uid, name: 'Value', type: 'number' as const, order: 1, options: null },
+            { uid: colUids[2], databaseUid: uid, name: 'Date', type: 'date' as const, order: 2, options: null },
+          ])
+          await db.databaseRows.bulkAdd([
+            { uid: nanoid(), databaseUid: uid, order: 0, createdAt: new Date().toISOString() },
+            { uid: nanoid(), databaseUid: uid, order: 1, createdAt: new Date().toISOString() },
+            { uid: nanoid(), databaseUid: uid, order: 2, createdAt: new Date().toISOString() },
+          ])
+        })
+        editor.chain().focus().deleteRange(range).insertContent({ type: 'database', attrs: { uid, pageUid } }).run()
+        break
+      }
       default:
         editor.chain().focus().deleteRange(range).setNode('paragraph').run()
         break

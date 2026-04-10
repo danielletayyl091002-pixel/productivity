@@ -33,7 +33,37 @@ import FloatingToolbar from './FloatingToolbar'
 import TableMenu from './TableMenu'
 import TableFormulas from './TableFormulas'
 import { DragHandle } from '@tiptap/extension-drag-handle'
+import { Node as TiptapNode, mergeAttributes } from '@tiptap/core'
+import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react'
+import DatabaseBlock from './DatabaseBlock'
 import { db, Block } from '@/db/schema'
+
+const DatabaseNodeComponent = ({ node }: any) => (
+  <NodeViewWrapper>
+    <DatabaseBlock databaseUid={node.attrs.uid} pageUid={node.attrs.pageUid} />
+  </NodeViewWrapper>
+)
+
+const DatabaseNode = TiptapNode.create({
+  name: 'database',
+  group: 'block',
+  atom: true,
+  addAttributes() {
+    return {
+      uid: { default: null },
+      pageUid: { default: null },
+    }
+  },
+  parseHTML() {
+    return [{ tag: 'div[data-type="database"]' }]
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['div', mergeAttributes(HTMLAttributes, { 'data-type': 'database' })]
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(DatabaseNodeComponent)
+  },
+})
 
 const SlashCommand = Extension.create({
   name: 'slashCommand',
@@ -98,6 +128,7 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
       }),
       SlashCommand,
       Callout,
+      DatabaseNode,
       Table.configure({ resizable: true }),
       TableRow,
       FormulaCell,
@@ -281,6 +312,7 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
       },
       attributes: {
         style: 'outline: none;',
+        'data-page-uid': pageUid,
       },
     },
   })

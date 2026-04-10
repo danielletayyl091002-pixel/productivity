@@ -92,6 +92,40 @@ export interface TrackerLog {
   createdAt: string
 }
 
+export interface DatabaseDef {
+  id?: number
+  uid: string
+  pageUid: string
+  name: string
+  createdAt: string
+}
+
+export interface DatabaseColumn {
+  id?: number
+  uid: string
+  databaseUid: string
+  name: string
+  type: 'text' | 'number' | 'date' | 'checkbox' | 'select'
+  order: number
+  options?: string | null
+}
+
+export interface DatabaseRow {
+  id?: number
+  uid: string
+  databaseUid: string
+  order: number
+  createdAt: string
+}
+
+export interface DatabaseCell {
+  id?: number
+  uid: string
+  rowUid: string
+  columnUid: string
+  value: string
+}
+
 class FluentDB extends Dexie {
   pages!: Table<Page>
   blocks!: Table<Block>
@@ -101,6 +135,10 @@ class FluentDB extends Dexie {
   financeCategories!: Table<FinanceCategory>
   trackerDefinitions!: Table<TrackerDefinition>
   trackerLogs!: Table<TrackerLog>
+  databases!: Table<DatabaseDef>
+  databaseColumns!: Table<DatabaseColumn>
+  databaseRows!: Table<DatabaseRow>
+  databaseCells!: Table<DatabaseCell>
 
   constructor() {
     super('fluentv2')
@@ -151,6 +189,20 @@ class FluentDB extends Dexie {
       financeCategories: '++id, type',
       trackerDefinitions: '++id, uid, type, order',
       trackerLogs: '++id, trackerUid, date'
+    })
+    this.version(6).stores({
+      pages: '++id, uid, parentUid, isFavorite',
+      blocks: '++id, uid, pageUid, type, order',
+      tasks: '++id, uid, pageUid, status, dueDate, scheduledDate',
+      settings: '++id, key',
+      financeEntries: '++id, type, category, date',
+      financeCategories: '++id, type',
+      trackerDefinitions: '++id, uid, type, order',
+      trackerLogs: '++id, trackerUid, date',
+      databases: '++id, uid, pageUid',
+      databaseColumns: '++id, uid, databaseUid, order',
+      databaseRows: '++id, uid, databaseUid, order',
+      databaseCells: '++id, uid, rowUid, columnUid'
     })
   }
 }
