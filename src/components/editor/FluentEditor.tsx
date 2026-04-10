@@ -73,20 +73,32 @@ const DatabaseNode = TiptapNode.create({
 
 function ToggleView({ node, updateAttributes }: any) {
   const [open, setOpen] = useState(node.attrs.open || false)
+  const [title, setTitle] = useState(node.attrs.title || 'Toggle')
   const toggle = () => { const next = !open; setOpen(next); updateAttributes({ open: next }) }
   return (
     <NodeViewWrapper>
       <div style={{ margin: '4px 0' }}>
-        <div contentEditable={false} onClick={toggle} style={{
-          display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
-          userSelect: 'none', padding: '4px 8px', borderRadius: 'var(--radius-base, 6px)',
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '6px',
+          padding: '4px 8px', borderRadius: 'var(--radius-base, 6px)',
           color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 500,
-        }}
-        onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
-        onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
-        >
-          <span style={{ display: 'inline-block', transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s', fontSize: '11px' }}>{'\u25B6'}</span>
-          <span>Toggle</span>
+        }}>
+          <span
+            contentEditable={false}
+            onClick={toggle}
+            style={{ display: 'inline-block', transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s', fontSize: '11px', cursor: 'pointer', userSelect: 'none', flexShrink: 0 }}
+            onMouseEnter={e => { (e.currentTarget).style.color = 'var(--accent)' }}
+            onMouseLeave={e => { (e.currentTarget).style.color = 'var(--text-secondary)' }}
+          >{'\u25B6'}</span>
+          <input
+            value={title}
+            onChange={e => { setTitle(e.target.value); updateAttributes({ title: e.target.value }) }}
+            style={{
+              border: 'none', outline: 'none', background: 'transparent',
+              fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)',
+              flex: 1, padding: 0,
+            }}
+          />
         </div>
         <div style={{
           paddingLeft: '20px', borderLeft: '2px solid var(--border)',
@@ -104,7 +116,7 @@ const ToggleNode = TiptapNode.create({
   name: 'toggle',
   group: 'block',
   content: 'block+',
-  addAttributes() { return { open: { default: false } } },
+  addAttributes() { return { open: { default: false }, title: { default: 'Toggle' } } },
   parseHTML() { return [{ tag: 'div[data-type="toggle"]' }] },
   renderHTML({ HTMLAttributes }) { return ['div', mergeAttributes(HTMLAttributes, { 'data-type': 'toggle' }), 0] },
   addNodeView() { return ReactNodeViewRenderer(ToggleView) },

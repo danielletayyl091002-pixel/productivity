@@ -30,7 +30,7 @@ const commands: SlashItem[] = [
   { title: 'Callout', command: 'callout', icon: '\uD83D\uDCA1', shortcut: '' },
   { title: 'Table', command: 'table', icon: '\u229E', shortcut: '' },
   { title: 'Database', command: 'database', icon: '\u25A6', shortcut: '' },
-  { title: 'Toggle', command: 'toggle', icon: '\u25B6', shortcut: '' },
+  { title: 'Collapse', command: 'toggle', icon: '\u25B6', shortcut: '' },
 ]
 
 const fuse = new Fuse(commands, { keys: ['title'], threshold: 0.3 })
