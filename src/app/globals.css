@@ -65,6 +65,61 @@ body {
   transition: background-color 0.2s, color 0.2s;
 }
 
+/* ── Global input breathing room ── */
+input[type="text"], input[type="number"], input[type="date"],
+input[type="time"], input[type="email"], input[type="password"],
+input[type="search"], textarea, select {
+  padding: 8px 14px !important;
+  line-height: 1.5 !important;
+  min-height: 36px !important;
+  box-sizing: border-box !important;
+}
+/* Inline transparent inputs (editor, toggle title, db cells) */
+input[data-inline="true"], .inline-input, .toggle-title-input {
+  padding: 2px 0 !important;
+  min-height: unset !important;
+}
+/* Database cell inputs */
+.db-cell-input {
+  padding: 6px 12px !important;
+  min-height: unset !important;
+}
+/* Pill buttons */
+button {
+  padding: 7px 14px !important;
+  line-height: 1.4 !important;
+  min-height: 34px !important;
+}
+/* Icon-only buttons */
+button[data-icon-only="true"], button.icon-btn {
+  padding: 6px !important;
+  min-height: unset !important;
+  width: 32px !important;
+  height: 32px !important;
+}
+/* Tracker +/- round buttons */
+.tracker-btn {
+  padding: 0 !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-height: unset !important;
+}
+/* Modal inputs */
+[class*="modal"] input, [class*="modal"] textarea, [class*="modal"] select {
+  padding: 10px 14px !important;
+  min-height: 40px !important;
+}
+/* Finance inputs */
+.finance-input, .finance-entry-row input {
+  padding: 8px 12px !important;
+  min-height: 36px !important;
+}
+/* Settings inputs */
+.settings-input {
+  padding: 10px 16px !important;
+  min-height: 42px !important;
+}
+
 /* Hide number input spinners */
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button {
