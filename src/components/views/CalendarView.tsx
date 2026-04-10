@@ -798,11 +798,10 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
           onClose={() => { setEditingEvent(null); setModalDefaults(null) }}
           onSave={async (evt) => {
             if (evt.uid) {
+              // Optimistic update first
+              setTasks(prev => prev.map(t => t.uid === evt.uid ? { ...t, ...evt } as Task : t))
               const existing = tasks.find(t => t.uid === evt.uid)
-              if (existing?.id) {
-                await db.tasks.update(existing.id, evt)
-                setTasks(prev => prev.map(t => t.uid === evt.uid ? { ...t, ...evt } as Task : t))
-              }
+              if (existing?.id) await db.tasks.update(existing.id, evt)
             } else {
               const newTask: Task = {
                 uid: nanoid(), pageUid, createdAt: new Date().toISOString(),
@@ -816,8 +815,9 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                 itemType: evt.itemType, recurrence: evt.recurrence,
                 reminder: evt.reminder, url: evt.url,
               }
-              await db.tasks.add(newTask)
+              // Optimistic add first
               setTasks(prev => [...prev, newTask])
+              await db.tasks.add(newTask)
             }
           }}
           onDelete={async (uid) => { onDeleteTask(uid) }}

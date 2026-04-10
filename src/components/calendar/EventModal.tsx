@@ -154,10 +154,10 @@ export default function EventModal({
             style={{ padding: '6px 10px', borderRadius: 'var(--radius-base, 8px)', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }} />
           {itemType === 'event' && (
             <>
-              <input type="time" value={startTime} onChange={e => { setStartTime(e.target.value); markDirty() }}
+              <input type="time" step="900" value={startTime} onChange={e => { setStartTime(e.target.value); markDirty() }}
                 style={{ padding: '6px 10px', borderRadius: 'var(--radius-base, 8px)', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }} />
               <span style={{ alignSelf: 'center', color: 'var(--text-tertiary)', fontSize: '13px' }}>to</span>
-              <input type="time" value={endTime} onChange={e => { setEndTime(e.target.value); markDirty() }}
+              <input type="time" step="900" value={endTime} onChange={e => { setEndTime(e.target.value); markDirty() }}
                 style={{ padding: '6px 10px', borderRadius: 'var(--radius-base, 8px)', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }} />
             </>
           )}
