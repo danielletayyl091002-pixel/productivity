@@ -410,7 +410,10 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
       style={{
         padding: '16px',
         borderRadius: 'var(--radius-card, 12px)',
-        border: '1px solid var(--border)',
+        borderTop: `2px solid ${tracker.color}`,
+        borderRight: '1px solid var(--border)',
+        borderBottom: '1px solid var(--border)',
+        borderLeft: '1px solid var(--border)',
         background: 'var(--bg-primary)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
