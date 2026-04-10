@@ -645,8 +645,8 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
         <div style={{ display: 'flex', gap: '3px' }}>
           {dayLabels.map((label, i) => (
             <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{ fontSize: '8px', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>{label}</div>
-              <div style={{ fontSize: '8px', color: 'var(--text-tertiary)', opacity: 0.6, lineHeight: 1.2 }}>{weekDates[i].getDate()}</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>{label}</div>
+              <div style={{ fontSize: '9px', color: 'var(--text-tertiary)', opacity: 0.7, lineHeight: 1.2 }}>{weekDates[i].getDate()}</div>
             </div>
           ))}
         </div>
