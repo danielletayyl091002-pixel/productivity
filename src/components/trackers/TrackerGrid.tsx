@@ -132,13 +132,15 @@ export default function TrackerGrid() {
     const oldIndex = definitions.findIndex(d => d.uid === active.id)
     const newIndex = definitions.findIndex(d => d.uid === over.id)
     const reordered = arrayMove(definitions, oldIndex, newIndex)
-    // Persist all orders to DB
+    // Update store state immediately (optimistic)
+    useTrackerStore.setState({ definitions: reordered })
+    // Persist each tracker's new order to DB
     for (let i = 0; i < reordered.length; i++) {
       const def = reordered[i]
-      if (def.id) await db.trackerDefinitions.update(def.id, { order: i })
+      if (def.id) {
+        await db.trackerDefinitions.update(def.id, { order: i })
+      }
     }
-    // Reload store to reflect new order
-    await load()
   }
 
   useEffect(() => {
