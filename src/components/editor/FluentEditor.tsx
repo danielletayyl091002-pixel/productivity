@@ -108,7 +108,7 @@ function ToggleView({ node, updateAttributes }: any) {
             style={{
               flex: 1, border: 'none', background: 'transparent', outline: 'none',
               fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)',
-              cursor: 'text', fontFamily: 'inherit', padding: '2px 0 2px 12px',
+              cursor: 'text', fontFamily: 'inherit', padding: '2px 0 2px 24px',
             }}
           />
         </div>
