@@ -146,16 +146,16 @@ export default function PageCanvas() {
                 position: 'absolute', marginTop: '8px', zIndex: 1000,
                 background: 'var(--bg-primary)', border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-base, 10px)', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                padding: '20px', width: '260px',
+                padding: '16px', width: '220px', overflow: 'hidden',
               }} onClick={e => e.stopPropagation()}>
-                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '12px' }}>Choose icon</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>Choose icon</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px' }}>
                   {['📄','📝','📋','📌','📎','📊','🏠','🎯','🚀','💡','🔥','⭐','💪','🎉','📅','💰','🔔','💬','📖','🧠','❤️','✅','🎨','🔍','⚡','🌈','🎵','☕','🌿','🗂️'].map(emoji => (
                     <button key={emoji} onClick={async () => {
                       if (page?.id) { await db.pages.update(page.id, { icon: emoji }); setPage(prev => prev ? { ...prev, icon: emoji } : null); window.dispatchEvent(new CustomEvent('page-title-updated')) }
                       setShowIconPicker(false)
                     }} style={{
-                      width: '36px', height: '36px', fontSize: '18px', border: 'none',
+                      width: '34px', height: '34px', fontSize: '16px', border: 'none',
                       background: page.icon === emoji ? 'var(--accent-light)' : 'transparent',
                       cursor: 'pointer', borderRadius: '8px', display: 'flex',
                       alignItems: 'center', justifyContent: 'center',
