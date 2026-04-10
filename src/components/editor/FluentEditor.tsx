@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -71,17 +71,41 @@ const DatabaseNode = TiptapNode.create({
   },
 })
 
-const CollapseBlock = TiptapNode.create({
-  name: 'collapse',
+const ToggleView = ({ node, updateAttributes }: any) => {
+  const [open, setOpen] = useState(node.attrs.open || false)
+  const toggle = () => { const v = !open; setOpen(v); updateAttributes({ open: v }) }
+  return (
+    <NodeViewWrapper>
+      <div style={{ margin: '8px 0' }}>
+        <div contentEditable={false} onClick={toggle} style={{
+          display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
+          userSelect: 'none', padding: '4px 8px', borderRadius: 'var(--radius-base, 6px)',
+          color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 500,
+        }}
+        onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
+        onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
+        >
+          <span style={{ display: 'inline-block', transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s', fontSize: '12px' }}>{'\u25B6'}</span>
+          <span>Toggle</span>
+        </div>
+        {open && (
+          <div style={{ paddingLeft: '20px', borderLeft: '2px solid var(--border)', marginLeft: '8px', marginTop: '4px' }}>
+            <NodeViewContent />
+          </div>
+        )}
+      </div>
+    </NodeViewWrapper>
+  )
+}
+
+const ToggleNode = TiptapNode.create({
+  name: 'toggle',
   group: 'block',
   content: 'block+',
-  defining: true,
-  parseHTML() {
-    return [{ tag: 'details' }]
-  },
-  renderHTML({ HTMLAttributes }) {
-    return ['details', mergeAttributes(HTMLAttributes, { class: 'collapse-details' }), ['summary', { class: 'collapse-summary' }, 'Click to expand'], ['div', { class: 'collapse-body' }, 0]]
-  },
+  addAttributes() { return { open: { default: false } } },
+  parseHTML() { return [{ tag: 'div[data-type="toggle"]' }] },
+  renderHTML({ HTMLAttributes }) { return ['div', mergeAttributes(HTMLAttributes, { 'data-type': 'toggle' }), 0] },
+  addNodeView() { return ReactNodeViewRenderer(ToggleView) },
 })
 
 const SlashCommand = Extension.create({
@@ -148,7 +172,7 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
       SlashCommand,
       Callout,
       DatabaseNode,
-      CollapseBlock,
+      ToggleNode,
       Table.configure({ resizable: true }),
       TableRow,
       FormulaCell,
