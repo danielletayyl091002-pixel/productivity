@@ -233,20 +233,24 @@ export default function FluentEditor({ pageUid, initialContent }: FluentEditorPr
                     }
                   }
                   if (result !== null) {
-                    // Replace cell content with result
-                    const cellPos = $from.before(cellDepth)
-                    const contentStart = cellPos + 1
-                    const contentEnd = contentStart + cellNode.content.size
-                    const textNode = state.schema.text(String(result))
-                    const para = state.schema.nodes.paragraph.create(null, textNode)
-                    const tr = state.tr
-                    tr.setNodeMarkup(cellPos, undefined, { ...cellNode.attrs, formula: cellText })
-                    tr.replaceWith(contentStart, contentEnd, para)
-                    tr.setMeta('formulaRecalc', true)
-                    view.dispatch(tr)
+                    // Store formula and write result using editor.chain()
+                    const rawFormula = cellText
+                    const resultStr = String(result)
+                    const pos = $from.before(cellDepth)
                     event.preventDefault()
-                    // Move to next cell after replacing
-                    editor?.commands.goToNextCell()
+
+                    editor?.chain().focus().command(({ tr, state: s }) => {
+                      const cell = s.doc.nodeAt(pos)
+                      if (!cell) return false
+                      // Set formula attribute
+                      tr.setNodeMarkup(pos, undefined, { ...cell.attrs, formula: rawFormula })
+                      // Replace cell content with result text
+                      const from = pos + 1
+                      const to = from + cell.content.size
+                      const text = s.schema.text(resultStr)
+                      tr.replaceWith(from, to, text)
+                      return true
+                    }).goToNextCell().run()
                     return true
                   }
                 }
