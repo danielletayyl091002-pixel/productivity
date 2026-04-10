@@ -83,7 +83,7 @@ function ToggleView({ node, updateAttributes }: any) {
         border: '1px solid var(--border)', overflow: 'hidden',
       }}>
         {/* Title row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <span
             contentEditable={false}
             onClick={toggle}
