@@ -38,6 +38,7 @@ export default function DatabaseBlock({ databaseUid, pageUid }: DatabaseBlockPro
   const [contextMenu, setContextMenu] = useState<{ uid: string; x: number; y: number } | null>(null)
   const [aggs, setAggs] = useState<Record<string, AggType>>({})
   const [typePickerCol, setTypePickerCol] = useState<string | null>(null)
+  const [hoveredCol, setHoveredCol] = useState<string | null>(null)
   const typePickerRef = useRef<HTMLDivElement>(null)
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
@@ -242,9 +243,13 @@ export default function DatabaseBlock({ databaseUid, pageUid }: DatabaseBlockPro
           <thead>
             <tr>
               {columns.map(col => (
-                <th key={col.uid} onContextMenu={e => { e.preventDefault(); setContextMenu({ uid: col.uid, x: e.clientX, y: e.clientY }) }}
+                <th key={col.uid}
+                  onContextMenu={e => { e.preventDefault(); setContextMenu({ uid: col.uid, x: e.clientX, y: e.clientY }) }}
+                  onMouseEnter={() => setHoveredCol(col.uid)}
+                  onMouseLeave={() => setHoveredCol(null)}
                   style={{
-                    background: 'var(--bg-secondary)', borderBottom: '2px solid var(--border)',
+                    background: hoveredCol === col.uid ? 'var(--bg-hover)' : 'var(--bg-secondary)',
+                    borderBottom: '2px solid var(--border)',
                     borderRight: '1px solid var(--border)', padding: '8px 12px',
                     fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)',
                     textAlign: 'left', minWidth: '120px', textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -266,6 +271,13 @@ export default function DatabaseBlock({ databaseUid, pageUid }: DatabaseBlockPro
                         style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', width: '100%', textTransform: 'uppercase', letterSpacing: '0.06em' }} />
                     ) : (
                       <span onClick={() => setEditingCol(col.uid)} style={{ cursor: 'text', flex: 1 }}>{col.name}</span>
+                    )}
+                    {hoveredCol === col.uid && columns.length > 1 && (
+                      <button onClick={e => { e.stopPropagation(); if (confirm(`Delete column "${col.name}"?`)) deleteColumn(col.uid) }}
+                        style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: '12px', padding: '2px 4px', borderRadius: '4px', lineHeight: 1 }}
+                        onMouseEnter={e => { (e.currentTarget).style.color = '#EF4444' }}
+                        onMouseLeave={e => { (e.currentTarget).style.color = 'var(--text-tertiary)' }}
+                      >&times;</button>
                     )}
                   </div>
                   {/* Type picker dropdown */}
@@ -326,7 +338,7 @@ export default function DatabaseBlock({ databaseUid, pageUid }: DatabaseBlockPro
                   </td>
                 ))}
                 <td style={{ borderBottom: '1px solid var(--border)', padding: 0, textAlign: 'center', position: 'relative' }}>
-                  <button className="db-row-del" onClick={() => deleteRow(row.uid)}
+                  <button className="db-row-del" onClick={() => { if (confirm('Delete this row?')) deleteRow(row.uid) }}
                     style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: '12px', padding: '4px', opacity: 0, transition: 'opacity 0.1s' }}
                     onMouseEnter={e => { (e.currentTarget).style.color = '#EF4444' }}
                     onMouseLeave={e => { (e.currentTarget).style.color = 'var(--text-tertiary)' }}>&times;</button>
