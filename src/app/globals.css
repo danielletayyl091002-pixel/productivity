@@ -90,11 +90,16 @@ body {
   transition: background-color 0.2s, color 0.2s;
 }
 
-/* Focus ring (accessibility) */
+/* Focus ring (accessibility) — exclude contenteditable editor */
 button:focus-visible, input:focus-visible, select:focus-visible,
-textarea:focus-visible, [contenteditable]:focus-visible {
+textarea:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
+}
+.ProseMirror:focus-visible, .ProseMirror:focus, [contenteditable]:focus-visible, [contenteditable]:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 /* Typography defaults */
@@ -197,9 +202,9 @@ input, textarea, select { border-radius: calc(var(--radius-base, 10px) * 0.8) !i
 }
 
 /* ─── TipTap / ProseMirror Editor ─── */
-.ProseMirror { outline: none; min-height: 60vh; padding-bottom: 120px; background: var(--bg-primary); color: var(--text-primary); }
+.ProseMirror { outline: none; min-height: 60vh; padding-bottom: 120px; color: var(--text-primary); }
 .ProseMirror > * + * { margin-top: 4px; }
-.ProseMirror p { line-height: 1.7; min-height: 1.5em; color: var(--text-primary); font-size: 16px; margin: 0; }
+.ProseMirror p { line-height: 1.7; min-height: 1.5em; color: var(--text-primary); font-size: 16px; margin: 0; background: transparent; }
 .ProseMirror h1 { font-size: 1.875rem; font-weight: 700; color: var(--text-primary); margin: 16px 0 4px; }
 .ProseMirror h2 { font-size: 1.375rem; font-weight: 600; color: var(--text-primary); margin: 12px 0 4px; }
 .ProseMirror h3 { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin: 8px 0 4px; }
