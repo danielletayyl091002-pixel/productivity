@@ -299,7 +299,7 @@ function Timeline({ now, tasks, onAddEvent, onUpdateTask }: {
         const heightPx = Math.max(((endHour - startHour) + (endMin - startMin) / 60) * HOUR_H - 2, 20)
         const color = task.color && task.color.startsWith('#') ? task.color : '#6366F1'
         return (
-          <div key={task.uid} data-rail-event={task.uid} style={{
+          <div key={task.uid} data-rail-event={task.uid} className="calendar-event" style={{
             position: 'absolute',
             top: `${topPx}px`,
             left: '44px', right: '8px',

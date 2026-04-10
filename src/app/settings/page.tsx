@@ -129,6 +129,7 @@ export default function SettingsPage() {
   const [layoutDensity, setLayoutDensity] = useState<'compact' | 'comfortable' | 'relaxed'>('comfortable')
   const [fontSize, setFontSize] = useState<'xs' | 's' | 'm' | 'l' | 'xl'>('m')
   const [calEventStyle, setCalEventStyle] = useState<'soft' | 'solid' | 'outline'>('soft')
+  const [timeFormat, setTimeFormat] = useState<'12h' | '24h'>('12h')
 
   useEffect(() => {
     // Load saved settings
@@ -197,6 +198,8 @@ export default function SettingsPage() {
     // Load week start preference
     const savedWeekStart = localStorage.getItem('week_start')
     if (savedWeekStart) setWeekStart(savedWeekStart)
+    const savedTimeFormat = localStorage.getItem('time_format')
+    if (savedTimeFormat) setTimeFormat(savedTimeFormat as '12h' | '24h')
 
     // Load Google Fonts
     if (!document.querySelector('link[data-fluent-fonts]')) {
@@ -718,6 +721,19 @@ export default function SettingsPage() {
                 {day}
               </button>
             ))}
+          </div>
+          <div style={{ marginTop: '16px' }}>
+            <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Time format</h2>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {(['12h', '24h'] as const).map(tf => (
+                <button key={tf} onClick={() => { setTimeFormat(tf); localStorage.setItem('time_format', tf) }} style={{
+                  padding: '6px 16px', borderRadius: 'var(--radius-base, 8px)', border: '1px solid var(--border)',
+                  background: timeFormat === tf ? 'var(--accent)' : 'transparent',
+                  color: timeFormat === tf ? 'white' : 'var(--text-secondary)',
+                  fontSize: '13px', cursor: 'pointer',
+                }}>{tf === '12h' ? '12-hour (3:00 PM)' : '24-hour (15:00)'}</button>
+              ))}
+            </div>
           </div>
         </section>
 

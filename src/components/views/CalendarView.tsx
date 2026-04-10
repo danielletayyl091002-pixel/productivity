@@ -43,6 +43,17 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
   const [pendingTitle, setPendingTitle] = useState('')
   const gridRef = useRef<HTMLDivElement>(null)
 
+  // Undo toast
+  const [undoToast, setUndoToast] = useState<{
+    message: string; undoFn: () => Promise<void>
+  } | null>(null)
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  function showUndo(message: string, undoFn: () => Promise<void>) {
+    clearTimeout(undoTimer.current)
+    setUndoToast({ message, undoFn })
+    undoTimer.current = setTimeout(() => setUndoToast(null), 5000)
+  }
+
   // Drag-to-move state
   const [movingTask, setMovingTask] = useState<Task | null>(null)
   const [moveGhost, setMoveGhost] = useState<{ dateStr: string; startHour: number; endHour: number } | null>(null)
@@ -93,26 +104,40 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
 
     const onUp = async () => {
       if (movingTask && moveGhost) {
+        const oldDate = movingTask.scheduledDate || movingTask.dueDate || ''
+        const oldStart = movingTask.startTime || ''
+        const oldEnd = movingTask.endTime || ''
+        const taskUid = movingTask.uid
         const newStart = moveGhost.startHour
         const newEnd = newStart + moveDuration.current
-        await db.tasks.where('uid').equals(movingTask.uid).modify({
+        await db.tasks.where('uid').equals(taskUid).modify({
           scheduledDate: moveGhost.dateStr,
           dueDate: moveGhost.dateStr,
           startTime: fmtDB(newStart),
           endTime: fmtDB(snap(newEnd)),
         })
-        setTasks(prev => prev.map(t => t.uid === movingTask.uid ? {
+        setTasks(prev => prev.map(t => t.uid === taskUid ? {
           ...t,
           scheduledDate: moveGhost.dateStr,
           dueDate: moveGhost.dateStr,
           startTime: fmtDB(newStart),
           endTime: fmtDB(snap(newEnd)),
         } : t))
+        showUndo(`Moved to ${fmt(newStart)}`, async () => {
+          await db.tasks.where('uid').equals(taskUid).modify({ scheduledDate: oldDate, dueDate: oldDate, startTime: oldStart, endTime: oldEnd })
+          setTasks(prev => prev.map(t => t.uid === taskUid ? { ...t, scheduledDate: oldDate, dueDate: oldDate, startTime: oldStart, endTime: oldEnd } : t))
+        })
       }
       if (resizingTask && resizeEndHour !== null) {
+        const oldEnd = resizingTask.endTime || ''
+        const taskUid = resizingTask.uid
         const newEnd = fmtDB(resizeEndHour)
-        await db.tasks.where('uid').equals(resizingTask.uid).modify({ endTime: newEnd })
-        setTasks(prev => prev.map(t => t.uid === resizingTask.uid ? { ...t, endTime: newEnd } : t))
+        await db.tasks.where('uid').equals(taskUid).modify({ endTime: newEnd })
+        setTasks(prev => prev.map(t => t.uid === taskUid ? { ...t, endTime: newEnd } : t))
+        showUndo(`Resized to ${fmt(resizeEndHour)}`, async () => {
+          await db.tasks.where('uid').equals(taskUid).modify({ endTime: oldEnd })
+          setTasks(prev => prev.map(t => t.uid === taskUid ? { ...t, endTime: oldEnd } : t))
+        })
       }
       setMovingTask(null)
       setMoveGhost(null)
@@ -131,9 +156,11 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
 
   const snap = (h: number) => Math.max(START, Math.min(22, Math.round(h * 4) / 4))
 
+  const use24h = typeof localStorage !== 'undefined' && localStorage.getItem('time_format') === '24h'
   const fmt = (h: number) => {
     const hrs = Math.floor(h)
     const mins = Math.round((h - hrs) * 60)
+    if (use24h) return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
     const period = hrs >= 12 ? 'PM' : 'AM'
     const displayHr = hrs > 12 ? hrs - 12 : hrs === 0 ? 12 : hrs
     return `${displayHr}:${String(mins).padStart(2, '0')} ${period}`
@@ -152,9 +179,11 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
 
   const weekDays = useMemo(() => {
     const days = []
+    const mondayStart = typeof localStorage !== 'undefined' && localStorage.getItem('week_start') === 'monday'
     const startOfWeek = new Date(currentDate)
     const dayOfWeek = currentDate.getDay()
-    startOfWeek.setDate(currentDate.getDate() - dayOfWeek)
+    const offset = mondayStart ? (dayOfWeek === 0 ? 6 : dayOfWeek - 1) : dayOfWeek
+    startOfWeek.setDate(currentDate.getDate() - offset)
     for (let i = 0; i < 7; i++) {
       const d = new Date(startOfWeek)
       d.setDate(startOfWeek.getDate() + i)
@@ -436,7 +465,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                 color: 'var(--text-tertiary)',
                 pointerEvents: 'none'
               }}>
-                {h === 12 ? '12 PM' : h > 12 ? `${h - 12} PM` : `${h} AM`}
+                {use24h ? `${String(h).padStart(2, '0')}:00` : (h === 12 ? '12 PM' : h > 12 ? `${h - 12} PM` : `${h} AM`)}
               </div>
             ))}
           </div>
@@ -532,6 +561,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                     <div
                       key={task.uid}
                       data-event-uid={task.uid}
+                      className="calendar-event"
                       style={{
                         position: 'absolute',
                         top: `${top}px`,
@@ -689,6 +719,24 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
               Enter to save · Esc to cancel
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Undo toast */}
+      {undoToast && (
+        <div style={{
+          position: 'fixed', bottom: '20px', right: '20px', zIndex: 2000,
+          background: 'var(--bg-primary)', border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-base, 8px)', padding: '10px 16px',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+          display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13px',
+        }}>
+          <span style={{ color: 'var(--text-primary)' }}>{undoToast.message}</span>
+          <button onClick={async () => { await undoToast.undoFn(); setUndoToast(null) }} style={{
+            padding: '4px 12px', borderRadius: 'var(--radius-base, 6px)', border: 'none',
+            background: 'var(--accent)', color: 'white', fontSize: '12px',
+            fontWeight: 600, cursor: 'pointer',
+          }}>Undo</button>
         </div>
       )}
     </div>
