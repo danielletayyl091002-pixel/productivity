@@ -112,18 +112,28 @@ export default function PageCanvas() {
           defaultValue={page.title}
           onChange={e => updateTitle(e.target.value)}
           placeholder="Untitled"
-          style={{ fontSize: '2.25rem', fontWeight: 700, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-primary)', width: '100%', marginBottom: '12px' }}
+          style={{
+            fontSize: '2.5rem', fontWeight: 700, lineHeight: 1.2,
+            border: 'none', outline: 'none', background: 'transparent',
+            boxShadow: 'none', padding: 0, width: '100%',
+            color: 'var(--text-primary)', fontFamily: 'inherit',
+            margin: '0 0 8px 0',
+          }}
         />
-        <div style={{ display: 'flex', gap: '4px', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
           {(['page', 'board', 'calendar'] as const).map(v => (
             <button key={v} onClick={() => setView(v)}
               style={{
-                padding: '4px 12px', borderRadius: '6px',
-                border: 'none', fontSize: '12px',
-                fontWeight: 500, cursor: 'pointer',
-                background: view === v ? 'var(--accent-light)' : 'transparent',
-                color: view === v ? 'var(--accent)' : 'var(--text-tertiary)'
-              }}>
+                padding: '5px 14px', borderRadius: '9999px',
+                border: view === v ? 'none' : '1px solid var(--border)',
+                fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+                background: view === v ? 'var(--accent)' : 'transparent',
+                color: view === v ? 'white' : 'var(--text-tertiary)',
+                transition: 'background 0.15s, color 0.15s',
+              }}
+              onMouseEnter={e => { if (view !== v) (e.currentTarget).style.background = 'var(--bg-hover)' }}
+              onMouseLeave={e => { if (view !== v) (e.currentTarget).style.background = 'transparent' }}
+            >
               {v === 'page' ? 'Page' : v === 'board' ? 'Kanban' : 'Calendar'}
             </button>
           ))}
