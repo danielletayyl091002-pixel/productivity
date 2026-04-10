@@ -154,7 +154,18 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       }
     }
     window.addEventListener('fluent-theme-changed', handleThemeChange)
-    return () => window.removeEventListener('fluent-theme-changed', handleThemeChange)
+
+    // Listen for font changes from settings
+    const handleFontChange = (e: Event) => {
+      const { fontFamily } = (e as CustomEvent).detail
+      if (fontFamily) document.body.style.fontFamily = fontFamily
+    }
+    window.addEventListener('font-changed', handleFontChange)
+
+    return () => {
+      window.removeEventListener('fluent-theme-changed', handleThemeChange)
+      window.removeEventListener('font-changed', handleFontChange)
+    }
   }, [])
 
   return <>{children}</>
