@@ -40,6 +40,12 @@ export interface Task {
   endTime: string | null
   color: string
   createdAt: string
+  description?: string | null
+  location?: string | null
+  itemType?: 'task' | 'event'
+  recurrence?: string | null
+  reminder?: number | null
+  url?: string | null
 }
 
 export interface Setting {
@@ -191,6 +197,20 @@ class FluentDB extends Dexie {
       trackerLogs: '++id, trackerUid, date'
     })
     this.version(6).stores({
+      pages: '++id, uid, parentUid, isFavorite',
+      blocks: '++id, uid, pageUid, type, order',
+      tasks: '++id, uid, pageUid, status, dueDate, scheduledDate',
+      settings: '++id, key',
+      financeEntries: '++id, type, category, date',
+      financeCategories: '++id, type',
+      trackerDefinitions: '++id, uid, type, order',
+      trackerLogs: '++id, trackerUid, date',
+      databases: '++id, uid, pageUid',
+      databaseColumns: '++id, uid, databaseUid, order',
+      databaseRows: '++id, uid, databaseUid, order',
+      databaseCells: '++id, uid, rowUid, columnUid'
+    })
+    this.version(7).stores({
       pages: '++id, uid, parentUid, isFavorite',
       blocks: '++id, uid, pageUid, type, order',
       tasks: '++id, uid, pageUid, status, dueDate, scheduledDate',

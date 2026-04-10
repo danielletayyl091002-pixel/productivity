@@ -1,0 +1,252 @@
+'use client'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Task } from '@/db/schema'
+
+const COLORS = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1', '#14B8A6']
+const REMINDERS = [
+  { label: 'None', value: null },
+  { label: '5 min before', value: 5 },
+  { label: '10 min before', value: 10 },
+  { label: '30 min before', value: 30 },
+  { label: '1 hour before', value: 60 },
+  { label: '1 day before', value: 1440 },
+]
+const RECURRENCES = [
+  { label: 'Does not repeat', value: null },
+  { label: 'Daily', value: 'FREQ=DAILY' },
+  { label: 'Weekly', value: 'FREQ=WEEKLY' },
+  { label: 'Monthly', value: 'FREQ=MONTHLY' },
+  { label: 'Yearly', value: 'FREQ=YEARLY' },
+]
+
+interface EventModalProps {
+  initialEvent?: Partial<Task> | null
+  defaultDate?: string
+  defaultStartTime?: string
+  defaultEndTime?: string
+  onClose: () => void
+  onSave: (event: Partial<Task>) => Promise<void>
+  onDelete?: (uid: string) => Promise<void>
+}
+
+export default function EventModal({
+  initialEvent, defaultDate, defaultStartTime, defaultEndTime,
+  onClose, onSave, onDelete,
+}: EventModalProps) {
+  const [title, setTitle] = useState(initialEvent?.title || '')
+  const [date, setDate] = useState(initialEvent?.scheduledDate || initialEvent?.dueDate || defaultDate || new Date().toISOString().split('T')[0])
+  const [startTime, setStartTime] = useState(initialEvent?.startTime || defaultStartTime || '09:00')
+  const [endTime, setEndTime] = useState(initialEvent?.endTime || defaultEndTime || '10:00')
+  const [itemType, setItemType] = useState<'task' | 'event'>(initialEvent?.itemType || (initialEvent?.startTime ? 'event' : 'task'))
+  const [color, setColor] = useState(initialEvent?.color || '#3B82F6')
+  const [description, setDescription] = useState(initialEvent?.description || '')
+  const [location, setLocation] = useState(initialEvent?.location || '')
+  const [showLocation, setShowLocation] = useState(!!initialEvent?.location)
+  const [url, setUrl] = useState(initialEvent?.url || '')
+  const [showUrl, setShowUrl] = useState(!!initialEvent?.url)
+  const [reminder, setReminder] = useState<number | null>(initialEvent?.reminder ?? null)
+  const [recurrence, setRecurrence] = useState<string | null>(initialEvent?.recurrence ?? null)
+  const [priority, setPriority] = useState<'high' | 'medium' | 'low' | null>(initialEvent?.priority || null)
+  const [saving, setSaving] = useState(false)
+  const [titleError, setTitleError] = useState(false)
+  const [dirty, setDirty] = useState(false)
+  const titleRef = useRef<HTMLInputElement>(null)
+  const modalRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { titleRef.current?.focus() }, [])
+
+  const markDirty = useCallback(() => { if (!dirty) setDirty(true) }, [dirty])
+
+  const handleSave = useCallback(async () => {
+    if (!title.trim()) { setTitleError(true); titleRef.current?.focus(); return }
+    setSaving(true)
+    await onSave({
+      ...(initialEvent || {}),
+      title: title.trim(),
+      scheduledDate: date,
+      dueDate: date,
+      startTime: itemType === 'event' ? startTime : null,
+      endTime: itemType === 'event' ? endTime : null,
+      itemType,
+      color,
+      description: description || null,
+      location: location || null,
+      url: url || null,
+      reminder,
+      recurrence,
+      priority,
+      status: initialEvent?.status || 'todo',
+    })
+    setSaving(false)
+    onClose()
+  }, [title, date, startTime, endTime, itemType, color, description, location, url, reminder, recurrence, priority, initialEvent, onSave, onClose])
+
+  const handleClose = useCallback(() => {
+    if (dirty && !confirm('Discard unsaved changes?')) return
+    onClose()
+  }, [dirty, onClose])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleClose()
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') handleSave()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [handleClose, handleSave])
+
+  const isEditing = !!initialEvent?.uid
+
+  return (
+    <div
+      onClick={handleClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 2000,
+        background: 'rgba(0,0,0,0.3)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        ref={modalRef}
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '480px', maxWidth: '90vw', maxHeight: '90vh', overflowY: 'auto',
+          background: 'var(--bg-primary)', borderRadius: 'var(--radius-card, 14px)',
+          boxShadow: '0 16px 48px rgba(0,0,0,0.2)', padding: '24px',
+        }}
+      >
+        {/* Title */}
+        <input
+          ref={titleRef}
+          value={title}
+          onChange={e => { setTitle(e.target.value); setTitleError(false); markDirty() }}
+          placeholder="Event title"
+          style={{
+            width: '100%', fontSize: '18px', fontWeight: 700,
+            border: 'none', borderBottom: titleError ? '2px solid #EF4444' : '2px solid var(--accent)',
+            outline: 'none', background: 'transparent',
+            color: 'var(--text-primary)', padding: '0 0 8px 0',
+            marginBottom: titleError ? '2px' : '16px',
+            boxSizing: 'border-box',
+          }}
+        />
+        {titleError && <div style={{ fontSize: '11px', color: '#EF4444', marginBottom: '12px' }}>Title is required</div>}
+
+        {/* Type selector */}
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
+          {(['event', 'task'] as const).map(t => (
+            <button key={t} onClick={() => { setItemType(t); markDirty() }} style={{
+              padding: '5px 14px', borderRadius: '9999px',
+              border: itemType === t ? 'none' : '1px solid var(--border)',
+              background: itemType === t ? 'var(--accent)' : 'transparent',
+              color: itemType === t ? 'white' : 'var(--text-secondary)',
+              fontSize: '12px', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
+            }}>{t}</button>
+          ))}
+        </div>
+
+        {/* Date & Time */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+          <input type="date" value={date} onChange={e => { setDate(e.target.value); markDirty() }}
+            style={{ padding: '6px 10px', borderRadius: 'var(--radius-base, 8px)', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }} />
+          {itemType === 'event' && (
+            <>
+              <input type="time" value={startTime} onChange={e => { setStartTime(e.target.value); markDirty() }}
+                style={{ padding: '6px 10px', borderRadius: 'var(--radius-base, 8px)', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }} />
+              <span style={{ alignSelf: 'center', color: 'var(--text-tertiary)', fontSize: '13px' }}>to</span>
+              <input type="time" value={endTime} onChange={e => { setEndTime(e.target.value); markDirty() }}
+                style={{ padding: '6px 10px', borderRadius: 'var(--radius-base, 8px)', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }} />
+            </>
+          )}
+        </div>
+
+        {/* Color */}
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
+          {COLORS.map(c => (
+            <button key={c} aria-label={`Color ${c}`} onClick={() => { setColor(c); markDirty() }} style={{
+              width: color === c ? '28px' : '24px', height: color === c ? '28px' : '24px',
+              borderRadius: '50%', background: c, border: 'none', cursor: 'pointer',
+              boxShadow: color === c ? `0 0 0 2px var(--bg-primary), 0 0 0 4px ${c}` : 'none',
+              transition: 'all 0.1s',
+            }} />
+          ))}
+        </div>
+
+        {/* Priority */}
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', alignSelf: 'center', marginRight: '4px' }}>Priority:</span>
+          {([null, 'low', 'medium', 'high'] as const).map(p => (
+            <button key={String(p)} onClick={() => { setPriority(p); markDirty() }} style={{
+              padding: '3px 10px', borderRadius: '9999px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+              border: priority === p ? 'none' : '1px solid var(--border)',
+              background: priority === p ? (p === 'high' ? '#EF4444' : p === 'medium' ? '#F59E0B' : p === 'low' ? '#10B981' : 'var(--accent)') : 'transparent',
+              color: priority === p ? 'white' : 'var(--text-secondary)',
+            }}>{p || 'None'}</button>
+          ))}
+        </div>
+
+        {/* Location */}
+        {showLocation ? (
+          <input value={location} onChange={e => { setLocation(e.target.value); markDirty() }} placeholder="Add location"
+            style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-base, 8px)', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', outline: 'none', marginBottom: '12px', boxSizing: 'border-box' }} />
+        ) : (
+          <button onClick={() => setShowLocation(true)} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: '12px', cursor: 'pointer', padding: '0', marginBottom: '12px' }}>+ Add location</button>
+        )}
+
+        {/* Description */}
+        <textarea value={description} onChange={e => { setDescription(e.target.value); markDirty() }} placeholder="Add description..."
+          style={{ width: '100%', minHeight: '60px', padding: '8px 12px', borderRadius: 'var(--radius-base, 8px)', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', outline: 'none', resize: 'vertical', marginBottom: '12px', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+
+        {/* Recurrence & Reminder row */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+          <select value={recurrence || ''} onChange={e => { setRecurrence(e.target.value || null); markDirty() }}
+            style={{ padding: '6px 10px', borderRadius: 'var(--radius-base, 8px)', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '12px', outline: 'none', cursor: 'pointer' }}>
+            {RECURRENCES.map(r => <option key={r.label} value={r.value || ''}>{r.label}</option>)}
+          </select>
+          <select value={reminder ?? ''} onChange={e => { setReminder(e.target.value ? Number(e.target.value) : null); markDirty() }}
+            style={{ padding: '6px 10px', borderRadius: 'var(--radius-base, 8px)', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '12px', outline: 'none', cursor: 'pointer' }}>
+            {REMINDERS.map(r => <option key={r.label} value={r.value ?? ''}>{r.label}</option>)}
+          </select>
+        </div>
+
+        {/* URL */}
+        {showUrl ? (
+          <input value={url} onChange={e => { setUrl(e.target.value); markDirty() }} placeholder="https://..."
+            style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-base, 8px)', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px', outline: 'none', marginBottom: '16px', boxSizing: 'border-box' }} />
+        ) : (
+          <button onClick={() => setShowUrl(true)} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: '12px', cursor: 'pointer', padding: '0', marginBottom: '16px' }}>+ Add link</button>
+        )}
+
+        {/* Footer */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
+          <div>
+            {isEditing && onDelete && (
+              <button onClick={async () => { if (confirm('Delete this event?')) { await onDelete(initialEvent!.uid!); onClose() } }}
+                style={{ padding: '6px 14px', borderRadius: '9999px', border: 'none', background: '#FEE2E2', color: '#EF4444', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                Delete
+              </button>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={handleClose} style={{
+              padding: '6px 16px', borderRadius: '9999px', border: '1px solid var(--border)',
+              background: 'transparent', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+            }}>Cancel</button>
+            <button onClick={handleSave} disabled={saving} style={{
+              padding: '6px 20px', borderRadius: '9999px', border: 'none',
+              background: 'var(--accent)', color: 'white', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+              opacity: saving ? 0.6 : 1,
+            }}>{saving ? 'Saving...' : isEditing ? 'Update' : 'Save'}</button>
+          </div>
+        </div>
+
+        <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '8px', textAlign: 'right' }}>
+          {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'}+Enter to save
+        </div>
+      </div>
+    </div>
+  )
+}

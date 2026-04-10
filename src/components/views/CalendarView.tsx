@@ -2,6 +2,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { db, Task } from '@/db/schema'
+import EventModal from '@/components/calendar/EventModal'
+import { nanoid } from 'nanoid'
 
 function getEventStyle(color: string): React.CSSProperties {
   const calStyle = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-cal-style') || 'soft' : 'soft'
@@ -47,6 +49,8 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
   const [undoToast, setUndoToast] = useState<{
     message: string; undoFn: () => Promise<void>
   } | null>(null)
+  const [editingEvent, setEditingEvent] = useState<Partial<Task> | null>(null)
+  const [modalDefaults, setModalDefaults] = useState<{ date?: string; start?: string; end?: string } | null>(null)
   const undoTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   function showUndo(message: string, undoFn: () => Promise<void>) {
     clearTimeout(undoTimer.current)
@@ -342,7 +346,8 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
       return
     }
     if (movingTask) {
-      // Click without move — just cancel
+      // Click without move — open edit modal
+      setEditingEvent(movingTask)
       setMovingTask(null)
       setMoveGhost(null)
       moveStartPos.current = null
@@ -368,11 +373,13 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
     const start = Math.min(dragState.startHour, dragState.endHour)
     const end = Math.max(dragState.startHour, dragState.endHour)
     if (end - start >= 0.25) {
-      setPendingEvent({
-        dateStr: dragState.dateStr,
-        startTime: fmtDB(start),
-        endTime: fmtDB(end)
+      // Open event modal for new event
+      setModalDefaults({
+        date: dragState.dateStr,
+        start: fmtDB(start),
+        end: fmtDB(end),
       })
+      setDragState(null)
     } else {
       setDragState(null)
     }
@@ -738,6 +745,42 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
             fontWeight: 600, cursor: 'pointer',
           }}>Undo</button>
         </div>
+      )}
+
+      {/* Event Modal */}
+      {(editingEvent !== null || modalDefaults) && (
+        <EventModal
+          initialEvent={editingEvent || undefined}
+          defaultDate={modalDefaults?.date}
+          defaultStartTime={modalDefaults?.start}
+          defaultEndTime={modalDefaults?.end}
+          onClose={() => { setEditingEvent(null); setModalDefaults(null) }}
+          onSave={async (evt) => {
+            if (evt.uid) {
+              const existing = tasks.find(t => t.uid === evt.uid)
+              if (existing?.id) {
+                await db.tasks.update(existing.id, evt)
+                setTasks(prev => prev.map(t => t.uid === evt.uid ? { ...t, ...evt } as Task : t))
+              }
+            } else {
+              const newTask: Task = {
+                uid: nanoid(), pageUid, createdAt: new Date().toISOString(),
+                title: evt.title || '', status: evt.status || 'todo',
+                priority: evt.priority || null,
+                dueDate: evt.dueDate || evt.scheduledDate || null,
+                scheduledDate: evt.scheduledDate || null,
+                startTime: evt.startTime || null, endTime: evt.endTime || null,
+                color: evt.color || '#6366F1',
+                description: evt.description, location: evt.location,
+                itemType: evt.itemType, recurrence: evt.recurrence,
+                reminder: evt.reminder, url: evt.url,
+              }
+              await db.tasks.add(newTask)
+              setTasks(prev => [...prev, newTask])
+            }
+          }}
+          onDelete={async (uid) => { onDeleteTask(uid) }}
+        />
       )}
     </div>
   )
