@@ -78,26 +78,22 @@ function ToggleView({ node, updateAttributes }: any) {
   return (
     <NodeViewWrapper>
       <div style={{
-        margin: '8px 0', padding: '12px 20px',
+        margin: '8px 0', padding: '12px 16px 12px 0',
         background: 'var(--bg-secondary)', borderRadius: 'var(--radius-base, 10px)',
         border: '1px solid var(--border)', overflow: 'hidden',
       }}>
-        {/* Title row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0px' }}>
+        {/* Title row — arrow flush left, title indented */}
+        <div style={{ display: 'flex', alignItems: 'center' }}>
           <span
             contentEditable={false}
             onClick={toggle}
             style={{
               cursor: 'pointer', userSelect: 'none', fontSize: '10px',
-              color: 'var(--text-tertiary)', flexShrink: 0, width: '20px', height: '20px',
+              color: 'var(--text-tertiary)', flexShrink: 0, width: '36px', height: '24px',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: '4px',
-              transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
-              transition: 'transform 0.15s, background 0.15s',
+              marginLeft: 0, paddingLeft: 0,
             }}
-            onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)'; (e.currentTarget).style.color = 'var(--accent)' }}
-            onMouseLeave={e => { (e.currentTarget).style.background = 'transparent'; (e.currentTarget).style.color = 'var(--text-tertiary)' }}
-          >{'\u25B6'}</span>
+          >{open ? '\u25BC' : '\u25B6'}</span>
           <input
             value={title}
             onChange={e => { setTitle(e.target.value); updateAttributes({ title: e.target.value }) }}
@@ -108,7 +104,7 @@ function ToggleView({ node, updateAttributes }: any) {
             style={{
               flex: 1, border: 'none', background: 'transparent', outline: 'none',
               fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)',
-              cursor: 'text', fontFamily: 'inherit', padding: '2px 0 2px 24px',
+              cursor: 'text', fontFamily: 'inherit', padding: '2px 0',
             }}
           />
         </div>
