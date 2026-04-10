@@ -77,7 +77,7 @@ function ToggleView({ node, updateAttributes }: any) {
   const toggle = (e: React.MouseEvent) => { e.stopPropagation(); const next = !open; setOpen(next); updateAttributes({ open: next }) }
   return (
     <NodeViewWrapper>
-      <div style={{ margin: '8px 0', padding: '14px 20px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-base, 10px)', border: '1px solid var(--border)' }}>
+      <div style={{ margin: '8px 0', padding: '16px 24px 16px 32px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-base, 10px)', border: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span
             contentEditable={false}

@@ -134,7 +134,7 @@ export default function PageCanvas() {
               style={{
                 fontSize: '1.75rem', fontWeight: 700, lineHeight: 1.3,
                 border: 'none', outline: 'none', background: 'transparent',
-                boxShadow: 'none', padding: '4px 16px 4px 24px', flex: 1,
+                boxShadow: 'none', padding: '4px 16px 4px 32px', flex: 1,
                 color: 'var(--text-primary)', fontFamily: 'inherit', margin: 0,
               }}
             />
