@@ -43,6 +43,31 @@
   --shadow: 0 1px 3px rgba(0,0,0,calc(0.05 * var(--shadow-intensity) * 2)), 0 1px 2px rgba(0,0,0,calc(0.03 * var(--shadow-intensity) * 2));
   --shadow-md: 0 4px 12px rgba(0,0,0,calc(0.07 * var(--shadow-intensity) * 2));
   --shadow-lg: 0 12px 36px rgba(0,0,0,calc(0.1 * var(--shadow-intensity) * 2));
+
+  /* Design system tokens (8px grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --h-compact: 32px;
+  --h-default: 40px;
+  --h-large: 48px;
+  --font-xs: 11px;
+  --font-sm: 13px;
+  --font-base: 14px;
+  --font-md: 16px;
+  --font-lg: 20px;
+  --font-xl: 24px;
+  --font-2xl: 32px;
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.6;
+  --focus-ring: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent);
 }
 
 [data-theme="dark"] {
@@ -64,6 +89,18 @@ body {
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.2s, color 0.2s;
 }
+
+/* Focus ring (accessibility) */
+button:focus-visible, input:focus-visible, select:focus-visible,
+textarea:focus-visible, [contenteditable]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Typography defaults */
+h1 { font-size: var(--font-2xl); font-weight: 700; line-height: var(--leading-tight); }
+h2 { font-size: var(--font-xl); font-weight: 700; line-height: var(--leading-tight); }
+h3 { font-size: var(--font-lg); font-weight: 600; line-height: var(--leading-tight); }
 
 /* ── Global input breathing room ── */
 input[type="text"], input[type="number"], input[type="date"],
