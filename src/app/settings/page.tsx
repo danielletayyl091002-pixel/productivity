@@ -282,7 +282,7 @@ export default function SettingsPage() {
                   })
                 }}
                 style={{
-                  flex: 1, padding: '16px', borderRadius: '12px',
+                  flex: 1, padding: '16px', borderRadius: 'var(--radius-card, 12px)',
                   border: interfaceStyle === style ? '2px solid var(--accent)' : '1px solid var(--border)',
                   background: interfaceStyle === style ? 'var(--accent-light)' : 'var(--bg-secondary)',
                   cursor: 'pointer', textAlign: 'left',
@@ -297,8 +297,8 @@ export default function SettingsPage() {
                 <div style={{ marginTop: '12px', display: 'flex', gap: '6px' }}>
                   {style === 'flat' ? (
                     <>
-                      <div style={{ height: '28px', flex: 1, borderRadius: '6px', background: 'var(--accent)', opacity: 0.8 }} />
-                      <div style={{ height: '28px', flex: 1, borderRadius: '6px', background: 'var(--bg-hover)' }} />
+                      <div style={{ height: '28px', flex: 1, borderRadius: 'var(--radius-sm, 6px)', background: 'var(--accent)', opacity: 0.8 }} />
+                      <div style={{ height: '28px', flex: 1, borderRadius: 'var(--radius-sm, 6px)', background: 'var(--bg-hover)' }} />
                     </>
                   ) : (
                     <>
@@ -398,7 +398,7 @@ export default function SettingsPage() {
             </div>
             <div style={{
               marginTop: '12px', width: '80px', height: '48px',
-              background: 'var(--bg-secondary)', borderRadius: '8px',
+              background: 'var(--bg-secondary)', borderRadius: 'var(--radius-base, 8px)',
               boxShadow: shadowDepth === 0 ? 'none' : `0 ${Math.round(shadowDepth / 10)}px ${Math.round(shadowDepth / 5)}px rgba(0,0,0,${shadowDepth / 400})`,
               border: '1px solid var(--border)', transition: 'box-shadow 0.2s',
             }} />
@@ -421,7 +421,7 @@ export default function SettingsPage() {
                     })
                   }}
                   style={{
-                    flex: 1, padding: '8px 12px', borderRadius: '8px',
+                    flex: 1, padding: '8px 12px', borderRadius: 'var(--radius-base, 8px)',
                     border: layoutDensity === d ? '2px solid var(--accent)' : '1px solid var(--border)',
                     background: layoutDensity === d ? 'var(--accent-light)' : 'transparent',
                     color: layoutDensity === d ? 'var(--accent)' : 'var(--text-secondary)',
@@ -441,7 +441,7 @@ export default function SettingsPage() {
               value={currentFont}
               onChange={e => applyFont(e.target.value)}
               style={{
-                width: '100%', padding: '10px 14px', borderRadius: '8px',
+                width: '100%', padding: '10px 14px', borderRadius: 'var(--radius-base, 8px)',
                 border: '1px solid var(--border)', background: 'var(--bg-secondary)',
                 color: 'var(--text-primary)', fontSize: '14px', outline: 'none',
                 fontFamily: fontsLoaded ? FONT_GROUPS.flatMap(g => g.fonts).find(f => f.name === currentFont)?.family : undefined,
@@ -464,7 +464,7 @@ export default function SettingsPage() {
               Browse fonts
             </div>
             {fontBrowseOpen && (
-              <div style={{ maxHeight: '240px', overflowY: 'auto', marginTop: '8px', border: '1px solid var(--border)', borderRadius: '8px' }}>
+              <div style={{ maxHeight: '240px', overflowY: 'auto', marginTop: '8px', border: '1px solid var(--border)', borderRadius: 'var(--radius-base, 8px)' }}>
                 {FONT_GROUPS.map(group => (
                   <div key={group.group}>
                     <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', padding: '8px 14px 4px' }}>
@@ -545,7 +545,7 @@ export default function SettingsPage() {
                 }}
                 style={{
                   width: '36px', height: '36px',
-                  borderRadius: '8px', border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-base, 8px)', border: '1px solid var(--border)',
                   padding: '2px', cursor: 'pointer',
                   background: 'none'
                 }}
@@ -595,7 +595,7 @@ export default function SettingsPage() {
                 }}
                 style={{
                   padding: '6px 16px',
-                  borderRadius: '8px',
+                  borderRadius: 'var(--radius-base, 8px)',
                   border: '1px solid var(--border)',
                   background: weekStart === day ? 'var(--accent)' : 'transparent',
                   color: weekStart === day ? 'white' : 'var(--text-secondary)',
@@ -630,7 +630,7 @@ export default function SettingsPage() {
               background: 'var(--bg-secondary)'
             }}>
               <div style={{
-                width: '56px', height: '40px', borderRadius: '6px',
+                width: '56px', height: '40px', borderRadius: 'var(--radius-sm, 6px)',
                 background: bgImages[key] ? `url(${bgImages[key]}) center/cover` : 'var(--bg-hover)',
                 border: '1px solid var(--border)', flexShrink: 0
               }} />
@@ -638,7 +638,7 @@ export default function SettingsPage() {
                 {label}
               </span>
               <label style={{
-                padding: '5px 12px', borderRadius: '6px',
+                padding: '5px 12px', borderRadius: 'var(--radius-sm, 6px)',
                 border: '1px solid var(--border)',
                 background: 'transparent', color: 'var(--text-secondary)',
                 fontSize: '12px', cursor: 'pointer'
@@ -685,7 +685,7 @@ export default function SettingsPage() {
                     document.documentElement.style.removeProperty(`--${key}`)
                   }}
                   style={{
-                    padding: '5px 10px', borderRadius: '6px',
+                    padding: '5px 10px', borderRadius: 'var(--radius-sm, 6px)',
                     border: '1px solid #EF4444',
                     background: 'none', color: '#EF4444',
                     fontSize: '12px', cursor: 'pointer'

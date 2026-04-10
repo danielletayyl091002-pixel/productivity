@@ -47,7 +47,7 @@ function MonthDetail({
   return (
     <div style={{
       background: 'var(--bg-primary)',
-      borderRadius: '12px',
+      borderRadius: 'var(--radius-card, 12px)',
       border: '2px solid var(--accent)',
       padding: '24px',
       marginBottom: '24px'
@@ -77,7 +77,7 @@ function MonthDetail({
         ].map(stat => (
           <div key={stat.label} style={{
             background: 'var(--bg-secondary)',
-            borderRadius: '8px', padding: '16px',
+            borderRadius: 'var(--radius-base, 8px)', padding: '16px',
             textAlign: 'center'
           }}>
             <div style={{ fontSize: '11px',
@@ -324,7 +324,7 @@ export default function FinancePage() {
               }
             }}
             style={{
-              padding: '6px 12px', borderRadius: '8px',
+              padding: '6px 12px', borderRadius: 'var(--radius-base, 8px)',
               border: '1px solid var(--border)',
               background: 'var(--bg-primary)',
               color: 'var(--text-primary)',
@@ -338,7 +338,7 @@ export default function FinancePage() {
           <button
             onClick={() => setShowCatManager(true)}
             style={{
-              padding: '6px 16px', borderRadius: '8px',
+              padding: '6px 16px', borderRadius: 'var(--radius-base, 8px)',
               border: '1px solid var(--border)',
               background: 'var(--bg-primary)',
               color: 'var(--text-secondary)',
@@ -348,7 +348,7 @@ export default function FinancePage() {
           </button>
           <button onClick={() => { setAddType('income'); setShowAddModal(true) }}
             style={{
-              padding: '6px 16px', borderRadius: '8px',
+              padding: '6px 16px', borderRadius: 'var(--radius-base, 8px)',
               background: '#10B981', color: 'white',
               border: 'none', fontSize: '13px',
               fontWeight: 600, cursor: 'pointer'
@@ -357,7 +357,7 @@ export default function FinancePage() {
           </button>
           <button onClick={() => { setAddType('expense'); setShowAddModal(true) }}
             style={{
-              padding: '6px 16px', borderRadius: '8px',
+              padding: '6px 16px', borderRadius: 'var(--radius-base, 8px)',
               background: '#EF4444', color: 'white',
               border: 'none', fontSize: '13px',
               fontWeight: 600, cursor: 'pointer'
@@ -381,7 +381,7 @@ export default function FinancePage() {
               onClick={() => setSelectedMonth(selectedMonth === i ? null : i)}
               style={{
               background: selectedMonth === i ? 'var(--accent-light)' : 'var(--bg-primary)',
-              borderRadius: '12px',
+              borderRadius: 'var(--radius-card, 12px)',
               padding: '16px',
               border: selectedMonth === i
                 ? '2px solid var(--accent)'
@@ -525,7 +525,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
   return (
     <div style={{
       background: 'var(--bg-primary)',
-      borderRadius: '12px',
+      borderRadius: 'var(--radius-card, 12px)',
       border: '1px solid var(--border)',
       overflow: 'hidden'
     }}>
@@ -595,7 +595,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                   autoFocus
                   style={{ width: '100%', border: 'none',
                     background: 'var(--bg-hover)',
-                    borderRadius: '4px', padding: '2px 6px',
+                    borderRadius: 'var(--radius-xs, 4px)', padding: '2px 6px',
                     color: 'var(--text-primary)', fontSize: '13px' }}
                 />
               ) : (
@@ -612,7 +612,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                   onChange={e => setEditForm(p => ({ ...p, amount: e.target.value }))}
                   style={{ width: '70px', border: 'none',
                     background: 'var(--bg-hover)',
-                    borderRadius: '4px', padding: '2px 6px',
+                    borderRadius: 'var(--radius-xs, 4px)', padding: '2px 6px',
                     color: type === 'income' ? '#10B981' : '#EF4444',
                     fontSize: '13px' }}
                 />
@@ -631,7 +631,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                     onChange={e => setEditForm(p => ({ ...p, category: e.target.value }))}
                     style={{
                       padding: '3px 8px',
-                      borderRadius: '12px',
+                      borderRadius: 'var(--radius-card, 12px)',
                       border: `1px solid ${editCat?.color || 'var(--border)'}`,
                       background: editCat ? editCat.color + '25' : 'var(--bg-hover)',
                       color: editCat?.color || 'var(--text-secondary)',
@@ -651,7 +651,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
               })() : cat ? (
                 <span style={{
                   display: 'inline-block',
-                  padding: '2px 8px', borderRadius: '12px',
+                  padding: '2px 8px', borderRadius: 'var(--radius-card, 12px)',
                   fontSize: '11px', fontWeight: 500,
                   background: cat.color + '25',
                   color: cat.color,
@@ -680,14 +680,14 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                     setEditingId(null)
                   }} style={{
                     background: '#10B981', color: 'white',
-                    border: 'none', borderRadius: '4px',
+                    border: 'none', borderRadius: 'var(--radius-xs, 4px)',
                     fontSize: '11px', padding: '2px 8px',
                     cursor: 'pointer', fontWeight: 600
                   }}>Save</button>
                   <button onClick={() => setEditingId(null)} style={{
                     background: 'var(--bg-hover)',
                     color: 'var(--text-secondary)',
-                    border: 'none', borderRadius: '4px',
+                    border: 'none', borderRadius: 'var(--radius-xs, 4px)',
                     fontSize: '11px', padding: '2px 8px',
                     cursor: 'pointer'
                   }}>Cancel</button>
@@ -705,21 +705,21 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
       </div>
 
       <div style={{
-        padding: '12px 20px',
-        borderTop: '1px solid var(--border)',
         display: 'flex', justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'center',
+        padding: '12px 16px', borderTop: '1px solid var(--border)', marginTop: '4px'
       }}>
         <button onClick={onAdd} style={{
           background: 'transparent',
           border: 'none', color: 'var(--accent)',
           fontSize: '13px', cursor: 'pointer',
-          fontWeight: 500
+          fontWeight: 600
         }}>
           + Add entry
         </button>
         <span style={{ fontSize: '13px', fontWeight: 700,
-          color: 'var(--text-primary)' }}>
+          color: 'var(--text-primary)',
+          padding: '10px 0', borderTop: '2px solid var(--border)' }}>
           SUM: {currency}{total.toFixed(2)}
         </span>
       </div>
@@ -773,7 +773,7 @@ function AddEntryModal({ type, categories, currency, onClose, onSave }: {
               onClick={() => setForm(f => ({ ...f, type: t }))}
               style={{
                 flex: 1, padding: '8px',
-                borderRadius: '8px', border: 'none',
+                borderRadius: 'var(--radius-base, 8px)', border: 'none',
                 background: form.type === t
                   ? t === 'income' ? '#10B981' : '#EF4444'
                   : 'var(--bg-hover)',
@@ -800,7 +800,7 @@ function AddEntryModal({ type, categories, currency, onClose, onSave }: {
             onChange={e => setForm(p => ({ ...p, note: e.target.value }))}
             style={{
               width: '100%', padding: '8px 12px',
-              borderRadius: '8px',
+              borderRadius: 'var(--radius-base, 8px)',
               border: '1px solid var(--border)',
               background: 'var(--bg-secondary)',
               color: 'var(--text-primary)',
@@ -826,7 +826,7 @@ function AddEntryModal({ type, categories, currency, onClose, onSave }: {
               onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
               style={{
                 flex: 1, padding: '8px 12px',
-                borderRadius: '8px',
+                borderRadius: 'var(--radius-base, 8px)',
                 border: '1px solid var(--border)',
                 background: 'var(--bg-secondary)',
                 color: 'var(--text-primary)',
@@ -847,7 +847,7 @@ function AddEntryModal({ type, categories, currency, onClose, onSave }: {
             onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
             style={{
               width: '100%', padding: '8px 12px',
-              borderRadius: '8px',
+              borderRadius: 'var(--radius-base, 8px)',
               border: '1px solid var(--border)',
               background: 'var(--bg-secondary)',
               color: 'var(--text-primary)',
@@ -872,7 +872,7 @@ function AddEntryModal({ type, categories, currency, onClose, onSave }: {
             onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
             style={{
               width: '100%', padding: '8px 12px',
-              borderRadius: '8px',
+              borderRadius: 'var(--radius-base, 8px)',
               border: '1px solid var(--border)',
               background: 'var(--bg-secondary)',
               color: 'var(--text-primary)',
@@ -884,7 +884,7 @@ function AddEntryModal({ type, categories, currency, onClose, onSave }: {
         <div style={{ display: 'flex', gap: '8px',
           justifyContent: 'flex-end' }}>
           <button onClick={onClose} style={{
-            padding: '8px 16px', borderRadius: '8px',
+            padding: '8px 16px', borderRadius: 'var(--radius-base, 8px)',
             border: '1px solid var(--border)',
             background: 'transparent',
             color: 'var(--text-secondary)',
@@ -900,7 +900,7 @@ function AddEntryModal({ type, categories, currency, onClose, onSave }: {
               date: form.date
             })
           }} style={{
-            padding: '8px 20px', borderRadius: '8px',
+            padding: '8px 20px', borderRadius: 'var(--radius-base, 8px)',
             border: 'none',
             background: 'var(--accent)',
             color: 'white', fontSize: '13px',
@@ -1017,7 +1017,7 @@ function CategoryManager({
                     position: 'absolute', top: '24px', left: 0,
                     background: 'var(--bg-primary)',
                     border: '1px solid var(--border)',
-                    borderRadius: '8px', padding: '8px',
+                    borderRadius: 'var(--radius-base, 8px)', padding: '8px',
                     display: 'grid',
                     gridTemplateColumns: 'repeat(6, 1fr)',
                     gap: '4px', zIndex: 10,
@@ -1048,7 +1048,7 @@ function CategoryManager({
 
               <span style={{
                 fontSize: '10px', padding: '2px 6px',
-                borderRadius: '8px',
+                borderRadius: 'var(--radius-base, 8px)',
                 background: 'var(--bg-hover)',
                 color: 'var(--text-tertiary)'
               }}>
@@ -1087,7 +1087,7 @@ function CategoryManager({
               onChange={e => setNewName(e.target.value)}
               style={{
                 flex: 1, padding: '8px 12px',
-                borderRadius: '8px',
+                borderRadius: 'var(--radius-base, 8px)',
                 border: '1px solid var(--border)',
                 background: 'var(--bg-secondary)',
                 color: 'var(--text-primary)',
@@ -1099,7 +1099,7 @@ function CategoryManager({
                 e.target.value as 'income' | 'expense' | 'both'
               )}
               style={{
-                padding: '8px', borderRadius: '8px',
+                padding: '8px', borderRadius: 'var(--radius-base, 8px)',
                 border: '1px solid var(--border)',
                 background: 'var(--bg-secondary)',
                 color: 'var(--text-primary)',
@@ -1127,7 +1127,7 @@ function CategoryManager({
 
           <button onClick={addCategory} style={{
             width: '100%', padding: '8px',
-            borderRadius: '8px', border: 'none',
+            borderRadius: 'var(--radius-base, 8px)', border: 'none',
             background: 'var(--accent)', color: 'white',
             fontSize: '13px', fontWeight: 600,
             cursor: 'pointer'

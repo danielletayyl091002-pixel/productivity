@@ -164,7 +164,7 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
                 minWidth: '280px', width: '280px',
                 minHeight: 'calc(100vh - 200px)',
                 background: 'var(--bg-secondary)',
-                borderRadius: '12px',
+                borderRadius: 'var(--radius-card, 12px)',
                 padding: '16px',
                 flexShrink: 0,
                 display: 'flex',
@@ -189,7 +189,7 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
                   <span style={{
                     fontSize: '11px', color: 'var(--text-tertiary)',
                     background: 'var(--bg-hover)',
-                    padding: '1px 6px', borderRadius: '8px'
+                    padding: '1px 6px', borderRadius: 'var(--radius-base, 8px)'
                   }}>
                     {colTasks.length}
                   </span>
@@ -249,7 +249,7 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
                     placeholder="Task title..."
                     style={{
                       width: '100%', padding: '8px 12px',
-                      borderRadius: '8px',
+                      borderRadius: 'var(--radius-base, 8px)',
                       border: '1px solid var(--accent)',
                       background: 'var(--bg-primary)',
                       color: 'var(--text-primary)',
@@ -258,7 +258,7 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
                   />
                   <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
                     <button onClick={() => addTask(col.id)} style={{
-                      padding: '4px 12px', borderRadius: '6px',
+                      padding: '4px 12px', borderRadius: 'var(--radius-sm, 6px)',
                       border: 'none', background: 'var(--accent)',
                       color: 'white', fontSize: '12px', cursor: 'pointer'
                     }}>Add</button>
@@ -266,7 +266,7 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
                       setAddingTo(null)
                       setNewTaskTitle('')
                     }} style={{
-                      padding: '4px 12px', borderRadius: '6px',
+                      padding: '4px 12px', borderRadius: 'var(--radius-sm, 6px)',
                       border: '1px solid var(--border)',
                       background: 'none',
                       color: 'var(--text-secondary)',
@@ -279,7 +279,7 @@ export default function BoardView({ pageUid }: { pageUid: string }) {
                   onClick={() => setAddingTo(col.id)}
                   style={{
                     width: '100%', marginTop: '8px',
-                    padding: '8px', borderRadius: '8px',
+                    padding: '8px', borderRadius: 'var(--radius-base, 8px)',
                     border: '1px dashed var(--border)',
                     background: 'none',
                     color: 'var(--text-tertiary)',
@@ -358,7 +358,7 @@ function EditTaskModal({ task, onClose, onSave }: {
         <div style={{ marginBottom: '14px' }}>
           <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Title</label>
           <input value={title} onChange={e => setTitle(e.target.value)} autoFocus style={{
-            width: '100%', padding: '8px 12px', borderRadius: '8px',
+            width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-base, 8px)',
             border: '1px solid var(--border)', background: 'var(--bg-secondary)',
             color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box'
           }} />
@@ -367,7 +367,7 @@ function EditTaskModal({ task, onClose, onSave }: {
           <div style={{ flex: 1 }}>
             <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Status</label>
             <select value={status} onChange={e => setStatus(e.target.value as Task['status'])} style={{
-              width: '100%', padding: '8px 12px', borderRadius: '8px',
+              width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-base, 8px)',
               border: '1px solid var(--border)', background: 'var(--bg-secondary)',
               color: 'var(--text-primary)', fontSize: '13px'
             }}>
@@ -379,7 +379,7 @@ function EditTaskModal({ task, onClose, onSave }: {
           <div style={{ flex: 1 }}>
             <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Priority</label>
             <select value={priority} onChange={e => setPriority(e.target.value)} style={{
-              width: '100%', padding: '8px 12px', borderRadius: '8px',
+              width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-base, 8px)',
               border: '1px solid var(--border)', background: 'var(--bg-secondary)',
               color: 'var(--text-primary)', fontSize: '13px'
             }}>
@@ -393,14 +393,14 @@ function EditTaskModal({ task, onClose, onSave }: {
         <div style={{ marginBottom: '14px' }}>
           <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Due Date</label>
           <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} style={{
-            width: '100%', padding: '8px 12px', borderRadius: '8px',
+            width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-base, 8px)',
             border: '1px solid var(--border)', background: 'var(--bg-secondary)',
             color: 'var(--text-primary)', fontSize: '13px', outline: 'none', boxSizing: 'border-box'
           }} />
         </div>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
           <button onClick={onClose} style={{
-            padding: '8px 16px', borderRadius: '8px',
+            padding: '8px 16px', borderRadius: 'var(--radius-base, 8px)',
             border: '1px solid var(--border)', background: 'transparent',
             color: 'var(--text-secondary)', fontSize: '13px', cursor: 'pointer'
           }}>Cancel</button>
@@ -409,7 +409,7 @@ function EditTaskModal({ task, onClose, onSave }: {
             priority: (priority || null) as Task['priority'],
             dueDate: dueDate || null
           })} style={{
-            padding: '8px 20px', borderRadius: '8px', border: 'none',
+            padding: '8px 20px', borderRadius: 'var(--radius-base, 8px)', border: 'none',
             background: 'var(--accent)', color: 'white',
             fontSize: '13px', fontWeight: 600, cursor: 'pointer'
           }}>Save</button>
@@ -475,7 +475,7 @@ function TaskCard({ task, onDelete, onPriorityChange, onEdit }: {
           onPointerDown={e => e.stopPropagation()}
           style={{
             fontSize: '11px', padding: '2px 6px',
-            borderRadius: '6px', border: 'none',
+            borderRadius: 'var(--radius-sm, 6px)', border: 'none',
             background: task.priority
               ? (PRIORITY_COLORS[task.priority] || '#6B7280') + '20'
               : 'var(--bg-hover)',
@@ -497,7 +497,7 @@ function TaskCard({ task, onDelete, onPriorityChange, onEdit }: {
             background: 'none', border: 'none',
             color: 'var(--text-tertiary)',
             cursor: 'pointer', fontSize: '12px',
-            padding: '2px 4px', borderRadius: '4px'
+            padding: '2px 4px', borderRadius: 'var(--radius-xs, 4px)'
           }}
         >x</button>
       </div>

@@ -139,7 +139,7 @@ export default function LeftSidebar() {
           onClick={() => createPage(null)}
           style={{
             width: '100%', padding: '6px 12px',
-            borderRadius: '8px', border: 'none',
+            borderRadius: 'var(--radius-base, 8px)', border: 'none',
             background: 'transparent',
             color: 'var(--text-tertiary)',
             fontSize: '13px', cursor: 'pointer',
@@ -215,7 +215,7 @@ function PageItem({ page, active, depth, hasChildren, isExpanded, onToggle, onCl
       style={{
         display: 'flex', alignItems: 'center',
         position: 'relative',
-        borderRadius: '6px', marginBottom: '1px',
+        borderRadius: 'var(--radius-sm, 6px)', marginBottom: '1px',
         paddingLeft: depth > 0 ? '8px' : '12px',
         borderLeft: depth > 0 ? '1px solid var(--border)' : 'none',
         marginLeft: depth > 0 ? '20px' : '0'
@@ -246,7 +246,7 @@ function PageItem({ page, active, depth, hasChildren, isExpanded, onToggle, onCl
         onClick={onClick}
         style={{
           flex: 1, display: 'flex', alignItems: 'center', gap: '6px',
-          padding: '5px 4px', borderRadius: '6px',
+          padding: '5px 4px', borderRadius: 'var(--radius-sm, 6px)',
           cursor: 'pointer', fontSize: '13px',
           color: active ? 'var(--accent)' : 'var(--text-primary)'
         }}
@@ -277,7 +277,7 @@ function PageItem({ page, active, depth, hasChildren, isExpanded, onToggle, onCl
               background: 'none', border: 'none',
               color: 'var(--text-tertiary)',
               cursor: 'pointer', fontSize: '14px',
-              padding: '2px 4px', borderRadius: '4px',
+              padding: '2px 4px', borderRadius: 'var(--radius-xs, 4px)',
               lineHeight: 1
             }}
             onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
@@ -290,7 +290,7 @@ function PageItem({ page, active, depth, hasChildren, isExpanded, onToggle, onCl
                 background: 'none', border: 'none',
                 color: 'var(--text-tertiary)',
                 cursor: 'pointer', fontSize: '14px',
-                padding: '2px 4px', borderRadius: '4px',
+                padding: '2px 4px', borderRadius: 'var(--radius-xs, 4px)',
                 lineHeight: 1
               }}
               onMouseEnter={e => e.currentTarget.style.color = '#EF4444'}
@@ -312,7 +312,7 @@ function NavLink({ children, onClick, icon }: {
       onClick={onClick}
       style={{
         display: 'flex', alignItems: 'center', gap: '10px',
-        padding: '10px 16px', borderRadius: '6px',
+        padding: '10px 16px', borderRadius: 'var(--radius-sm, 6px)',
         cursor: 'pointer', fontSize: '13px',
         color: 'var(--text-secondary)', marginBottom: '1px'
       }}
@@ -368,7 +368,7 @@ function ThemeToggle() {
       onClick={toggle}
       style={{
         display: 'flex', alignItems: 'center', gap: '6px',
-        padding: '5px 8px', borderRadius: '6px',
+        padding: '5px 8px', borderRadius: 'var(--radius-sm, 6px)',
         cursor: 'pointer', fontSize: '13px',
         color: 'var(--text-secondary)', marginTop: '4px'
       }}

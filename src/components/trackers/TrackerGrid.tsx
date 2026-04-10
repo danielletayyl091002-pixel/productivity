@@ -158,7 +158,7 @@ export default function TrackerGrid() {
       No trackers yet.
       <div style={{ marginTop: '12px' }}>
         <button onClick={() => setShowAdd(true)} style={{
-          padding: '8px 16px', borderRadius: '8px',
+          padding: '8px 16px', borderRadius: 'var(--radius-base, 8px)',
           border: '1px solid var(--border)',
           background: 'transparent', color: 'var(--accent)',
           fontSize: '13px', cursor: 'pointer', fontWeight: 500
@@ -175,7 +175,7 @@ export default function TrackerGrid() {
         justifyContent: 'flex-end', marginBottom: '16px'
       }}>
         <button onClick={() => setShowAdd(true)} style={{
-          padding: '5px 12px', borderRadius: '8px',
+          padding: '5px 12px', borderRadius: 'var(--radius-base, 8px)',
           border: '1px solid var(--border)',
           background: 'transparent', color: 'var(--text-secondary)',
           fontSize: '12px', cursor: 'pointer'
@@ -262,7 +262,7 @@ export default function TrackerGrid() {
         <DragOverlay>
           {activeDragId ? (
             <div style={{
-              padding: '16px', borderRadius: '12px',
+              padding: '16px', borderRadius: 'var(--radius-card, 12px)',
               background: 'var(--bg-primary)',
               border: '1px solid var(--accent)',
               boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
@@ -325,7 +325,7 @@ function SortableTrackerCard(props: Parameters<typeof TrackerCard>[0] & { uid: s
           opacity: 0, transition: 'opacity 0.15s',
           zIndex: 5, touchAction: 'none', pointerEvents: 'auto',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          width: '20px', height: '20px', borderRadius: '4px'
+          width: '20px', height: '20px', borderRadius: 'var(--radius-xs, 4px)'
         }}
       >
         <GripVertical size={12} />
@@ -409,7 +409,7 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
       }}
       style={{
         padding: '16px',
-        borderRadius: '12px',
+        borderRadius: 'var(--radius-card, 12px)',
         border: '1px solid var(--border)',
         background: 'var(--bg-primary)',
         backdropFilter: 'blur(8px)',
@@ -455,7 +455,7 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
               style={{
                 background: 'none', border: 'none',
                 cursor: 'pointer', padding: '2px 4px',
-                borderRadius: '4px', fontSize: '11px',
+                borderRadius: 'var(--radius-xs, 4px)', fontSize: '11px',
                 color: 'var(--text-tertiary)'
               }}
             >Edit</button>
@@ -714,7 +714,7 @@ function EditTrackerModal({ tracker, onClose, onSave, onDelete }: {
                     key={iconName}
                     onClick={() => setIcon(iconName)}
                     style={{
-                      width: '34px', height: '34px', borderRadius: '8px',
+                      width: '34px', height: '34px', borderRadius: 'var(--radius-base, 8px)',
                       border: icon === iconName ? `2px solid ${color}` : '1px solid var(--border)',
                       background: icon === iconName ? `${color}18` : 'transparent',
                       cursor: 'pointer',
@@ -823,7 +823,7 @@ function EditTrackerModal({ tracker, onClose, onSave, onDelete }: {
               <button
                 onClick={onDelete}
                 style={{
-                  padding: '6px 12px', borderRadius: '6px', border: 'none',
+                  padding: '6px 12px', borderRadius: 'var(--radius-sm, 6px)', border: 'none',
                   background: '#EF4444', color: 'white',
                   fontSize: '12px', cursor: 'pointer'
                 }}
@@ -831,7 +831,7 @@ function EditTrackerModal({ tracker, onClose, onSave, onDelete }: {
               <button
                 onClick={() => setConfirmDelete(false)}
                 style={{
-                  padding: '6px 12px', borderRadius: '6px',
+                  padding: '6px 12px', borderRadius: 'var(--radius-sm, 6px)',
                   border: '1px solid var(--border)', background: 'none',
                   color: 'var(--text-secondary)', fontSize: '12px', cursor: 'pointer'
                 }}
@@ -841,7 +841,7 @@ function EditTrackerModal({ tracker, onClose, onSave, onDelete }: {
             <button
               onClick={() => setConfirmDelete(true)}
               style={{
-                padding: '8px 12px', borderRadius: '8px', border: 'none',
+                padding: '8px 12px', borderRadius: 'var(--radius-base, 8px)', border: 'none',
                 background: 'none', color: '#EF4444',
                 fontSize: '13px', cursor: 'pointer'
               }}
@@ -851,7 +851,7 @@ function EditTrackerModal({ tracker, onClose, onSave, onDelete }: {
             <button
               onClick={onClose}
               style={{
-                padding: '8px 16px', borderRadius: '8px',
+                padding: '8px 16px', borderRadius: 'var(--radius-base, 8px)',
                 border: '1px solid var(--border)', background: 'transparent',
                 color: 'var(--text-secondary)', fontSize: '13px', cursor: 'pointer'
               }}
@@ -859,7 +859,7 @@ function EditTrackerModal({ tracker, onClose, onSave, onDelete }: {
             <button
               onClick={() => onSave({ name, icon, unit, target, color })}
               style={{
-                padding: '8px 20px', borderRadius: '8px', border: 'none',
+                padding: '8px 20px', borderRadius: 'var(--radius-base, 8px)', border: 'none',
                 background: color, color: '#fff',
                 fontSize: '13px', fontWeight: 600, cursor: 'pointer',
                 opacity: name.trim() ? 1 : 0.4
@@ -939,7 +939,7 @@ function AddTrackerModal({ onClose }: { onClose: () => void }) {
                     key={iconName}
                     onClick={() => setIcon(iconName)}
                     style={{
-                      width: '34px', height: '34px', borderRadius: '8px',
+                      width: '34px', height: '34px', borderRadius: 'var(--radius-base, 8px)',
                       border: icon === iconName ? `2px solid ${color}` : '1px solid var(--border)',
                       background: icon === iconName ? `${color}18` : 'transparent',
                       cursor: 'pointer',
@@ -992,7 +992,7 @@ function AddTrackerModal({ onClose }: { onClose: () => void }) {
                 key={opt.value}
                 onClick={() => setType(opt.value)}
                 style={{
-                  flex: 1, padding: '8px 4px', borderRadius: '8px',
+                  flex: 1, padding: '8px 4px', borderRadius: 'var(--radius-base, 8px)',
                   border: type === opt.value ? `2px solid ${color}` : '1px solid var(--border)',
                   background: type === opt.value ? `${color}18` : 'transparent',
                   cursor: 'pointer', textAlign: 'center', transition: 'all 0.1s'
@@ -1080,7 +1080,7 @@ function AddTrackerModal({ onClose }: { onClose: () => void }) {
           <button
             onClick={onClose}
             style={{
-              padding: '8px 16px', borderRadius: '8px',
+              padding: '8px 16px', borderRadius: 'var(--radius-base, 8px)',
               border: '1px solid var(--border)', background: 'transparent',
               color: 'var(--text-secondary)', fontSize: '13px', cursor: 'pointer'
             }}
@@ -1088,7 +1088,7 @@ function AddTrackerModal({ onClose }: { onClose: () => void }) {
           <button
             onClick={handleCreate}
             style={{
-              padding: '8px 20px', borderRadius: '8px', border: 'none',
+              padding: '8px 20px', borderRadius: 'var(--radius-base, 8px)', border: 'none',
               background: color, color: '#fff',
               fontSize: '13px', fontWeight: 600, cursor: 'pointer',
               opacity: name.trim() ? 1 : 0.4, transition: 'opacity 0.15s'

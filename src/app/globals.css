@@ -32,6 +32,9 @@
   --color-primary-medium: #3B82F625;
   --radius: 8px;
   --radius-base: 10px;
+  --radius-card: calc(var(--radius-base) * 1.4);
+  --radius-sm: calc(var(--radius-base) * 0.6);
+  --radius-xs: calc(var(--radius-base) * 0.4);
   --border-opacity: 0.33;
   --border-width: 1px;
   --spacing-base: 1;

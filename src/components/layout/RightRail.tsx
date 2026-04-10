@@ -275,7 +275,7 @@ function Timeline({ now, tasks, onAddEvent, onUpdateTask }: {
             position: 'absolute', top: `${topPx}px`,
             left: '44px', right: '8px', height: `${heightPx}px`,
             background: `${color}30`, borderLeft: `3px dashed ${color}`,
-            borderRadius: '4px', pointerEvents: 'none', zIndex: 8,
+            borderRadius: 'var(--radius-xs, 4px)', pointerEvents: 'none', zIndex: 8,
             padding: '3px 6px', fontSize: '10px', fontWeight: 600, color,
           }}>{movingTask.title}</div>
         )
@@ -299,7 +299,7 @@ function Timeline({ now, tasks, onAddEvent, onUpdateTask }: {
             height: `${heightPx}px`,
             background: `${color}20`,
             borderLeft: `3px solid ${color}`,
-            borderRadius: '4px',
+            borderRadius: 'var(--radius-xs, 4px)',
             padding: '3px 6px',
             overflow: 'hidden',
             minHeight: '20px',
@@ -337,7 +337,7 @@ function Timeline({ now, tasks, onAddEvent, onUpdateTask }: {
           height: `${Math.abs(dragEnd - dragStart) * HOUR_H}px`,
           background: 'rgba(99,102,241,0.2)',
           borderLeft: '3px solid var(--accent)',
-          borderRadius: '4px',
+          borderRadius: 'var(--radius-xs, 4px)',
           pointerEvents: 'none',
           minHeight: '20px',
           display: 'flex',
@@ -597,7 +597,7 @@ export default function RightRail() {
             }}
             style={{
               width: '100%', padding: '8px 10px',
-              borderRadius: '6px',
+              borderRadius: 'var(--radius-sm, 6px)',
               border: '1px solid var(--border)',
               background: 'var(--bg-secondary)',
               color: 'var(--text-primary)',
