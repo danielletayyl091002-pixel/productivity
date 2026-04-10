@@ -137,7 +137,40 @@ input, textarea, select { border-radius: calc(var(--radius-base, 10px) * 0.8) !i
 .ProseMirror .callout-content p { margin: 0; }
 .ProseMirror blockquote blockquote { margin: 4px 0; }
 /* Collapse block */
-/* Collapse block — styles applied via JS ref, no CSS rules needed */
+/* Collapse block — native <details> */
+.ProseMirror details.collapse-details {
+  margin: 8px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-base, 8px);
+  overflow: hidden;
+}
+.ProseMirror .collapse-summary {
+  padding: 10px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  user-select: none;
+  outline: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ProseMirror .collapse-summary::before {
+  content: '\25B6';
+  font-size: 10px;
+  color: var(--text-tertiary);
+  transition: transform 0.15s;
+}
+.ProseMirror details[open] .collapse-summary::before {
+  transform: rotate(90deg);
+}
+.ProseMirror .collapse-summary::-webkit-details-marker { display: none; }
+.ProseMirror .collapse-body {
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+}
 .ProseMirror table { border-collapse: collapse !important; width: 100%; margin: 12px 0; }
 .ProseMirror td, .ProseMirror th { border: 1px solid var(--border) !important; padding: 8px 12px !important; vertical-align: top; min-width: 100px !important; position: relative; }
 .ProseMirror th { background: var(--bg-secondary); font-weight: 600; font-size: 13px; border-bottom: 2px solid var(--border) !important; }

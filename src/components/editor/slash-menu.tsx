@@ -107,10 +107,8 @@ export const suggestion: Omit<SuggestionOptions, 'editor'> = {
       case 'collapse':
         editor.chain().focus().deleteRange(range).insertContent({
           type: 'collapse',
-          attrs: { collapsed: true },
           content: [
-            { type: 'paragraph', content: [{ type: 'text', text: 'Toggle heading' }] },
-            { type: 'paragraph' },
+            { type: 'paragraph', content: [{ type: 'text', text: 'Type here...' }] },
           ],
         }).run()
         break

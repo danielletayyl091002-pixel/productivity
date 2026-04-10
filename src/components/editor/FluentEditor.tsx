@@ -71,96 +71,16 @@ const DatabaseNode = TiptapNode.create({
   },
 })
 
-const CollapseComponent = ({ node, updateAttributes }: any) => {
-  const collapsed = node.attrs.collapsed
-  const wrapperRef = useRef<HTMLDivElement>(null)
-
-  // Apply styles on every render (collapsed changes trigger re-render)
-  useEffect(() => {
-    const el = wrapperRef.current
-    if (!el) return
-    const contentEl = el.querySelector('[data-node-view-content]')
-    if (!contentEl) return
-    const children = contentEl.children
-    for (let i = 0; i < children.length; i++) {
-      const child = children[i] as HTMLElement
-      if (i === 0) {
-        child.style.fontWeight = '600'
-        child.style.height = ''
-        child.style.overflow = ''
-        child.style.opacity = ''
-        child.style.pointerEvents = ''
-        child.style.margin = ''
-        child.style.padding = ''
-        child.style.paddingLeft = ''
-        child.style.marginLeft = ''
-        child.style.borderLeft = ''
-        child.style.lineHeight = ''
-        child.style.minHeight = ''
-      } else if (collapsed) {
-        child.style.height = '0px'
-        child.style.minHeight = '0px'
-        child.style.overflow = 'hidden'
-        child.style.opacity = '0'
-        child.style.pointerEvents = 'none'
-        child.style.margin = '0px'
-        child.style.padding = '0px'
-        child.style.borderLeft = 'none'
-        child.style.lineHeight = '0'
-      } else {
-        child.style.height = ''
-        child.style.minHeight = ''
-        child.style.overflow = ''
-        child.style.opacity = ''
-        child.style.pointerEvents = ''
-        child.style.margin = ''
-        child.style.padding = ''
-        child.style.paddingLeft = '12px'
-        child.style.marginLeft = '24px'
-        child.style.borderLeft = '2px solid var(--border)'
-        child.style.lineHeight = ''
-      }
-    }
-  })
-
-  return (
-    <NodeViewWrapper as="div" data-collapse="" style={{ margin: '8px 0' }}>
-      <div ref={wrapperRef} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <button
-          onClick={() => updateAttributes({ collapsed: !collapsed })}
-          contentEditable={false}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            padding: '2px 4px', color: 'var(--text-tertiary)', fontSize: '14px',
-            userSelect: 'none', flexShrink: 0,
-          }}
-          onMouseEnter={e => { (e.currentTarget).style.color = 'var(--accent)' }}
-          onMouseLeave={e => { (e.currentTarget).style.color = 'var(--text-tertiary)' }}
-        >{collapsed ? '\u25B6' : '\u25BC'}</button>
-        <div style={{ flex: 1 }}>
-          <NodeViewContent />
-        </div>
-      </div>
-    </NodeViewWrapper>
-  )
-}
-
 const CollapseBlock = TiptapNode.create({
   name: 'collapse',
   group: 'block',
-  content: 'paragraph+',
+  content: 'block+',
   defining: true,
-  addAttributes() {
-    return { collapsed: { default: true } }
-  },
   parseHTML() {
-    return [{ tag: 'div[data-collapse]' }]
+    return [{ tag: 'details' }]
   },
   renderHTML({ HTMLAttributes }) {
-    return ['div', mergeAttributes(HTMLAttributes, { 'data-collapse': '' }), 0]
-  },
-  addNodeView() {
-    return ReactNodeViewRenderer(CollapseComponent)
+    return ['details', mergeAttributes(HTMLAttributes, { class: 'collapse-details' }), ['summary', { class: 'collapse-summary' }, 'Click to expand'], ['div', { class: 'collapse-body' }, 0]]
   },
 })
 
