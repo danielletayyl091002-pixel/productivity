@@ -306,17 +306,25 @@ function Timeline({ now, tasks, onAddEvent, onUpdateTask }: {
             height: `${heightPx}px`,
             ...getEventStyle(color),
             borderRadius: 'var(--radius-xs, 4px)',
-            padding: '3px 6px',
+            padding: heightPx > 40 ? '4px 6px' : '2px 6px',
             overflow: 'hidden',
-            minHeight: '20px',
+            minHeight: '24px',
+            maxWidth: '100%',
             cursor: 'grab',
             opacity: isMoving ? 0.3 : 1,
             zIndex: isMoving || isResizing ? 10 : 3,
           }}>
-            <span style={{
-              fontSize: '10px', fontWeight: 600,
-              color: color
-            }}>{task.title}</span>
+            <div style={{
+              fontSize: '11px', fontWeight: 600,
+              color: getEventStyle(color).color || color,
+              whiteSpace: 'nowrap', overflow: 'hidden',
+              textOverflow: 'ellipsis', lineHeight: 1.3,
+            }}>{task.title}</div>
+            {heightPx > 40 && (
+              <div style={{
+                fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '2px',
+              }}>{task.startTime} – {task.endTime}</div>
+            )}
             <div
               data-rail-resize="true"
               onMouseDown={(e) => {
