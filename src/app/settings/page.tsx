@@ -276,6 +276,7 @@ export default function SettingsPage() {
     if (!font) return
     document.body.style.fontFamily = font.family
     setCurrentFont(fontName)
+    window.dispatchEvent(new CustomEvent('font-changed', { detail: { fontFamily: font.family } }))
     const existing = await db.settings.where('key').equals('font').first()
     if (existing?.id) {
       await db.settings.update(existing.id, { value: fontName })

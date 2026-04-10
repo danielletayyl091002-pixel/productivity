@@ -46,6 +46,15 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           'JetBrains Mono': '"JetBrains Mono", monospace',
           'Fira Code': '"Fira Code", monospace',
           'Source Code Pro': '"Source Code Pro", monospace',
+          'Nunito': '"Nunito", sans-serif',
+          'Quicksand': '"Quicksand", sans-serif',
+          'Plus Jakarta Sans': '"Plus Jakarta Sans", sans-serif',
+          'Manrope': '"Manrope", sans-serif',
+          'Sora': '"Sora", sans-serif',
+          'Fraunces': '"Fraunces", serif',
+          'Cormorant Garamond': '"Cormorant Garamond", serif',
+          'Geist Mono': '"Geist Mono", monospace',
+          'Inconsolata': '"Inconsolata", monospace',
         }
         if (fontMap[font.value]) {
           document.body.style.fontFamily = fontMap[font.value]
