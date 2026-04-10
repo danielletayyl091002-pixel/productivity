@@ -128,6 +128,7 @@ export default function SettingsPage() {
   const [shadowDepth, setShadowDepth] = useState(50)
   const [layoutDensity, setLayoutDensity] = useState<'compact' | 'comfortable' | 'relaxed'>('comfortable')
   const [fontSize, setFontSize] = useState<'xs' | 's' | 'm' | 'l' | 'xl'>('m')
+  const [calEventStyle, setCalEventStyle] = useState<'soft' | 'solid' | 'outline'>('soft')
 
   useEffect(() => {
     // Load saved settings
@@ -184,6 +185,11 @@ export default function SettingsPage() {
         setFontSize(fontSizeS.value as 'xs' | 's' | 'm' | 'l' | 'xl')
         const sizeMap: Record<string, string> = { xs: '12px', s: '13px', m: '14px', l: '16px', xl: '18px' }
         document.documentElement.style.setProperty('font-size', sizeMap[fontSizeS.value] || '14px')
+      }
+      const calStyleS = await db.settings.where('key').equals('calendar_event_style').first()
+      if (calStyleS?.value) {
+        setCalEventStyle(calStyleS.value as 'soft' | 'solid' | 'outline')
+        document.documentElement.setAttribute('data-cal-style', calStyleS.value)
       }
     }
     loadSettings()
@@ -551,6 +557,46 @@ export default function SettingsPage() {
                     fontSize: opt.size, fontWeight: 700, cursor: 'pointer',
                   }}
                 >{opt.label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Calendar Events */}
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px', marginTop: '20px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Calendar Events</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '12px' }}>How events appear on your calendar</div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {([
+                { key: 'soft' as const, label: 'Soft' },
+                { key: 'solid' as const, label: 'Solid' },
+                { key: 'outline' as const, label: 'Outline' },
+              ]).map(opt => (
+                <button
+                  key={opt.key}
+                  onClick={() => {
+                    setCalEventStyle(opt.key)
+                    document.documentElement.setAttribute('data-cal-style', opt.key)
+                    db.settings.where('key').equals('calendar_event_style').first().then(ex => {
+                      if (ex?.id) db.settings.update(ex.id, { value: opt.key })
+                      else db.settings.add({ key: 'calendar_event_style', value: opt.key })
+                    })
+                  }}
+                  style={{
+                    flex: 1, padding: '12px', borderRadius: 'var(--radius-base, 8px)',
+                    border: calEventStyle === opt.key ? '2px solid var(--accent)' : '1px solid var(--border)',
+                    background: calEventStyle === opt.key ? 'var(--accent-light)' : 'transparent',
+                    cursor: 'pointer', textAlign: 'center',
+                  }}
+                >
+                  {/* Mini preview */}
+                  <div style={{
+                    width: '100%', height: '20px', borderRadius: '4px', marginBottom: '6px',
+                    ...(opt.key === 'soft' ? { background: '#8B5CF620', borderLeft: '3px solid #8B5CF6' } :
+                        opt.key === 'solid' ? { background: '#8B5CF6' } :
+                        { background: 'transparent', border: '2px solid #8B5CF6' })
+                  }} />
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: calEventStyle === opt.key ? 'var(--accent)' : 'var(--text-secondary)' }}>{opt.label}</span>
+                </button>
               ))}
             </div>
           </div>

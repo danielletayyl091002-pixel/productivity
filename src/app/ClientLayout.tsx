@@ -118,6 +118,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         const sizeMap: Record<string, string> = { xs: '12px', s: '13px', m: '14px', l: '16px', xl: '18px' }
         document.documentElement.style.setProperty('font-size', sizeMap[fontSizeS.value] || '14px')
       }
+      // Load calendar event style
+      const calStyleS = await db.settings.where('key').equals('calendar_event_style').first()
+      if (calStyleS?.value) document.documentElement.setAttribute('data-cal-style', calStyleS.value)
       // Load border strength
       const borderS2 = await db.settings.where('key').equals('border_strength').first()
       if (borderS2?.value) {

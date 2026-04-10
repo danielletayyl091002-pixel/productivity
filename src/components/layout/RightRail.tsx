@@ -1,6 +1,13 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
 import { db, Task } from '@/db/schema'
+
+function getEventStyle(color: string): React.CSSProperties {
+  const calStyle = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-cal-style') || 'soft' : 'soft'
+  if (calStyle === 'solid') return { background: color, color: 'white', border: 'none', borderLeft: 'none' }
+  if (calStyle === 'outline') return { background: 'transparent', color: color, border: `2px solid ${color}`, borderLeft: `2px solid ${color}` }
+  return { background: `${color}20`, color: color, borderLeft: `3px solid ${color}` }
+}
 import { useTrackerStore } from '@/stores/trackers'
 
 
@@ -297,8 +304,7 @@ function Timeline({ now, tasks, onAddEvent, onUpdateTask }: {
             top: `${topPx}px`,
             left: '44px', right: '8px',
             height: `${heightPx}px`,
-            background: `${color}20`,
-            borderLeft: `3px solid ${color}`,
+            ...getEventStyle(color),
             borderRadius: 'var(--radius-xs, 4px)',
             padding: '3px 6px',
             overflow: 'hidden',

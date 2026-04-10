@@ -3,6 +3,13 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { db, Task } from '@/db/schema'
 
+function getEventStyle(color: string): React.CSSProperties {
+  const calStyle = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-cal-style') || 'soft' : 'soft'
+  if (calStyle === 'solid') return { background: color, color: 'white', border: 'none', borderLeft: 'none', borderRadius: 'var(--radius-base, 4px)' }
+  if (calStyle === 'outline') return { background: 'transparent', color: color, border: `2px solid ${color}`, borderLeft: `2px solid ${color}`, borderRadius: 'var(--radius-base, 4px)' }
+  return { background: `${color}20`, color: color, borderLeft: `3px solid ${color}`, borderRadius: 'var(--radius-base, 4px)' }
+}
+
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 const MONTHS = ['January','February','March','April','May',
   'June','July','August','September','October',
@@ -530,13 +537,10 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                         left: `${col * colW + 1}%`,
                         width: `${colW - 2}%`,
                         height: `${height}px`,
-                        background: color + '20',
-                        borderLeft: `3px solid ${color}`,
-                        borderRadius: '3px',
+                        ...getEventStyle(color),
                         padding: '2px 4px',
                         fontSize: '10px',
                         fontWeight: 500,
-                        color: color,
                         overflow: 'hidden',
                         zIndex: isBeingMoved || isBeingResized ? 10 : 3,
                         cursor: 'grab',

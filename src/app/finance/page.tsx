@@ -707,7 +707,8 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
       <div style={{
         display: 'flex', justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '12px 16px', borderTop: '1px solid var(--border)', marginTop: '4px'
+        padding: '14px 20px', borderTop: '1px solid var(--border)', marginTop: '8px',
+        gap: '8px',
       }}>
         <button onClick={onAdd} style={{
           background: 'transparent',
@@ -719,7 +720,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
         </button>
         <span style={{ fontSize: '13px', fontWeight: 700,
           color: 'var(--text-primary)',
-          padding: '10px 0', borderTop: '2px solid var(--border)' }}>
+          padding: '12px 20px', borderTop: '2px solid var(--border)' }}>
           SUM: {currency}{total.toFixed(2)}
         </span>
       </div>
