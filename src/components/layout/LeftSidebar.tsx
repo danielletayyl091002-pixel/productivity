@@ -179,7 +179,7 @@ export default function LeftSidebar() {
         .page-item-actions { display: none; }
         .page-item:hover .page-item-actions { display: flex; }
         .page-item:hover { background: var(--bg-hover); }
-        .page-item.active { background: var(--accent-light) !important; }
+        .page-item.active { background: var(--accent-light) !important; color: var(--accent) !important; }
       `}</style>
     </aside>
   )
