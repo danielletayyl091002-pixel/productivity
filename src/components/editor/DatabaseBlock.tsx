@@ -37,7 +37,30 @@ export default function DatabaseBlock({ databaseUid, pageUid }: DatabaseBlockPro
   const [editingCol, setEditingCol] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<{ uid: string; x: number; y: number } | null>(null)
   const [aggs, setAggs] = useState<Record<string, AggType>>({})
+  const [typePickerCol, setTypePickerCol] = useState<string | null>(null)
+  const typePickerRef = useRef<HTMLDivElement>(null)
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+
+  // Close type picker on outside click
+  useEffect(() => {
+    if (!typePickerCol) return
+    const handler = (e: MouseEvent) => {
+      if (typePickerRef.current && !typePickerRef.current.contains(e.target as globalThis.Node)) {
+        setTypePickerCol(null)
+      }
+    }
+    // Delay to avoid immediate close from the same click
+    const timer = setTimeout(() => document.addEventListener('mousedown', handler), 0)
+    return () => { clearTimeout(timer); document.removeEventListener('mousedown', handler) }
+  }, [typePickerCol])
+
+  const COLUMN_TYPES = [
+    { value: 'text' as const, icon: 'Aa', label: 'Text' },
+    { value: 'number' as const, icon: '#', label: 'Number' },
+    { value: 'date' as const, icon: 'D', label: 'Date' },
+    { value: 'checkbox' as const, icon: '\u2611', label: 'Checkbox' },
+    { value: 'select' as const, icon: '\u2630', label: 'Select' },
+  ]
 
   useEffect(() => {
     async function load() {
@@ -118,13 +141,27 @@ export default function DatabaseBlock({ databaseUid, pageUid }: DatabaseBlockPro
   const changeColumnType = useCallback(async (uid: string, type: DatabaseColumn['type']) => {
     const col = columns.find(c => c.uid === uid)
     if (col?.id) await db.databaseColumns.update(col.id, { type })
-    if (type === 'checkbox') {
-      const colCells = cells.filter(c => c.columnUid === uid && c.value !== 'true' && c.value !== 'false' && c.value !== '')
-      for (const cell of colCells) { if (cell.id) await db.databaseCells.update(cell.id, { value: 'false' }) }
-      setCells(prev => prev.map(c => c.columnUid === uid && c.value !== 'true' && c.value !== 'false' && c.value !== '' ? { ...c, value: 'false' } : c))
+    // Convert existing cell values
+    const colCells = cells.filter(c => c.columnUid === uid && c.value !== '')
+    for (const cell of colCells) {
+      let newVal = cell.value
+      if (type === 'checkbox') newVal = cell.value === 'true' ? 'true' : 'false'
+      else if (type === 'number') { const n = parseFloat(cell.value); newVal = isNaN(n) ? '' : String(n) }
+      else if (type === 'text') newVal = String(cell.value)
+      if (newVal !== cell.value && cell.id) {
+        await db.databaseCells.update(cell.id, { value: newVal })
+      }
     }
+    setCells(prev => prev.map(c => {
+      if (c.columnUid !== uid || c.value === '') return c
+      let v = c.value
+      if (type === 'checkbox') v = c.value === 'true' ? 'true' : 'false'
+      else if (type === 'number') { const n = parseFloat(c.value); v = isNaN(n) ? '' : String(n) }
+      return { ...c, value: v }
+    }))
     setColumns(prev => prev.map(c => c.uid === uid ? { ...c, type } : c))
     setContextMenu(null)
+    setTypePickerCol(null)
   }, [columns, cells])
 
   const updateDbName = useCallback(async (name: string) => {
@@ -211,18 +248,52 @@ export default function DatabaseBlock({ databaseUid, pageUid }: DatabaseBlockPro
                     borderRight: '1px solid var(--border)', padding: '8px 12px',
                     fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)',
                     textAlign: 'left', minWidth: '120px', textTransform: 'uppercase', letterSpacing: '0.06em',
+                    position: 'relative',
                   }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{TYPE_ICONS[col.type]}</span>
+                    <span
+                      onClick={e => { e.stopPropagation(); setTypePickerCol(prev => prev === col.uid ? null : col.uid) }}
+                      style={{
+                        fontSize: '11px', color: typePickerCol === col.uid ? 'var(--accent)' : 'var(--text-tertiary)',
+                        cursor: 'pointer', padding: '2px 4px', borderRadius: '4px',
+                        background: typePickerCol === col.uid ? 'var(--accent-light)' : 'transparent',
+                      }}
+                    >{COLUMN_TYPES.find(t => t.value === col.type)?.icon || 'Aa'}</span>
                     {editingCol === col.uid ? (
                       <input autoFocus defaultValue={col.name}
                         onBlur={e => { renameColumn(col.uid, e.target.value); setEditingCol(null) }}
                         onKeyDown={e => { if (e.key === 'Enter') { renameColumn(col.uid, (e.target as HTMLInputElement).value); setEditingCol(null) } }}
                         style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', width: '100%', textTransform: 'uppercase', letterSpacing: '0.06em' }} />
                     ) : (
-                      <span onClick={() => setEditingCol(col.uid)} style={{ cursor: 'text' }}>{col.name}</span>
+                      <span onClick={() => setEditingCol(col.uid)} style={{ cursor: 'text', flex: 1 }}>{col.name}</span>
                     )}
                   </div>
+                  {/* Type picker dropdown */}
+                  {typePickerCol === col.uid && (
+                    <div ref={typePickerRef} onClick={e => e.stopPropagation()} style={{
+                      position: 'absolute', top: '100%', left: 0, zIndex: 1000,
+                      background: 'var(--bg-primary)', border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius-base, 8px)', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                      minWidth: '140px', overflow: 'hidden', marginTop: '2px',
+                    }}>
+                      {COLUMN_TYPES.map(t => (
+                        <div key={t.value} onClick={() => changeColumnType(col.uid, t.value)}
+                          style={{
+                            padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '10px',
+                            cursor: 'pointer', fontSize: '13px', textTransform: 'none', letterSpacing: 'normal',
+                            background: col.type === t.value ? 'var(--accent-light)' : 'transparent',
+                            color: col.type === t.value ? 'var(--accent)' : 'var(--text-primary)',
+                          }}
+                          onMouseEnter={e => { if (col.type !== t.value) (e.currentTarget).style.background = 'var(--bg-hover)' }}
+                          onMouseLeave={e => { if (col.type !== t.value) (e.currentTarget).style.background = 'transparent' }}
+                        >
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: col.type === t.value ? 'var(--accent)' : 'var(--text-tertiary)', width: '16px' }}>{t.icon}</span>
+                          {t.label}
+                          {col.type === t.value && <span style={{ marginLeft: 'auto', color: 'var(--accent)', fontSize: '11px' }}>{'\u2713'}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </th>
               ))}
               <th style={{ background: 'var(--bg-secondary)', borderBottom: '2px solid var(--border)', width: '32px', minWidth: '32px' }} />
