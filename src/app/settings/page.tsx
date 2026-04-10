@@ -295,7 +295,7 @@ export default function SettingsPage() {
         <section style={{ marginBottom: '40px' }}>
           <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Interface Style</h2>
           <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '16px' }}>Choose how your workspace feels.</p>
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '16px' }}>
             {(['flat', 'sculpt'] as const).map(style => (
               <button
                 key={style}
@@ -308,7 +308,8 @@ export default function SettingsPage() {
                   })
                 }}
                 style={{
-                  flex: 1, padding: '20px', borderRadius: 'var(--radius-card, 12px)',
+                  flex: '1 1 0', padding: '24px', borderRadius: 'var(--radius-card, 14px)',
+                  minHeight: '160px',
                   border: interfaceStyle === style ? '2px solid var(--accent)' : '1px solid var(--border)',
                   background: interfaceStyle === style ? 'var(--accent-light)' : 'var(--bg-secondary)',
                   cursor: 'pointer', textAlign: 'left',

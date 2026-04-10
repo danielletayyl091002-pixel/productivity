@@ -109,18 +109,15 @@ export default function PageCanvas() {
   return (
     <div style={{ height: '100vh', overflowY: 'auto', background: 'var(--bg-primary)' }}>
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '80px 80px 0' }}>
-        {/* Page emoji icon */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
-          <div style={{ position: 'relative' }}>
+        {/* Page title row — emoji + title in one line */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+          <div style={{ position: 'relative', flexShrink: 0 }}>
             <button
               onClick={() => setShowIconPicker(!showIconPicker)}
               style={{
-                fontSize: '2.2rem', background: 'var(--bg-hover)', border: 'none', cursor: 'pointer',
-                padding: '8px', borderRadius: 'var(--radius-base, 10px)', lineHeight: 1,
-                width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1.8rem', background: 'none', border: 'none', cursor: 'pointer',
+                padding: '4px', lineHeight: 1,
               }}
-              onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-secondary)' }}
-              onMouseLeave={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
             >{page.icon || '📄'}</button>
             {showIconPicker && (
               <>
@@ -165,11 +162,11 @@ export default function PageCanvas() {
             onChange={e => updateTitle(e.target.value)}
             placeholder="Untitled"
             style={{
-              fontSize: '2.5rem', fontWeight: 700, lineHeight: 1.2,
+              fontSize: '2rem', fontWeight: 700, lineHeight: 1.3,
               border: 'none', outline: 'none', background: 'transparent',
               boxShadow: 'none', padding: 0, flex: 1,
               color: 'var(--text-primary)', fontFamily: 'inherit',
-              margin: '0 0 8px 0',
+              margin: 0,
             }}
           />
         </div>

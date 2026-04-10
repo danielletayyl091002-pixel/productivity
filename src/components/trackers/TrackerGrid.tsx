@@ -234,8 +234,9 @@ export default function TrackerGrid() {
         <SortableContext items={definitions.map(d => d.uid)} strategy={rectSortingStrategy}>
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-        gap: '12px'
+        gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+        gap: '16px',
+        alignItems: 'stretch',
       }}>
         {definitions.map(tracker => (
           <SortableTrackerCard
@@ -411,9 +412,10 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
         e.currentTarget.style.boxShadow = 'none'
       }}
       style={{
-        padding: '16px',
+        padding: '20px',
         borderRadius: 'var(--radius-card, 12px)',
         borderTop: `2px solid ${tracker.color}`,
+        display: 'flex', flexDirection: 'column' as const,
         borderRight: '1px solid var(--border)',
         borderBottom: '1px solid var(--border)',
         borderLeft: '1px solid var(--border)',
