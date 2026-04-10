@@ -109,24 +109,32 @@ export default function PageCanvas() {
   return (
     <div style={{ height: '100vh', overflowY: 'auto', background: 'var(--bg-primary)' }}>
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '80px 80px 0' }}>
-        {/* Page title — icon + title combined */}
-        <div style={{ marginBottom: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
+        {/* Page title — emoji + title in one bubble */}
+        <div style={{ marginBottom: '16px', position: 'relative' }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '14px',
+            padding: '10px 24px 10px 16px',
+            background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-card, 14px)',
+            width: '100%', boxSizing: 'border-box',
+          }}>
             <button
               onClick={() => setShowIconPicker(!showIconPicker)}
               style={{
-                fontSize: '1.6rem', background: 'none', border: 'none', cursor: 'pointer',
-                padding: 0, lineHeight: 1, flexShrink: 0,
+                fontSize: '1.5rem', background: 'none', border: 'none', cursor: 'pointer',
+                padding: '4px', lineHeight: 1, flexShrink: 0, borderRadius: '8px',
               }}
+              onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
+              onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
             >{page.icon || '📄'}</button>
             <input
               defaultValue={page.title}
               onChange={e => updateTitle(e.target.value)}
               placeholder="Untitled"
               style={{
-                fontSize: '2rem', fontWeight: 700, lineHeight: 1.3,
+                fontSize: '1.75rem', fontWeight: 700, lineHeight: 1.3,
                 border: 'none', outline: 'none', background: 'transparent',
-                boxShadow: 'none', padding: '4px 0', flex: 1,
+                boxShadow: 'none', padding: '4px 0 4px 8px', flex: 1,
                 color: 'var(--text-primary)', fontFamily: 'inherit', margin: 0,
               }}
             />
