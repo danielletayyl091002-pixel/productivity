@@ -93,8 +93,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       // Load radius style
       const radiusS = await db.settings.where('key').equals('radius_style').first()
       if (radiusS?.value) {
-        const map: Record<string, string> = { sharp: '2px', subtle: '6px', rounded: '10px', soft: '16px', pill: '9999px' }
-        document.documentElement.style.setProperty('--radius-base', map[radiusS.value] || '10px')
+        document.documentElement.setAttribute('data-corners', radiusS.value)
       }
       // Load border strength
       const borderS = await db.settings.where('key').equals('border_strength').first()

@@ -517,12 +517,22 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
           </button>
         </div>
       ) : tracker.type === 'value' ? (
-        <div style={{ marginBottom: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+          <button
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => { e.stopPropagation(); onLogValue(Math.max(0, todayValue - 1)) }}
+            style={{
+              width: '28px', height: '28px', borderRadius: '50%',
+              border: '1px solid var(--border)', background: 'none',
+              cursor: 'pointer', fontSize: '18px', color: 'var(--text-secondary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0
+            }}
+          >-</button>
+          <div style={{ flex: 1, textAlign: 'center' }}>
             <input
               type="number"
               value={inputVal}
-              placeholder="0"
               onClick={e => e.stopPropagation()}
               onPointerDown={e => e.stopPropagation()}
               onChange={e => setInputVal(e.target.value)}
@@ -539,18 +549,28 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
                 if (!isNaN(val) && val !== todayValue) onLogValue(val)
               }}
               style={{
-                width: '70px', fontSize: '22px', fontWeight: 700,
+                width: '50px', fontSize: '22px', fontWeight: 700,
                 color: isComplete ? tracker.color : 'var(--text-primary)',
                 fontVariantNumeric: 'tabular-nums',
-                border: 'none', borderBottom: '2px solid var(--border)',
-                background: 'transparent', outline: 'none',
-                padding: '0 0 2px 0'
+                border: 'none', background: 'transparent', outline: 'none',
+                textAlign: 'center', padding: 0,
               }}
             />
-            <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+            <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginLeft: '4px' }}>
               / {tracker.target} {tracker.unit}
             </span>
           </div>
+          <button
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => { e.stopPropagation(); onLogValue(todayValue + 1) }}
+            style={{
+              width: '28px', height: '28px', borderRadius: '50%',
+              border: 'none', background: tracker.color,
+              cursor: 'pointer', fontSize: '18px', color: 'white',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0
+            }}
+          >+</button>
         </div>
       ) : (
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '10px' }}>

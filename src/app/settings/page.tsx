@@ -147,8 +147,7 @@ export default function SettingsPage() {
       const radiusS = await db.settings.where('key').equals('radius_style').first()
       if (radiusS?.value) {
         setRadiusStyle(radiusS.value)
-        const map: Record<string, string> = { sharp: '2px', subtle: '6px', rounded: '10px', soft: '16px', pill: '9999px' }
-        document.documentElement.style.setProperty('--radius-base', map[radiusS.value] || '10px')
+        document.documentElement.setAttribute('data-corners', radiusS.value)
       }
       const borderS = await db.settings.where('key').equals('border_strength').first()
       if (borderS?.value) {
@@ -319,7 +318,7 @@ export default function SettingsPage() {
               ] as const).map(opt => (
                 <div key={opt.key} style={{ textAlign: 'center', cursor: 'pointer' }} onClick={() => {
                   setRadiusStyle(opt.key)
-                  document.documentElement.style.setProperty('--radius-base', opt.val)
+                  document.documentElement.setAttribute('data-corners', opt.key)
                   db.settings.where('key').equals('radius_style').first().then(ex => {
                     if (ex?.id) db.settings.update(ex.id, { value: opt.key })
                     else db.settings.add({ key: 'radius_style', value: opt.key })

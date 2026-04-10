@@ -61,6 +61,25 @@ body {
   transition: background-color 0.2s, color 0.2s;
 }
 
+/* Hide number input spinners */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] { -moz-appearance: textfield; }
+
+/* Corner style via data-corners attribute */
+[data-corners="sharp"] { --radius-base: 2px; }
+[data-corners="subtle"] { --radius-base: 6px; }
+[data-corners="rounded"] { --radius-base: 10px; }
+[data-corners="soft"] { --radius-base: 16px; }
+[data-corners="pill"] { --radius-base: 9999px; }
+
+button { border-radius: var(--radius-base, 10px) !important; }
+input, textarea, select { border-radius: calc(var(--radius-base, 10px) * 0.8) !important; }
+.tracker-card { border-radius: calc(var(--radius-base, 10px) * 1.4) !important; }
+
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
