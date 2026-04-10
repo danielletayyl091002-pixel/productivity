@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { db, Page, Block } from '@/db/schema'
 import { nanoid } from 'nanoid'
@@ -39,9 +39,12 @@ export default function PageCanvas() {
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<'page' | 'board' | 'calendar'>('page')
   const [editorContent, setEditorContent] = useState<Record<string, unknown> | null>(null)
+  const loadedRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!uid) return
+    if (loadedRef.current === uid) return
+    loadedRef.current = uid
     async function load() {
       const p = await db.pages.where('uid').equals(uid).first()
       setPage(p || null)
