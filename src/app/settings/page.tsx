@@ -112,6 +112,7 @@ export default function SettingsPage() {
   const [tintStrength, setTintStrength] = useState(8)
   const [bgImages, setBgImages] = useState<Record<string, string>>({})
   const [bgOpacities, setBgOpacities] = useState<Record<string, number>>({})
+  const [interfaceStyle, setInterfaceStyle] = useState<'flat' | 'sculpt'>('flat')
 
   useEffect(() => {
     // Load saved settings
@@ -135,6 +136,11 @@ export default function SettingsPage() {
         if (opSetting?.value) opacities[key] = Number(opSetting.value)
       }
       setBgOpacities(opacities)
+      const styleS = await db.settings.where('key').equals('interface_style').first()
+      if (styleS?.value) {
+        setInterfaceStyle(styleS.value as 'flat' | 'sculpt')
+        document.documentElement.setAttribute('data-style', styleS.value)
+      }
     }
     loadSettings()
 
@@ -230,6 +236,53 @@ export default function SettingsPage() {
       <div style={{ maxWidth: '640px', margin: '0 auto', padding: '40px 40px 120px' }}>
         <h1 style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Settings</h1>
         <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginBottom: '40px' }}>Customize your workspace.</p>
+
+        {/* Interface Style */}
+        <section style={{ marginBottom: '40px' }}>
+          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Interface Style</h2>
+          <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '16px' }}>Choose how your workspace feels.</p>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            {(['flat', 'sculpt'] as const).map(style => (
+              <button
+                key={style}
+                onClick={() => {
+                  setInterfaceStyle(style)
+                  document.documentElement.setAttribute('data-style', style)
+                  db.settings.where('key').equals('interface_style').first().then(ex => {
+                    if (ex?.id) db.settings.update(ex.id, { value: style })
+                    else db.settings.add({ key: 'interface_style', value: style })
+                  })
+                }}
+                style={{
+                  flex: 1, padding: '16px', borderRadius: '12px',
+                  border: interfaceStyle === style ? '2px solid var(--accent)' : '1px solid var(--border)',
+                  background: interfaceStyle === style ? 'var(--accent-light)' : 'var(--bg-secondary)',
+                  cursor: 'pointer', textAlign: 'left',
+                }}
+              >
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                  {style === 'flat' ? 'Flat' : 'Sculpt'}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                  {style === 'flat' ? 'Clean, minimal 2D interface' : 'Tactile 3D neumorphic surfaces'}
+                </div>
+                <div style={{ marginTop: '12px', display: 'flex', gap: '6px' }}>
+                  {style === 'flat' ? (
+                    <>
+                      <div style={{ height: '28px', flex: 1, borderRadius: '6px', background: 'var(--accent)', opacity: 0.8 }} />
+                      <div style={{ height: '28px', flex: 1, borderRadius: '6px', background: 'var(--bg-hover)' }} />
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ height: '28px', flex: 1, borderRadius: '9999px', background: 'var(--accent)', boxShadow: '0 4px 8px rgba(0,0,0,0.15), inset 0 1px 1px rgba(255,255,255,0.3), inset 0 -1px 1px rgba(0,0,0,0.1)' }} />
+                      <div style={{ height: '28px', flex: 1, borderRadius: '9999px', background: 'var(--bg-secondary)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1), inset 0 -1px 2px rgba(255,255,255,0.5)' }} />
+                    </>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
 
         {/* Color Palettes */}
         <section style={{ marginBottom: '40px' }}>

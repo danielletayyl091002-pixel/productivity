@@ -212,6 +212,63 @@ body {
 div:hover > .tracker-drag-handle { opacity: 0.6 !important; }
 .sortable-tracker-card:hover .tracker-drag-handle { opacity: 0.6 !important; }
 
+/* ─── Sculpt Mode (Neumorphic) ─── */
+[data-style="sculpt"] {
+  --radius-btn: 9999px;
+  --radius-card: 24px;
+  --radius-input: 16px;
+  --shadow-raised:
+    0 4px 12px rgba(0,0,0,0.12),
+    0 1px 3px rgba(0,0,0,0.08),
+    inset 0 1px 1px rgba(255,255,255,0.6),
+    inset 0 -1px 1px rgba(0,0,0,0.06);
+  --shadow-inset:
+    inset 0 2px 6px rgba(0,0,0,0.10),
+    inset 0 1px 2px rgba(0,0,0,0.08),
+    inset 0 -1px 2px rgba(255,255,255,0.5);
+  --shadow-pressed:
+    inset 0 3px 8px rgba(0,0,0,0.15),
+    inset 0 1px 3px rgba(0,0,0,0.12);
+  --border-sculpt: 1px solid rgba(0,0,0,0.06);
+}
+[data-style="sculpt"] button {
+  border-radius: var(--radius-btn) !important;
+  box-shadow: var(--shadow-raised);
+  border: var(--border-sculpt) !important;
+  transition: box-shadow 0.15s, transform 0.1s;
+}
+[data-style="sculpt"] button:active {
+  box-shadow: var(--shadow-pressed) !important;
+  transform: scale(0.98);
+}
+[data-style="sculpt"] .tracker-card,
+[data-style="sculpt"] [data-card] {
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-raised);
+  border: var(--border-sculpt) !important;
+}
+[data-style="sculpt"] input[type="text"],
+[data-style="sculpt"] input[type="number"],
+[data-style="sculpt"] input[type="date"],
+[data-style="sculpt"] textarea {
+  border-radius: var(--radius-input) !important;
+  box-shadow: var(--shadow-inset);
+  border: var(--border-sculpt) !important;
+}
+[data-style="sculpt"] nav,
+[data-style="sculpt"] aside {
+  box-shadow: var(--shadow-raised);
+}
+[data-style="sculpt"] .habit-toggle,
+[data-style="sculpt"] [data-pill] {
+  border-radius: 9999px !important;
+  box-shadow: var(--shadow-raised);
+}
+[data-style="flat"] button {
+  box-shadow: none;
+  transform: none;
+}
+
 .has-bg-image { position: relative; }
 .has-bg-image::before {
   content: '';

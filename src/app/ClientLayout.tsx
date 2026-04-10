@@ -85,6 +85,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           }
         }
       }
+      // Load interface style
+      const styleS = await db.settings.where('key').equals('interface_style').first()
+      if (styleS?.value) {
+        document.documentElement.setAttribute('data-style', styleS.value)
+      }
     }
     loadSettings()
 
