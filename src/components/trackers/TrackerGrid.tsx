@@ -481,7 +481,8 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
             <span style={{
               fontSize: '22px', fontWeight: 700,
               color: isComplete ? tracker.color : 'var(--text-primary)',
-              fontVariantNumeric: 'tabular-nums'
+              fontVariantNumeric: 'tabular-nums',
+              minWidth: '3.5ch', textAlign: 'center', display: 'inline-block',
             }}>{todayValue}</span>
             <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginLeft: '4px' }}>
               / {tracker.target} {tracker.unit}
@@ -549,7 +550,7 @@ function TrackerCard({ tracker, todayValue, weekData, onClick, onEdit, onIncreme
                 if (!isNaN(val) && val !== todayValue) onLogValue(val)
               }}
               style={{
-                width: '50px', fontSize: '22px', fontWeight: 700,
+                width: '60px', minWidth: '3.5ch', fontSize: '22px', fontWeight: 700,
                 color: isComplete ? tracker.color : 'var(--text-primary)',
                 fontVariantNumeric: 'tabular-nums',
                 border: 'none', background: 'transparent', outline: 'none',
