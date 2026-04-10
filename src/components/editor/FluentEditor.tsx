@@ -73,6 +73,43 @@ const DatabaseNode = TiptapNode.create({
 
 const CollapseComponent = ({ node, updateAttributes }: any) => {
   const collapsed = node.attrs.collapsed
+  const contentRef = (el: HTMLDivElement | null) => {
+    if (!el) return
+    // NodeViewContent renders a div[data-node-view-content] as first child
+    const contentEl = el.querySelector('[data-node-view-content]') || el
+    const children = contentEl.children
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i] as HTMLElement
+      if (i === 0) {
+        child.style.fontWeight = '600'
+        child.style.height = ''
+        child.style.overflow = ''
+        child.style.opacity = ''
+        child.style.pointerEvents = ''
+        child.style.margin = ''
+        child.style.padding = ''
+        child.style.borderLeft = ''
+      } else if (collapsed) {
+        child.style.height = '0'
+        child.style.overflow = 'hidden'
+        child.style.opacity = '0'
+        child.style.pointerEvents = 'none'
+        child.style.margin = '0'
+        child.style.padding = '0'
+        child.style.borderLeft = 'none'
+      } else {
+        child.style.height = ''
+        child.style.overflow = ''
+        child.style.opacity = ''
+        child.style.pointerEvents = ''
+        child.style.margin = ''
+        child.style.padding = ''
+        child.style.paddingLeft = '12px'
+        child.style.marginLeft = '24px'
+        child.style.borderLeft = '2px solid var(--border)'
+      }
+    }
+  }
   return (
     <NodeViewWrapper as="div" data-collapse="" style={{ margin: '8px 0' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -87,10 +124,8 @@ const CollapseComponent = ({ node, updateAttributes }: any) => {
           onMouseEnter={e => { (e.currentTarget).style.color = 'var(--accent)' }}
           onMouseLeave={e => { (e.currentTarget).style.color = 'var(--text-tertiary)' }}
         >{collapsed ? '\u25B6' : '\u25BC'}</button>
-        <div style={{ flex: 1 }}>
-          <NodeViewContent
-            className={collapsed ? 'collapse-content-collapsed' : 'collapse-content-expanded'}
-          />
+        <div style={{ flex: 1 }} ref={contentRef}>
+          <NodeViewContent />
         </div>
       </div>
     </NodeViewWrapper>
