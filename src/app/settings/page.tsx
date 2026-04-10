@@ -844,6 +844,70 @@ export default function SettingsPage() {
           ))}
         </section>
 
+        {/* Keyboard Shortcuts */}
+        <section style={{ marginBottom: '40px' }}>
+          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>Keyboard Shortcuts</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+            {[
+              ['Cmd+S', 'Save page'],
+              ['Cmd+K', 'Command palette'],
+              ['Cmd+Shift+C', 'Toggle callout'],
+              ['/', 'Slash commands'],
+              ['Tab', 'Indent / Next cell'],
+              ['Shift+Tab', 'Outdent / Prev cell'],
+              ['Cmd+B', 'Bold'],
+              ['Cmd+I', 'Italic'],
+              ['Cmd+Enter', 'Save modal'],
+              ['Esc', 'Close modal'],
+            ].map(([key, desc]) => (
+              <div key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{desc}</span>
+                <kbd style={{ fontSize: '11px', fontFamily: 'monospace', background: 'var(--bg-hover)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-tertiary)' }}>{key}</kbd>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Export / Import Settings */}
+        <section style={{ marginBottom: '40px' }}>
+          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>Data</h2>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={async () => {
+              const settings = await db.settings.toArray()
+              const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a'); a.href = url; a.download = 'fluent-settings.json'; a.click()
+              URL.revokeObjectURL(url)
+            }} style={{
+              padding: '8px 16px', borderRadius: 'var(--radius-base, 8px)',
+              border: '1px solid var(--border)', background: 'transparent',
+              color: 'var(--text-secondary)', fontSize: '13px', cursor: 'pointer',
+            }}>Export Settings</button>
+            <label style={{
+              padding: '8px 16px', borderRadius: 'var(--radius-base, 8px)',
+              border: '1px solid var(--border)', background: 'transparent',
+              color: 'var(--text-secondary)', fontSize: '13px', cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center',
+            }}>
+              Import Settings
+              <input type="file" accept=".json" style={{ display: 'none' }} onChange={async e => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                const text = await file.text()
+                try {
+                  const settings = JSON.parse(text)
+                  for (const s of settings) {
+                    const existing = await db.settings.where('key').equals(s.key).first()
+                    if (existing?.id) await db.settings.update(existing.id, { value: s.value })
+                    else await db.settings.add({ key: s.key, value: s.value })
+                  }
+                  window.location.reload()
+                } catch { alert('Invalid settings file') }
+              }} />
+            </label>
+          </div>
+        </section>
+
       </div>
     </div>
   )
