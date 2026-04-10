@@ -196,9 +196,7 @@ input, textarea, select { border-radius: calc(var(--radius-base, 10px) * 0.8) !i
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
 *:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-  border-radius: calc(var(--radius) / 2);
+  outline: none;
 }
 
 /* ─── TipTap / ProseMirror Editor ─── */
