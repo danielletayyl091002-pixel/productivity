@@ -130,9 +130,18 @@ export default function DatabaseBlock({ databaseUid, pageUid }: DatabaseBlockPro
   const changeColumnType = useCallback(async (uid: string, type: DatabaseColumn['type']) => {
     const col = columns.find(c => c.uid === uid)
     if (col?.id) await db.databaseColumns.update(col.id, { type })
+    // Clear cell values that don't match the new type
+    if (type === 'checkbox') {
+      // Reset non-boolean values to 'false'
+      const colCells = cells.filter(c => c.columnUid === uid && c.value !== 'true' && c.value !== 'false' && c.value !== '')
+      for (const cell of colCells) {
+        if (cell.id) await db.databaseCells.update(cell.id, { value: 'false' })
+      }
+      setCells(prev => prev.map(c => c.columnUid === uid && c.value !== 'true' && c.value !== 'false' && c.value !== '' ? { ...c, value: 'false' } : c))
+    }
     setColumns(prev => prev.map(c => c.uid === uid ? { ...c, type } : c))
     setContextMenu(null)
-  }, [columns])
+  }, [columns, cells])
 
   const updateDbName = useCallback(async (name: string) => {
     setDbName(name)
@@ -219,6 +228,23 @@ export default function DatabaseBlock({ databaseUid, pageUid }: DatabaseBlockPro
           background: 'var(--bg-primary)', cursor: 'pointer', fontSize: '11px',
           fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap',
         }}>+ Column</button>
+        <button onClick={() => {
+          const header = columns.map(c => c.name).join(',')
+          const dataRows = rows.map(r => columns.map(c => {
+            const val = getCellValue(r.uid, c.uid)
+            return val.includes(',') ? `"${val}"` : val
+          }).join(','))
+          const csv = [header, ...dataRows].join('\n')
+          const blob = new Blob([csv], { type: 'text/csv' })
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url; a.download = `${dbName}.csv`; a.click()
+          URL.revokeObjectURL(url)
+        }} style={{
+          padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--border)',
+          background: 'var(--bg-primary)', cursor: 'pointer', fontSize: '11px',
+          fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap',
+        }}>Export CSV</button>
       </div>
 
       {/* Table */}
@@ -416,6 +442,40 @@ export default function DatabaseBlock({ databaseUid, pageUid }: DatabaseBlockPro
                 <span style={{ textTransform: 'capitalize' }}>{t}</span>
               </div>
             ))}
+            <div style={{ height: '1px', background: 'var(--border)', margin: '4px 0' }} />
+            {(() => {
+              const idx = columns.findIndex(c => c.uid === contextMenu.uid)
+              return (
+                <>
+                  {idx > 0 && (
+                    <div onClick={async () => {
+                      const prev = columns[idx - 1]
+                      const curr = columns[idx]
+                      if (prev.id) await db.databaseColumns.update(prev.id, { order: idx })
+                      if (curr.id) await db.databaseColumns.update(curr.id, { order: idx - 1 })
+                      setColumns(p => { const n = [...p]; [n[idx-1], n[idx]] = [n[idx], n[idx-1]]; return n })
+                      setContextMenu(null)
+                    }} style={{ padding: '6px 12px', fontSize: '13px', cursor: 'pointer', color: 'var(--text-primary)' }}
+                    onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
+                    onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
+                    >Move left</div>
+                  )}
+                  {idx < columns.length - 1 && (
+                    <div onClick={async () => {
+                      const next = columns[idx + 1]
+                      const curr = columns[idx]
+                      if (next.id) await db.databaseColumns.update(next.id, { order: idx })
+                      if (curr.id) await db.databaseColumns.update(curr.id, { order: idx + 1 })
+                      setColumns(p => { const n = [...p]; [n[idx], n[idx+1]] = [n[idx+1], n[idx]]; return n })
+                      setContextMenu(null)
+                    }} style={{ padding: '6px 12px', fontSize: '13px', cursor: 'pointer', color: 'var(--text-primary)' }}
+                    onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
+                    onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
+                    >Move right</div>
+                  )}
+                </>
+              )
+            })()}
             <div style={{ height: '1px', background: 'var(--border)', margin: '4px 0' }} />
             <div
               onClick={() => deleteColumn(contextMenu.uid)}
