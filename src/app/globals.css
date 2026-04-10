@@ -137,17 +137,15 @@ input, textarea, select { border-radius: calc(var(--radius-base, 10px) * 0.8) !i
 .ProseMirror .callout-content p { margin: 0; }
 .ProseMirror blockquote blockquote { margin: 4px 0; }
 /* Collapse block */
-/* Collapse block: first child is heading (always visible), rest are body */
-.collapse-closed > *:first-child,
-.collapse-open > *:first-child { font-weight: 600; }
-.collapse-closed > *:not(:first-child) {
-  height: 0 !important; min-height: 0 !important;
-  overflow: hidden !important; opacity: 0;
-  margin: 0 !important; padding: 0 !important;
-  border: none !important;
+/* Collapse block */
+.collapse-content > *:first-child { font-weight: 600; }
+.collapse-wrapper[data-collapsed="true"] .collapse-content > *:not(:first-child) {
+  height: 0; overflow: hidden; opacity: 0; pointer-events: none;
+  margin: 0 !important; padding: 0 !important; border: none !important;
 }
-.collapse-open > *:not(:first-child) {
-  padding-left: 12px; margin-left: 4px;
+.collapse-wrapper[data-collapsed="false"] .collapse-content > *:not(:first-child) {
+  height: auto; opacity: 1; pointer-events: auto;
+  margin-left: 28px; padding-left: 12px;
   border-left: 2px solid var(--border);
 }
 .ProseMirror table { border-collapse: collapse !important; width: 100%; margin: 12px 0; }

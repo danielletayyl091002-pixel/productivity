@@ -41,7 +41,6 @@ import TableFormulas from './TableFormulas'
 import { DragHandle } from '@tiptap/extension-drag-handle'
 import { Node as TiptapNode, mergeAttributes } from '@tiptap/core'
 import { ReactNodeViewRenderer, NodeViewWrapper, NodeViewContent } from '@tiptap/react'
-import { useState as useStateReact } from 'react'
 import DatabaseBlock from './DatabaseBlock'
 import { db, Block } from '@/db/schema'
 
@@ -73,28 +72,29 @@ const DatabaseNode = TiptapNode.create({
 })
 
 const CollapseComponent = ({ node, updateAttributes }: any) => {
-  const [collapsed, setCollapsed] = useStateReact(node.attrs.collapsed ?? true)
+  const collapsed = node.attrs.collapsed
   return (
-    <NodeViewWrapper data-collapse="" style={{ margin: '8px 0' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
+    <NodeViewWrapper
+      as="div"
+      data-collapse=""
+      data-collapsed={String(collapsed)}
+      className="collapse-wrapper"
+      style={{ margin: '8px 0' }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <button
-          onClick={() => { const v = !collapsed; setCollapsed(v); updateAttributes({ collapsed: v }) }}
+          onClick={() => updateAttributes({ collapsed: !collapsed })}
           contentEditable={false}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            padding: '2px 4px', color: 'var(--text-tertiary)', fontSize: '12px',
-            userSelect: 'none', transition: 'transform 0.15s', flexShrink: 0,
-            transform: collapsed ? 'rotate(0deg)' : 'rotate(90deg)', marginTop: '2px',
+            padding: '2px 4px', color: 'var(--text-tertiary)', fontSize: '14px',
+            userSelect: 'none', transition: 'transform 0.1s', flexShrink: 0,
           }}
           onMouseEnter={e => { (e.currentTarget).style.color = 'var(--accent)' }}
           onMouseLeave={e => { (e.currentTarget).style.color = 'var(--text-tertiary)' }}
-        >{'\u25B6'}</button>
+        >{collapsed ? '\u25B6' : '\u25BC'}</button>
         <div style={{ flex: 1 }}>
-          <NodeViewContent
-            as="div"
-            className={collapsed ? 'collapse-closed' : 'collapse-open'}
-            style={{ outline: 'none' }}
-          />
+          <NodeViewContent className="collapse-content" />
         </div>
       </div>
     </NodeViewWrapper>
@@ -104,7 +104,7 @@ const CollapseComponent = ({ node, updateAttributes }: any) => {
 const CollapseBlock = TiptapNode.create({
   name: 'collapse',
   group: 'block',
-  content: 'block+',
+  content: 'paragraph+',
   defining: true,
   addAttributes() {
     return { collapsed: { default: true } }
