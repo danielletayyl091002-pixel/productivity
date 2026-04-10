@@ -36,7 +36,7 @@ function expandRecurring(tasks: Task[], startDate: Date, endDate: Date): Task[] 
 
 function getEventStyle(color: string): React.CSSProperties {
   const calStyle = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-cal-style') || 'soft' : 'soft'
-  if (calStyle === 'solid') return { background: color, color: 'white', border: 'none', borderLeft: 'none', borderRadius: 'var(--radius-base, 4px)' }
+  if (calStyle === 'solid') return { background: color, color: getTextColor(color), border: 'none', borderLeft: 'none', borderRadius: 'var(--radius-base, 4px)' }
   if (calStyle === 'outline') return { background: 'transparent', color: color, border: `2px solid ${color}`, borderLeft: `2px solid ${color}`, borderRadius: 'var(--radius-base, 4px)' }
   return { background: `${color}20`, color: color, borderLeft: `3px solid ${color}`, borderRadius: 'var(--radius-base, 4px)' }
 }
@@ -46,10 +46,15 @@ const MONTHS = ['January','February','March','April','May',
   'June','July','August','September','October',
   'November','December']
 
-const PRIORITY_COLORS: Record<string, string> = {
-  high: '#EF4444',
-  medium: '#F59E0B',
-  low: '#10B981'
+const getEventColor = (task: Task) => task.color || 'var(--accent)'
+
+const getTextColor = (hexColor: string) => {
+  if (!hexColor.startsWith('#')) return 'white'
+  const r = parseInt(hexColor.slice(1, 3), 16)
+  const g = parseInt(hexColor.slice(3, 5), 16)
+  const b = parseInt(hexColor.slice(5, 7), 16)
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance > 0.5 ? '#1a1a1a' : 'white'
 }
 
 function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
@@ -599,7 +604,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                   const top = (startMins / 60 - START) * HOUR_H
                   const height = Math.max(((endMins - startMins) / 60) * HOUR_H, 20)
                   const colW = 100 / totalCols
-                  const color = task.color || 'var(--accent)'
+                  const color = getEventColor(task)
                   return (
                     <div
                       key={task.uid}
@@ -1137,8 +1142,8 @@ export default function CalendarView({
                       borderRadius: '4px',
                       display: 'flex',
                       alignItems: 'center',
-                      background: (task.color || 'var(--accent)') + '20',
-                      color: task.color || 'var(--accent)',
+                      background: getEventColor(task) + '20',
+                      color: getEventColor(task),
                       cursor: 'pointer',
                       fontWeight: 500
                     }}>
@@ -1247,7 +1252,7 @@ export default function CalendarView({
                   <div style={{
                     width: '8px', height: '8px',
                     borderRadius: '50%', flexShrink: 0,
-                    background: task.color || 'var(--accent)'
+                    background: getEventColor(task)
                   }}/>
                   <span style={{ flex: 1, fontSize: '13px',
                     color: 'var(--text-primary)' }}>

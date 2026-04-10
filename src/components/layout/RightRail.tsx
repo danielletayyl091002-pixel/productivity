@@ -4,9 +4,20 @@ import { db, Task } from '@/db/schema'
 import EventModal from '@/components/calendar/EventModal'
 import { nanoid } from 'nanoid'
 
+const getEventColor = (task: Task) => task.color || 'var(--accent)'
+
+const getTextColor = (hexColor: string) => {
+  if (!hexColor.startsWith('#')) return 'white'
+  const r = parseInt(hexColor.slice(1, 3), 16)
+  const g = parseInt(hexColor.slice(3, 5), 16)
+  const b = parseInt(hexColor.slice(5, 7), 16)
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance > 0.5 ? '#1a1a1a' : 'white'
+}
+
 function getEventStyle(color: string): React.CSSProperties {
   const calStyle = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-cal-style') || 'soft' : 'soft'
-  if (calStyle === 'solid') return { background: color, color: 'white', border: 'none', borderLeft: 'none' }
+  if (calStyle === 'solid') return { background: color, color: getTextColor(color), border: 'none', borderLeft: 'none' }
   if (calStyle === 'outline') return { background: 'transparent', color: color, border: `2px solid ${color}`, borderLeft: `2px solid ${color}` }
   return { background: `${color}20`, color: color, borderLeft: `3px solid ${color}` }
 }
@@ -299,7 +310,7 @@ function Timeline({ now, tasks, onAddEvent, onUpdateTask }: {
         const endMin = isResizing && resizeEndHour !== null ? Math.round((resizeEndHour % 1) * 60) : (task.endTime ? parseInt(task.endTime.split(':')[1]) : 0)
         const topPx = (startHour - START + startMin / 60) * HOUR_H
         const heightPx = Math.max(((endHour - startHour) + (endMin - startMin) / 60) * HOUR_H - 2, 20)
-        const color = task.color && task.color.startsWith('#') ? task.color : '#6366F1'
+        const color = getEventColor(task)
         return (
           <div key={task.uid} data-rail-event={task.uid} className="calendar-event" style={{
             position: 'absolute',
