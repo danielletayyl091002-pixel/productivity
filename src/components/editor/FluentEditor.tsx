@@ -78,12 +78,12 @@ function ToggleView({ node, updateAttributes }: any) {
   return (
     <NodeViewWrapper>
       <div style={{
-        margin: '8px 0', padding: '12px 16px',
+        margin: '8px 0', padding: '12px 20px',
         background: 'var(--bg-secondary)', borderRadius: 'var(--radius-base, 10px)',
-        border: '1px solid var(--border)',
+        border: '1px solid var(--border)', overflow: 'hidden',
       }}>
         {/* Title row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span
             contentEditable={false}
             onClick={toggle}
