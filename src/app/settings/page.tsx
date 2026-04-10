@@ -437,7 +437,7 @@ export default function SettingsPage() {
             Page Backgrounds
           </h2>
           <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '16px' }}>
-            Set a custom background image for Trackers, Finance, and Board pages.
+            Set a custom background image for Trackers, Finance, and Kanban pages.
           </p>
           {[
             { key: 'bg_trackers', label: 'Trackers' },

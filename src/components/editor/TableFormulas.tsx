@@ -184,11 +184,21 @@ export default function TableFormulas({ editor }: TableFormulasProps) {
         }}>{cellRef}</span>
       )}
       <span style={{ color: 'var(--text-tertiary)', fontWeight: 600, fontSize: '13px' }}>fx</span>
-      {storedFormula && (
-        <span style={{ fontFamily: 'monospace', color: 'var(--accent)', fontWeight: 600, fontSize: '12px' }}>
+      {storedFormula ? (
+        <span style={{ fontFamily: 'monospace', color: 'var(--accent)', fontWeight: 600, fontSize: '12px', flex: 1 }}>
           {storedFormula}
         </span>
+      ) : (
+        <span style={{ flex: 1 }} />
       )}
+      <div style={{ display: 'flex', gap: '2px', borderLeft: '1px solid var(--border)', paddingLeft: '8px' }}>
+        {['SUM', 'AVG', 'MIN', 'MAX'].map(fn => (
+          <span key={fn} style={{
+            padding: '2px 6px', fontSize: '10px', fontWeight: 700,
+            color: 'var(--text-tertiary)', cursor: 'default',
+          }}>{fn}</span>
+        ))}
+      </div>
     </div>,
     document.body
   )

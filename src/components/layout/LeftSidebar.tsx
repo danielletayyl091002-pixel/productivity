@@ -311,8 +311,8 @@ function NavLink({ children, onClick, icon }: {
     <div
       onClick={onClick}
       style={{
-        display: 'flex', alignItems: 'center', gap: '8px',
-        padding: '5px 8px', borderRadius: '6px',
+        display: 'flex', alignItems: 'center', gap: '10px',
+        padding: '10px 16px', borderRadius: '6px',
         cursor: 'pointer', fontSize: '13px',
         color: 'var(--text-secondary)', marginBottom: '1px'
       }}

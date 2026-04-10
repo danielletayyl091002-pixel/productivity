@@ -99,8 +99,8 @@ body {
 .ProseMirror .callout-content { flex: 1; min-width: 0; }
 .ProseMirror .callout-content p { margin: 0; }
 .ProseMirror blockquote blockquote { margin: 4px 0; }
-.ProseMirror table { border-collapse: collapse; width: 100%; margin: 12px 0; }
-.ProseMirror td, .ProseMirror th { border: 1px solid var(--border) !important; padding: 8px 12px; vertical-align: top; min-width: 100px; position: relative; }
+.ProseMirror table { border-collapse: collapse !important; width: 100%; margin: 12px 0; }
+.ProseMirror td, .ProseMirror th { border: 1px solid var(--border) !important; padding: 8px 12px !important; vertical-align: top; min-width: 100px !important; position: relative; }
 .ProseMirror th { background: var(--bg-secondary); font-weight: 600; font-size: 13px; border-bottom: 2px solid var(--border) !important; }
 .ProseMirror td p, .ProseMirror th p { margin: 0; }
 .ProseMirror .selectedCell { background: var(--accent-light); outline: 2px solid var(--accent); outline-offset: -2px; }

@@ -124,7 +124,7 @@ export default function PageCanvas() {
                 background: view === v ? 'var(--accent-light)' : 'transparent',
                 color: view === v ? 'var(--accent)' : 'var(--text-tertiary)'
               }}>
-              {v === 'page' ? 'Page' : v === 'board' ? 'Board' : 'Calendar'}
+              {v === 'page' ? 'Page' : v === 'board' ? 'Kanban' : 'Calendar'}
             </button>
           ))}
         </div>
