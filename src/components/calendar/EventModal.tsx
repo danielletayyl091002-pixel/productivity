@@ -37,7 +37,7 @@ export default function EventModal({
   const [date, setDate] = useState(initialEvent?.scheduledDate || initialEvent?.dueDate || defaultDate || new Date().toISOString().split('T')[0])
   const [startTime, setStartTime] = useState(initialEvent?.startTime || defaultStartTime || '09:00')
   const [endTime, setEndTime] = useState(initialEvent?.endTime || defaultEndTime || '10:00')
-  const [itemType, setItemType] = useState<'task' | 'event'>(initialEvent?.itemType || (initialEvent?.startTime ? 'event' : 'task'))
+  const [itemType, setItemType] = useState<'task' | 'event'>(initialEvent?.itemType || (initialEvent?.startTime || defaultStartTime ? 'event' : 'task'))
   const [color, setColor] = useState(initialEvent?.color || '#3B82F6')
   const [description, setDescription] = useState(initialEvent?.description || '')
   const [location, setLocation] = useState(initialEvent?.location || '')
