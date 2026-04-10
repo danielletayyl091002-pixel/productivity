@@ -380,7 +380,8 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
               borderLeft: '1px solid var(--border)'
             }}>
               <div style={{
-                fontSize: '10px', color: 'var(--text-tertiary)',
+                fontSize: '10px', color: isToday ? 'var(--accent)' : 'var(--text-tertiary)',
+                fontWeight: isToday ? 700 : 400,
                 textTransform: 'uppercase', letterSpacing: '0.05em'
               }}>
                 {DAYS_SHORT[i]}

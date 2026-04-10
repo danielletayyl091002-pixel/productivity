@@ -481,12 +481,21 @@ export default function RightRail() {
   useEffect(() => {
     async function load() {
       const todayStr = new Date().toISOString().split('T')[0]
+      const nowMins = new Date().getHours() * 60 + new Date().getMinutes()
       const tasks = await db.tasks
         .filter(t => t.status !== 'done' &&
                      t.dueDate !== null &&
                      (t.dueDate ?? '') >= todayStr)
         .sortBy('dueDate')
-      setUpcoming(tasks.slice(0, 3))
+      // Exclude events that already ended today
+      const filtered = tasks.filter(t => {
+        if ((t.dueDate ?? t.scheduledDate) === todayStr && t.endTime) {
+          const [h, m] = t.endTime.split(':').map(Number)
+          if (h * 60 + (m || 0) <= nowMins) return false
+        }
+        return true
+      })
+      setUpcoming(filtered.slice(0, 5))
 
       const scheduled = await db.tasks
         .filter(t =>
@@ -647,33 +656,36 @@ export default function RightRail() {
         )}
       </div>
 
-      {/* Upcoming */}
-      {upcoming.length > 0 && (
-        <div style={{
-          borderTop: '1px solid var(--border)',
-          padding: '12px 16px', flexShrink: 0
-        }}>
-          <div style={{
-            fontSize: '10px', fontWeight: 600,
-            letterSpacing: '0.06em', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)', marginBottom: '8px'
-          }}>Upcoming</div>
-          {upcoming.map(t => (
-            <div key={t.uid} style={{
-              fontSize: '12px', color: 'var(--text-secondary)',
-              padding: '3px 0', display: 'flex',
-              alignItems: 'center', gap: '6px'
-            }}>
-              <div style={{
-                width: '6px', height: '6px',
-                borderRadius: '50%', background: t.color,
-                flexShrink: 0
-              }}/>
-              {t.title}
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Upcoming — grouped */}
+      {upcoming.length > 0 && (() => {
+        const todayS = new Date().toISOString().split('T')[0]
+        const tmrw = new Date(); tmrw.setDate(tmrw.getDate() + 1)
+        const tmrwS = tmrw.toISOString().split('T')[0]
+        const weekEnd = new Date(); weekEnd.setDate(weekEnd.getDate() + 7)
+        const weekEndS = weekEnd.toISOString().split('T')[0]
+        const groups: { label: string; tasks: Task[] }[] = [
+          { label: 'Today', tasks: upcoming.filter(t => (t.dueDate || t.scheduledDate) === todayS) },
+          { label: 'Tomorrow', tasks: upcoming.filter(t => (t.dueDate || t.scheduledDate) === tmrwS) },
+          { label: 'This week', tasks: upcoming.filter(t => { const d = t.dueDate || t.scheduledDate || ''; return d > tmrwS && d <= weekEndS }) },
+          { label: 'Later', tasks: upcoming.filter(t => { const d = t.dueDate || t.scheduledDate || ''; return d > weekEndS }) },
+        ].filter(g => g.tasks.length > 0)
+        return (
+          <div style={{ borderTop: '1px solid var(--border)', padding: '12px 16px', flexShrink: 0 }}>
+            <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Upcoming</div>
+            {groups.map(g => (
+              <div key={g.label} style={{ marginBottom: '8px' }}>
+                <div style={{ fontSize: '9px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>{g.label}</div>
+                {g.tasks.slice(0, 3).map(t => (
+                  <div key={t.uid} style={{ fontSize: '12px', color: 'var(--text-secondary)', padding: '3px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.color, flexShrink: 0 }} />
+                    {t.title}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )
+      })()}
     </aside>
   )
 }
