@@ -77,8 +77,13 @@ function ToggleView({ node, updateAttributes }: any) {
   const toggle = (e: React.MouseEvent) => { e.stopPropagation(); const next = !open; setOpen(next); updateAttributes({ open: next }) }
   return (
     <NodeViewWrapper>
-      <div style={{ margin: '8px 0', padding: '16px 24px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-base, 10px)', border: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingLeft: '8px' }}>
+      <div style={{
+        margin: '8px 0', padding: '12px 16px',
+        background: 'var(--bg-secondary)', borderRadius: 'var(--radius-base, 10px)',
+        border: '1px solid var(--border)',
+      }}>
+        {/* Title row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span
             contentEditable={false}
             onClick={toggle}
@@ -103,14 +108,15 @@ function ToggleView({ node, updateAttributes }: any) {
             style={{
               flex: 1, border: 'none', background: 'transparent', outline: 'none',
               fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)',
-              cursor: 'text', fontFamily: 'inherit', padding: '2px 0 2px 32px',
+              cursor: 'text', fontFamily: 'inherit', padding: '2px 0 2px 12px',
             }}
           />
         </div>
+        {/* Collapsible body — NodeViewContent MUST be here */}
         <div style={{
           display: open ? 'block' : 'none',
-          paddingLeft: '30px', marginTop: '8px', paddingTop: '8px',
-          borderTop: open ? '1px solid var(--border)' : 'none',
+          paddingLeft: '28px', marginTop: '8px', paddingTop: '8px',
+          borderTop: '1px solid var(--border)',
         }}>
           <NodeViewContent />
         </div>
