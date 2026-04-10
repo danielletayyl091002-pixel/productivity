@@ -541,7 +541,6 @@ export default function RightRail() {
       borderLeft: '1px solid var(--border)',
       background: 'var(--bg-sidebar)',
       display: 'flex', flexDirection: 'column',
-      overflow: 'hidden',
       position: 'relative'
     }}>
       {/* Header */}
@@ -567,7 +566,7 @@ export default function RightRail() {
         selectedDay={selectedDay}
         onDayClick={(date) => setSelectedDay(date.toISOString().split('T')[0])}
       />}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+      <div style={{ flex: 1, position: 'relative', overflowX: 'hidden', overflowY: 'auto' }}>
         <Timeline
           now={now}
           tasks={todayTasks}
