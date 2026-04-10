@@ -221,9 +221,10 @@ export default function FinancePage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [addType, setAddType] = useState<'income' | 'expense'>('expense')
   const [showCatManager, setShowCatManager] = useState(false)
-  const [currentYear, setCurrentYear] = useState(2026)
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [currentMonth, setCurrentMonth] = useState(0)
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null)
+  const [availableYears, setAvailableYears] = useState<number[]>([new Date().getFullYear()])
 
   useEffect(() => {
     const now = new Date()
@@ -236,6 +237,12 @@ export default function FinancePage() {
       const s = await db.settings
         .where('key').equals('currency').first()
       setEntries(e)
+      // Compute available years
+      const yrs = [...new Set(e.map(en => new Date(en.date).getFullYear()))]
+      const thisYr = new Date().getFullYear()
+      if (!yrs.includes(thisYr)) yrs.push(thisYr)
+      yrs.sort((a, b) => b - a)
+      setAvailableYears(yrs)
       if (c.length === 0) {
         const defaults: FinanceCategory[] = [
           { name: 'Salary', color: '#10B981', type: 'income', isDefault: true },
@@ -304,10 +311,21 @@ export default function FinancePage() {
             color: 'var(--text-primary)', margin: 0 }}>
             Finance
           </h1>
-          <p style={{ fontSize: '13px',
-            color: 'var(--text-tertiary)', margin: '4px 0 0' }}>
-            {currentYear} Overview
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0 0' }}>
+            <select
+              value={currentYear}
+              onChange={e => setCurrentYear(Number(e.target.value))}
+              style={{
+                fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)',
+                border: 'none', background: 'transparent', cursor: 'pointer',
+                outline: 'none', padding: '2px 4px',
+              }}
+            >
+              {availableYears.map(y => (
+                <option key={y} value={y}>{y} Overview</option>
+              ))}
+            </select>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <select

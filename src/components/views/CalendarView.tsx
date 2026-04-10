@@ -870,9 +870,13 @@ export default function CalendarView({
       }}>
         <div style={{ display: 'flex',
           alignItems: 'center', gap: '12px' }}>
-          <button onClick={() => setCurrentDate(
-            new Date(year, month - 1, 1)
-          )} style={{
+          <button onClick={() => {
+            if (viewMode === 'week') {
+              const d = new Date(currentDate); d.setDate(d.getDate() - 7); setCurrentDate(d)
+            } else {
+              setCurrentDate(new Date(year, month - 1, 1))
+            }
+          }} style={{
             background: 'none', border: 'none',
             cursor: 'pointer', fontSize: '18px',
             color: 'var(--text-secondary)',
@@ -887,9 +891,13 @@ export default function CalendarView({
             {MONTHS[month]} {year}
           </h2>
 
-          <button onClick={() => setCurrentDate(
-            new Date(year, month + 1, 1)
-          )} style={{
+          <button onClick={() => {
+            if (viewMode === 'week') {
+              const d = new Date(currentDate); d.setDate(d.getDate() + 7); setCurrentDate(d)
+            } else {
+              setCurrentDate(new Date(year, month + 1, 1))
+            }
+          }} style={{
             background: 'none', border: 'none',
             cursor: 'pointer', fontSize: '18px',
             color: 'var(--text-secondary)',
