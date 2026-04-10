@@ -102,6 +102,16 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         document.documentElement.style.setProperty('--border-opacity', String(v / 3))
         document.documentElement.style.setProperty('--border-width', v === 0 ? '0px' : v <= 1 ? '1px' : '2px')
       }
+      // Load shadow depth
+      const shadowS = await db.settings.where('key').equals('shadow_depth').first()
+      if (shadowS?.value) {
+        document.documentElement.style.setProperty('--shadow-intensity', String(Number(shadowS.value) / 100))
+      }
+      // Load layout density
+      const densityS = await db.settings.where('key').equals('layout_density').first()
+      if (densityS?.value) {
+        document.documentElement.setAttribute('data-density', densityS.value)
+      }
     }
     loadSettings()
 

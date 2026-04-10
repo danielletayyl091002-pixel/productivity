@@ -116,6 +116,8 @@ export default function SettingsPage() {
   const [radiusStyle, setRadiusStyle] = useState('rounded')
   const [borderStrength, setBorderStrength] = useState(1)
   const [fontBrowseOpen, setFontBrowseOpen] = useState(false)
+  const [shadowDepth, setShadowDepth] = useState(50)
+  const [layoutDensity, setLayoutDensity] = useState<'compact' | 'comfortable' | 'relaxed'>('comfortable')
 
   useEffect(() => {
     // Load saved settings
@@ -155,6 +157,17 @@ export default function SettingsPage() {
         setBorderStrength(v)
         document.documentElement.style.setProperty('--border-opacity', String(v / 3))
         document.documentElement.style.setProperty('--border-width', v === 0 ? '0px' : v <= 1 ? '1px' : '2px')
+      }
+      const shadowS = await db.settings.where('key').equals('shadow_depth').first()
+      if (shadowS?.value) {
+        const v = Number(shadowS.value)
+        setShadowDepth(v)
+        document.documentElement.style.setProperty('--shadow-intensity', String(v / 100))
+      }
+      const densityS = await db.settings.where('key').equals('layout_density').first()
+      if (densityS?.value) {
+        setLayoutDensity(densityS.value as 'compact' | 'comfortable' | 'relaxed')
+        document.documentElement.setAttribute('data-density', densityS.value)
       }
     }
     loadSettings()
@@ -359,6 +372,64 @@ export default function SettingsPage() {
                 style={{ flex: 1, accentColor: 'var(--accent)' }}
               />
               <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', minWidth: '40px', textAlign: 'right' }}>Strong</span>
+            </div>
+          </div>
+
+          {/* Shadow Depth */}
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px', marginTop: '20px', marginBottom: '20px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Shadow Depth</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '12px' }}>Controls elevation and depth of shadows</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', minWidth: '24px' }}>Flat</span>
+              <input
+                type="range" min="0" max="100" step="10" value={shadowDepth}
+                onChange={e => {
+                  const v = Number(e.target.value)
+                  setShadowDepth(v)
+                  document.documentElement.style.setProperty('--shadow-intensity', String(v / 100))
+                  db.settings.where('key').equals('shadow_depth').first().then(ex => {
+                    if (ex?.id) db.settings.update(ex.id, { value: String(v) })
+                    else db.settings.add({ key: 'shadow_depth', value: String(v) })
+                  })
+                }}
+                style={{ flex: 1, accentColor: 'var(--accent)' }}
+              />
+              <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', minWidth: '32px', textAlign: 'right' }}>Deep</span>
+            </div>
+            <div style={{
+              marginTop: '12px', width: '80px', height: '48px',
+              background: 'var(--bg-secondary)', borderRadius: '8px',
+              boxShadow: shadowDepth === 0 ? 'none' : `0 ${Math.round(shadowDepth / 10)}px ${Math.round(shadowDepth / 5)}px rgba(0,0,0,${shadowDepth / 400})`,
+              border: '1px solid var(--border)', transition: 'box-shadow 0.2s',
+            }} />
+          </div>
+
+          {/* Layout Density */}
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px', marginTop: '20px', marginBottom: '20px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Layout Density</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '12px' }}>Spacing between elements</div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {(['compact', 'comfortable', 'relaxed'] as const).map(d => (
+                <button
+                  key={d}
+                  onClick={() => {
+                    setLayoutDensity(d)
+                    document.documentElement.setAttribute('data-density', d)
+                    db.settings.where('key').equals('layout_density').first().then(ex => {
+                      if (ex?.id) db.settings.update(ex.id, { value: d })
+                      else db.settings.add({ key: 'layout_density', value: d })
+                    })
+                  }}
+                  style={{
+                    flex: 1, padding: '8px 12px', borderRadius: '8px',
+                    border: layoutDensity === d ? '2px solid var(--accent)' : '1px solid var(--border)',
+                    background: layoutDensity === d ? 'var(--accent-light)' : 'transparent',
+                    color: layoutDensity === d ? 'var(--accent)' : 'var(--text-secondary)',
+                    fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                    textTransform: 'capitalize',
+                  }}
+                >{d}</button>
+              ))}
             </div>
           </div>
 
