@@ -113,6 +113,9 @@ export default function SettingsPage() {
   const [bgImages, setBgImages] = useState<Record<string, string>>({})
   const [bgOpacities, setBgOpacities] = useState<Record<string, number>>({})
   const [interfaceStyle, setInterfaceStyle] = useState<'flat' | 'sculpt'>('flat')
+  const [radiusStyle, setRadiusStyle] = useState('rounded')
+  const [borderStrength, setBorderStrength] = useState(1)
+  const [fontBrowseOpen, setFontBrowseOpen] = useState(false)
 
   useEffect(() => {
     // Load saved settings
@@ -140,6 +143,19 @@ export default function SettingsPage() {
       if (styleS?.value) {
         setInterfaceStyle(styleS.value as 'flat' | 'sculpt')
         document.documentElement.setAttribute('data-style', styleS.value)
+      }
+      const radiusS = await db.settings.where('key').equals('radius_style').first()
+      if (radiusS?.value) {
+        setRadiusStyle(radiusS.value)
+        const map: Record<string, string> = { sharp: '2px', subtle: '6px', rounded: '10px', soft: '16px', pill: '9999px' }
+        document.documentElement.style.setProperty('--radius-base', map[radiusS.value] || '10px')
+      }
+      const borderS = await db.settings.where('key').equals('border_strength').first()
+      if (borderS?.value) {
+        const v = Number(borderS.value)
+        setBorderStrength(v)
+        document.documentElement.style.setProperty('--border-opacity', String(v / 3))
+        document.documentElement.style.setProperty('--border-width', v === 0 ? '0px' : v <= 1 ? '1px' : '2px')
       }
     }
     loadSettings()
@@ -284,6 +300,127 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {/* Appearance */}
+        <section style={{ marginBottom: '40px' }}>
+          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Appearance</h2>
+          <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '20px' }}>Fine-tune the look and feel of your workspace.</p>
+
+          {/* Corner Style */}
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Corner Style</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '12px' }}>How rounded corners are across the interface</div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {([
+                { key: 'sharp', label: 'Sharp', val: '2px' },
+                { key: 'subtle', label: 'Subtle', val: '6px' },
+                { key: 'rounded', label: 'Rounded', val: '10px' },
+                { key: 'soft', label: 'Soft', val: '16px' },
+                { key: 'pill', label: 'Pill', val: '9999px' },
+              ] as const).map(opt => (
+                <div key={opt.key} style={{ textAlign: 'center', cursor: 'pointer' }} onClick={() => {
+                  setRadiusStyle(opt.key)
+                  document.documentElement.style.setProperty('--radius-base', opt.val)
+                  db.settings.where('key').equals('radius_style').first().then(ex => {
+                    if (ex?.id) db.settings.update(ex.id, { value: opt.key })
+                    else db.settings.add({ key: 'radius_style', value: opt.key })
+                  })
+                }}>
+                  <div style={{
+                    width: '48px', height: '32px', background: 'var(--accent)',
+                    borderRadius: opt.val === '9999px' ? '16px' : opt.val,
+                    border: radiusStyle === opt.key ? '2px solid var(--accent)' : '2px solid transparent',
+                    boxShadow: radiusStyle === opt.key ? '0 0 0 2px var(--accent-light)' : 'none',
+                  }} />
+                  <div style={{ fontSize: '10px', color: radiusStyle === opt.key ? 'var(--accent)' : 'var(--text-tertiary)', marginTop: '4px', fontWeight: 500 }}>
+                    {opt.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Border Weight */}
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px', marginTop: '20px', marginBottom: '20px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Border Weight</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '12px' }}>Visibility of borders and dividers</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', minWidth: '32px' }}>None</span>
+              <input
+                type="range" min="0" max="3" step="0.5" value={borderStrength}
+                onChange={e => {
+                  const v = Number(e.target.value)
+                  setBorderStrength(v)
+                  document.documentElement.style.setProperty('--border-opacity', String(v / 3))
+                  document.documentElement.style.setProperty('--border-width', v === 0 ? '0px' : v <= 1 ? '1px' : '2px')
+                  db.settings.where('key').equals('border_strength').first().then(ex => {
+                    if (ex?.id) db.settings.update(ex.id, { value: String(v) })
+                    else db.settings.add({ key: 'border_strength', value: String(v) })
+                  })
+                }}
+                style={{ flex: 1, accentColor: 'var(--accent)' }}
+              />
+              <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', minWidth: '40px', textAlign: 'right' }}>Strong</span>
+            </div>
+          </div>
+
+          {/* Font */}
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px', marginTop: '20px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Font</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '12px' }}>Typeface for your workspace</div>
+            <select
+              value={currentFont}
+              onChange={e => applyFont(e.target.value)}
+              style={{
+                width: '100%', padding: '10px 14px', borderRadius: '8px',
+                border: '1px solid var(--border)', background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)', fontSize: '14px', outline: 'none',
+                fontFamily: fontsLoaded ? FONT_GROUPS.flatMap(g => g.fonts).find(f => f.name === currentFont)?.family : undefined,
+                appearance: 'none', cursor: 'pointer',
+                backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%239CA3AF\' stroke-width=\'2\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'/%3E%3C/svg%3E")',
+                backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center',
+              }}
+            >
+              {FONT_GROUPS.flatMap(g => g.fonts).map(f => (
+                <option key={f.name} value={f.name} style={{ fontFamily: fontsLoaded ? f.family : undefined }}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+            <div
+              onClick={() => setFontBrowseOpen(!fontBrowseOpen)}
+              style={{ fontSize: '12px', color: 'var(--accent)', cursor: 'pointer', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              <span style={{ transform: fontBrowseOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>&rsaquo;</span>
+              Browse fonts
+            </div>
+            {fontBrowseOpen && (
+              <div style={{ maxHeight: '240px', overflowY: 'auto', marginTop: '8px', border: '1px solid var(--border)', borderRadius: '8px' }}>
+                {FONT_GROUPS.map(group => (
+                  <div key={group.group}>
+                    <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', padding: '8px 14px 4px' }}>
+                      {group.group}
+                    </div>
+                    {group.fonts.map(f => (
+                      <div
+                        key={f.name}
+                        onClick={() => applyFont(f.name)}
+                        style={{
+                          padding: '8px 14px', fontFamily: fontsLoaded ? f.family : undefined,
+                          fontSize: '13px', cursor: 'pointer',
+                          background: currentFont === f.name ? 'var(--accent-light)' : 'transparent',
+                          color: currentFont === f.name ? 'var(--accent)' : 'var(--text-primary)',
+                        }}
+                        onMouseEnter={e => { if (currentFont !== f.name) (e.currentTarget).style.background = 'var(--bg-hover)' }}
+                        onMouseLeave={e => { if (currentFont !== f.name) (e.currentTarget).style.background = 'transparent' }}
+                      >{f.name}</div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
         {/* Color Palettes */}
         <section style={{ marginBottom: '40px' }}>
           <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Accent Color</h2>
@@ -403,34 +540,6 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Fonts */}
-        <section>
-          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Font</h2>
-          <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '16px' }}>Choose a typeface for your workspace.</p>
-          {FONT_GROUPS.map(group => (
-            <div key={group.group} style={{ marginBottom: '20px' }}>
-              <div style={{
-                fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em',
-                textTransform: 'uppercase', color: 'var(--text-tertiary)',
-                marginBottom: '8px'
-              }}>{group.group}</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {group.fonts.map(f => (
-                  <button key={f.name} onClick={() => applyFont(f.name)} style={{
-                    padding: '8px 14px', borderRadius: '8px',
-                    border: currentFont === f.name ? '2px solid var(--accent)' : '1px solid var(--border)',
-                    background: currentFont === f.name ? 'var(--accent-light)' : 'transparent',
-                    cursor: 'pointer',
-                    fontFamily: fontsLoaded ? f.family : undefined,
-                    fontSize: '13px',
-                    color: 'var(--text-primary)',
-                    fontWeight: 500
-                  }}>{f.name}</button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </section>
 
         <section style={{ marginTop: '40px' }}>
           <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
