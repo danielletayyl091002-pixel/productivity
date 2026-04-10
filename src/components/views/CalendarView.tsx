@@ -982,7 +982,19 @@ export default function CalendarView({
             color: 'var(--text-primary)', minWidth: '180px',
             textAlign: 'center'
           }}>
-            {MONTHS[month]} {year}
+            {viewMode === 'week' ? (() => {
+              const mondayStart = typeof localStorage !== 'undefined' && localStorage.getItem('week_start') === 'monday'
+              const dow = currentDate.getDay()
+              const offset = mondayStart ? (dow === 0 ? 6 : dow - 1) : dow
+              const ws = new Date(currentDate)
+              ws.setDate(currentDate.getDate() - offset)
+              const we = new Date(ws)
+              we.setDate(ws.getDate() + 6)
+              if (ws.getMonth() !== we.getMonth()) {
+                return `${ws.toLocaleDateString('en-US', { month: 'long' })} – ${we.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
+              }
+              return `${MONTHS[ws.getMonth()]} ${ws.getFullYear()}`
+            })() : `${MONTHS[month]} ${year}`}
           </h2>
 
           <button onClick={() => {
