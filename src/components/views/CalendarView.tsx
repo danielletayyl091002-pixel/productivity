@@ -561,9 +561,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                   const top = (startMins / 60 - START) * HOUR_H
                   const height = Math.max(((endMins - startMins) / 60) * HOUR_H, 20)
                   const colW = 100 / totalCols
-                  const color = task.priority
-                    ? PRIORITY_COLORS[task.priority]
-                    : 'var(--accent)'
+                  const color = task.color || 'var(--accent)'
                   return (
                     <div
                       key={task.uid}
@@ -1091,12 +1089,8 @@ export default function CalendarView({
                       borderRadius: '4px',
                       display: 'flex',
                       alignItems: 'center',
-                      background: task.priority
-                        ? PRIORITY_COLORS[task.priority] + '25'
-                        : 'var(--accent-light)',
-                      color: task.priority
-                        ? PRIORITY_COLORS[task.priority]
-                        : 'var(--accent)',
+                      background: (task.color || 'var(--accent)') + '20',
+                      color: task.color || 'var(--accent)',
                       cursor: 'pointer',
                       fontWeight: 500
                     }}>
@@ -1205,9 +1199,7 @@ export default function CalendarView({
                   <div style={{
                     width: '8px', height: '8px',
                     borderRadius: '50%', flexShrink: 0,
-                    background: task.priority
-                      ? PRIORITY_COLORS[task.priority]
-                      : 'var(--text-tertiary)'
+                    background: task.color || 'var(--accent)'
                   }}/>
                   <span style={{ flex: 1, fontSize: '13px',
                     color: 'var(--text-primary)' }}>

@@ -164,15 +164,29 @@ export default function EventModal({
         </div>
 
         {/* Color */}
-        <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
-          {COLORS.map(c => (
-            <button key={c} aria-label={`Color ${c}`} onClick={() => { setColor(c); markDirty() }} style={{
-              width: color === c ? '28px' : '24px', height: color === c ? '28px' : '24px',
-              borderRadius: '50%', background: c, border: 'none', cursor: 'pointer',
-              boxShadow: color === c ? `0 0 0 2px var(--bg-primary), 0 0 0 4px ${c}` : 'none',
-              transition: 'all 0.1s',
-            }} />
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+          <label style={{ fontSize: '12px', color: 'var(--text-tertiary)', fontWeight: 600 }}>COLOR</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {COLORS.map(c => (
+              <button key={c} aria-label={`Color ${c}`} onClick={() => { setColor(c); markDirty() }} style={{
+                width: '20px', height: '20px', borderRadius: '50%', background: c, padding: 0,
+                border: color === c ? '2px solid var(--text-primary)' : '2px solid transparent',
+                cursor: 'pointer', transform: color === c ? 'scale(1.2)' : 'scale(1)',
+                transition: 'transform 0.1s',
+              }} />
+            ))}
+            <label style={{
+              width: '20px', height: '20px', borderRadius: '50%',
+              background: COLORS.includes(color) ? 'var(--bg-hover)' : color,
+              border: '2px dashed var(--text-tertiary)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden', position: 'relative',
+            }}>
+              <input type="color" value={color} onChange={e => { setColor(e.target.value); markDirty() }}
+                style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
+              <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontWeight: 700, pointerEvents: 'none' }}>+</span>
+            </label>
+          </div>
         </div>
 
         {/* Priority */}
