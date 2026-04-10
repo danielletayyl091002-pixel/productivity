@@ -332,7 +332,9 @@ function Timeline({ now, tasks, onAddEvent, onUpdateTask }: {
               color: getEventStyle(color).color || color,
               whiteSpace: 'nowrap', overflow: 'hidden',
               textOverflow: 'ellipsis', lineHeight: 1.3,
-            }}>{task.title}</div>
+              textDecoration: task.status === 'done' ? 'line-through' : 'none',
+              opacity: task.status === 'done' ? 0.6 : 1,
+            }}>{task.itemType === 'task' ? '\u2610 ' : ''}{task.title}</div>
             {heightPx > 40 && (
               <div style={{
                 fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '2px',

@@ -613,47 +613,38 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                       style={{
                         position: 'absolute',
                         top: `${top}px`,
-                        left: `${col * colW + 1}%`,
-                        width: `${colW - 2}%`,
+                        left: `${col * colW + 0.5}%`,
+                        width: `${colW - 1}%`,
                         height: `${height}px`,
                         ...getEventStyle(color),
-                        padding: '2px 4px',
-                        fontSize: '10px',
-                        fontWeight: 500,
+                        padding: '3px 6px',
                         overflow: 'hidden',
                         zIndex: isBeingMoved || isBeingResized ? 10 : 3,
                         cursor: 'grab',
                         display: 'flex',
                         flexDirection: 'column',
                         boxSizing: 'border-box',
-                        opacity: isBeingMoved ? 0.3 : 1,
+                        opacity: isBeingMoved ? 0.3 : (task.priority === 'high' ? 1 : task.priority === 'medium' ? 0.85 : 0.75),
                         transition: isBeingMoved ? 'none' : 'opacity 0.15s',
                       }}
                     >
                       <span style={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        fontSize: '11px', fontWeight: 600, lineHeight: 1.3,
+                        textDecoration: task.status === 'done' ? 'line-through' : 'none',
                       }}>
-                        {task.title}
+                        {task.itemType === 'task' ? '\u2610 ' : ''}{task.title}
                       </span>
-                      <span style={{ fontSize: '9px', opacity: 0.8 }}>
-                        {task.startTime} - {isBeingResized && resizeEndHour !== null ? fmtDB(resizeEndHour) : task.endTime}
-                      </span>
-                      <span
-                        onClick={e => { e.stopPropagation(); onDeleteTask(task.uid) }}
-                        onMouseDown={e => e.stopPropagation()}
-                        style={{
-                          position: 'absolute',
-                          top: '2px', right: '2px',
-                          cursor: 'pointer',
-                          opacity: 0.6,
-                          fontSize: '12px',
-                          lineHeight: 1
-                        }}
-                      >
-                        &times;
-                      </span>
+                      {height > 32 && (
+                        <span style={{ fontSize: '10px', opacity: 0.85 }}>
+                          {task.startTime} - {isBeingResized && resizeEndHour !== null ? fmtDB(resizeEndHour) : task.endTime}
+                        </span>
+                      )}
+                      {height > 50 && task.location && (
+                        <span style={{ fontSize: '9px', opacity: 0.7, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {task.location}
+                        </span>
+                      )}
                       {/* Resize handle at bottom */}
                       <div
                         data-resize="true"
