@@ -216,6 +216,9 @@ export default function TrackerGrid() {
                 }}
               >
                 {t.name}
+                <span style={{ fontSize: '11px', opacity: 0.65, marginLeft: '6px', fontWeight: 400 }}>
+                  {t.type === 'habit' ? (getTodayValue(t.uid) > 0 ? '\u2713' : '\u2717') : `${getTodayValue(t.uid)}/${t.target}`}
+                </span>
               </button>
             )
           })}
