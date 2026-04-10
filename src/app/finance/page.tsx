@@ -225,6 +225,7 @@ export default function FinancePage() {
   const [currentMonth, setCurrentMonth] = useState(0)
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null)
   const [availableYears, setAvailableYears] = useState<number[]>([new Date().getFullYear()])
+  const [showYearMenu, setShowYearMenu] = useState(false)
 
   useEffect(() => {
     const now = new Date()
@@ -265,6 +266,14 @@ export default function FinancePage() {
     }
     load()
   }, [])
+
+  // Close year menu on outside click
+  useEffect(() => {
+    if (!showYearMenu) return
+    const handler = () => setShowYearMenu(false)
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
+  }, [showYearMenu])
 
   const monthlyData = useMemo(() => {
     return MONTHS.map((month, i) => {
@@ -312,19 +321,58 @@ export default function FinancePage() {
             Finance
           </h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0 0' }}>
-            <select
-              value={currentYear}
-              onChange={e => setCurrentYear(Number(e.target.value))}
-              style={{
-                fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)',
-                border: 'none', background: 'transparent', cursor: 'pointer',
-                outline: 'none', padding: '2px 4px',
-              }}
-            >
-              {availableYears.map(y => (
-                <option key={y} value={y}>{y} Overview</option>
-              ))}
-            </select>
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={e => { e.stopPropagation(); setShowYearMenu(p => !p) }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-base, 8px)', padding: '6px 12px',
+                  fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', cursor: 'pointer',
+                }}
+              >
+                {currentYear} Overview
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              {showYearMenu && (
+                <div onClick={e => e.stopPropagation()} style={{
+                  position: 'absolute', top: '100%', left: 0, marginTop: '4px', zIndex: 1000,
+                  background: 'var(--bg-primary)', border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-base, 8px)', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                  minWidth: '180px', overflow: 'hidden',
+                }}>
+                  {availableYears.map(y => (
+                    <div key={y} onClick={() => { setCurrentYear(y); setShowYearMenu(false) }}
+                      style={{
+                        padding: '8px 14px', cursor: 'pointer', fontSize: '13px',
+                        background: y === currentYear ? 'var(--accent-light)' : 'transparent',
+                        color: y === currentYear ? 'var(--accent)' : 'var(--text-primary)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      }}
+                      onMouseEnter={e => { if (y !== currentYear) (e.currentTarget).style.background = 'var(--bg-hover)' }}
+                      onMouseLeave={e => { if (y !== currentYear) (e.currentTarget).style.background = 'transparent' }}
+                    >
+                      {y}
+                      {y === currentYear && <span style={{ fontSize: '10px', color: 'var(--accent)' }}>{'\u2713'}</span>}
+                    </div>
+                  ))}
+                  <div style={{ borderTop: '1px solid var(--border)', padding: '4px' }}>
+                    {!availableYears.includes(new Date().getFullYear() + 1) && (
+                      <div onClick={() => { const n = new Date().getFullYear() + 1; setAvailableYears(p => [...p, n].sort((a, b) => b - a)); setCurrentYear(n); setShowYearMenu(false) }}
+                        style={{ padding: '8px 14px', cursor: 'pointer', fontSize: '12px', color: 'var(--accent)' }}
+                        onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
+                        onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
+                      >+ Add {new Date().getFullYear() + 1}</div>
+                    )}
+                    <div onClick={() => { const y = parseInt(prompt('Enter year:') || ''); if (!isNaN(y) && y > 2000 && y < 2100) { setAvailableYears(p => [...new Set([...p, y])].sort((a, b) => b - a)); setCurrentYear(y) } setShowYearMenu(false) }}
+                      style={{ padding: '8px 14px', cursor: 'pointer', fontSize: '12px', color: 'var(--text-tertiary)' }}
+                      onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
+                      onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
+                    >+ Custom year</div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
