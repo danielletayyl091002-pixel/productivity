@@ -36,6 +36,7 @@ function legacyToTipTap(blocks: Block[]): Record<string, unknown> {
 export default function PageCanvas() {
   const { uid } = useParams<{ uid: string }>()
   const [page, setPage] = useState<Page | null>(null)
+  const [showIconPicker, setShowIconPicker] = useState(false)
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<'page' | 'board' | 'calendar'>('page')
   const [editorContent, setEditorContent] = useState<Record<string, unknown> | null>(null)
@@ -109,24 +110,56 @@ export default function PageCanvas() {
     <div style={{ height: '100vh', overflowY: 'auto', background: 'var(--bg-primary)' }}>
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '80px 80px 0' }}>
         {/* Page emoji icon */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-          <button
-            onClick={async () => {
-              const emoji = prompt('Enter an emoji for this page:')
-              if (emoji && page?.id) {
-                await db.pages.update(page.id, { icon: emoji })
-                setPage(prev => prev ? { ...prev, icon: emoji } : null)
-                window.dispatchEvent(new CustomEvent('page-title-updated'))
-              }
-            }}
-            style={{
-              fontSize: '2rem', background: 'none', border: 'none', cursor: 'pointer',
-              padding: '4px', borderRadius: '6px', lineHeight: 1, marginTop: '4px',
-            }}
-            onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
-            onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
-            title="Click to set page icon"
-          >{page.icon || '📄'}</button>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowIconPicker(!showIconPicker)}
+              style={{
+                fontSize: '2.2rem', background: 'var(--bg-hover)', border: 'none', cursor: 'pointer',
+                padding: '8px', borderRadius: 'var(--radius-base, 10px)', lineHeight: 1,
+                width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+              onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-secondary)' }}
+              onMouseLeave={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
+            >{page.icon || '📄'}</button>
+            {showIconPicker && (
+              <>
+                <div onClick={() => setShowIconPicker(false)} style={{ position: 'fixed', inset: 0, zIndex: 999 }} />
+                <div style={{
+                  position: 'absolute', top: '100%', left: 0, marginTop: '8px', zIndex: 1000,
+                  background: 'var(--bg-primary)', border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-base, 10px)', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                  padding: '16px', width: '280px',
+                }} onClick={e => e.stopPropagation()}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>Choose icon</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
+                    {['📄','📝','📋','📌','📎','📊','📈','🏠','🎯','🚀','💡','🔥','⭐','💪','🎉','📅','💰','🔔','💬','📖','🧠','❤️','🌟','✅','🎨','🔍','🛠️','⚡','🌈','🎵','🍕','☕','🌿','🧩','🗂️'].map(emoji => (
+                      <button key={emoji} onClick={async () => {
+                        if (page?.id) {
+                          await db.pages.update(page.id, { icon: emoji })
+                          setPage(prev => prev ? { ...prev, icon: emoji } : null)
+                          window.dispatchEvent(new CustomEvent('page-title-updated'))
+                        }
+                        setShowIconPicker(false)
+                      }} style={{
+                        width: '36px', height: '36px', fontSize: '18px', border: 'none',
+                        background: page.icon === emoji ? 'var(--accent-light)' : 'transparent',
+                        cursor: 'pointer', borderRadius: '6px', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center',
+                      }}
+                      onMouseEnter={e => { if (page.icon !== emoji) (e.currentTarget).style.background = 'var(--bg-hover)' }}
+                      onMouseLeave={e => { if (page.icon !== emoji) (e.currentTarget).style.background = 'transparent' }}
+                      >{emoji}</button>
+                    ))}
+                  </div>
+                  <button onClick={async () => {
+                    if (page?.id) { await db.pages.update(page.id, { icon: null }); setPage(prev => prev ? { ...prev, icon: null } : null); window.dispatchEvent(new CustomEvent('page-title-updated')) }
+                    setShowIconPicker(false)
+                  }} style={{ marginTop: '10px', fontSize: '12px', color: 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer' }}>Remove icon</button>
+                </div>
+              </>
+            )}
+          </div>
           <input
             defaultValue={page.title}
             onChange={e => updateTitle(e.target.value)}

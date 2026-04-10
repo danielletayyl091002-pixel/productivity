@@ -308,7 +308,7 @@ export default function SettingsPage() {
                   })
                 }}
                 style={{
-                  flex: 1, padding: '16px', borderRadius: 'var(--radius-card, 12px)',
+                  flex: 1, padding: '20px', borderRadius: 'var(--radius-card, 12px)',
                   border: interfaceStyle === style ? '2px solid var(--accent)' : '1px solid var(--border)',
                   background: interfaceStyle === style ? 'var(--accent-light)' : 'var(--bg-secondary)',
                   cursor: 'pointer', textAlign: 'left',

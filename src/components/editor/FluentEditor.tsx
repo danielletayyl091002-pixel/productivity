@@ -77,18 +77,21 @@ function ToggleView({ node, updateAttributes }: any) {
   const toggle = (e: React.MouseEvent) => { e.stopPropagation(); const next = !open; setOpen(next); updateAttributes({ open: next }) }
   return (
     <NodeViewWrapper>
-      <div style={{ margin: '2px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div style={{ margin: '8px 0', padding: '12px 16px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-base, 8px)', border: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span
             contentEditable={false}
             onClick={toggle}
             style={{
               cursor: 'pointer', userSelect: 'none', fontSize: '10px',
-              color: 'var(--text-tertiary)', flexShrink: 0, width: '16px',
-              textAlign: 'center', display: 'inline-block',
+              color: 'var(--text-tertiary)', flexShrink: 0, width: '20px', height: '20px',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '4px',
               transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
-              transition: 'transform 0.15s',
+              transition: 'transform 0.15s, background 0.15s',
             }}
+            onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)'; (e.currentTarget).style.color = 'var(--accent)' }}
+            onMouseLeave={e => { (e.currentTarget).style.background = 'transparent'; (e.currentTarget).style.color = 'var(--text-tertiary)' }}
           >{'\u25B6'}</span>
           <input
             value={title}
@@ -96,17 +99,18 @@ function ToggleView({ node, updateAttributes }: any) {
             onClick={e => e.stopPropagation()}
             onKeyDown={e => e.stopPropagation()}
             placeholder="Toggle title..."
+            className="toggle-title-input"
             style={{
               flex: 1, border: 'none', background: 'transparent', outline: 'none',
-              fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)',
-              cursor: 'text', fontFamily: 'inherit', padding: 0,
+              fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)',
+              cursor: 'text', fontFamily: 'inherit', padding: '2px 0',
             }}
           />
         </div>
         <div style={{
           display: open ? 'block' : 'none',
-          paddingLeft: '22px', borderLeft: '1px solid var(--border)',
-          marginLeft: '7px', marginTop: '2px',
+          paddingLeft: '30px', marginTop: '8px', paddingTop: '8px',
+          borderTop: open ? '1px solid var(--border)' : 'none',
         }}>
           <NodeViewContent />
         </div>

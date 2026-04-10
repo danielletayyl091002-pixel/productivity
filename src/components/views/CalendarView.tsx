@@ -64,9 +64,9 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
   pageUid: string
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>
 }) {
-  const HOURS = Array.from({ length: 16 }, (_, i) => i + 6)
+  const HOURS = Array.from({ length: 24 }, (_, i) => i)
   const HOUR_H = 60
-  const START = 6
+  const START = 0
   const TOTAL_H = HOURS.length * HOUR_H
 
   const [dragState, setDragState] = useState<{
@@ -192,7 +192,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
     }
   }, [movingTask, resizingTask, moveGhost, resizeEndHour])
 
-  const snap = (h: number) => Math.max(START, Math.min(22, Math.round(h * 4) / 4))
+  const snap = (h: number) => Math.max(START, Math.min(23.75, Math.round(h * 4) / 4))
 
   const use24h = typeof localStorage !== 'undefined' && localStorage.getItem('time_format') === '24h'
   const fmt = (h: number) => {
