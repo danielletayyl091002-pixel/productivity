@@ -1,6 +1,8 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
 import { db, Task } from '@/db/schema'
+import EventModal from '@/components/calendar/EventModal'
+import { nanoid } from 'nanoid'
 
 function getEventStyle(color: string): React.CSSProperties {
   const calStyle = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-cal-style') || 'soft' : 'soft'
@@ -436,6 +438,8 @@ export default function RightRail() {
   const { definitions: trackerDefs, loaded: trackersLoaded, load: loadTrackers, getTodayValue } = useTrackerStore()
   const [upcoming, setUpcoming] = useState<Task[]>([])
   const [todayTasks, setTodayTasks] = useState<Task[]>([])
+  const [editingEvent, setEditingEvent] = useState<Partial<Task> | null>(null)
+  const [showNewEvent, setShowNewEvent] = useState(false)
   const [today, setToday] = useState<Date | null>(null)
   const [now, setNow] = useState(0)
   const [dateStr, setDateStr] = useState('')
@@ -486,8 +490,7 @@ export default function RightRail() {
     return () => clearInterval(interval)
   }, [])
 
-  useEffect(() => {
-    async function load() {
+  const loadEvents = async () => {
       const todayStr = new Date().toISOString().split('T')[0]
       const nowMins = new Date().getHours() * 60 + new Date().getMinutes()
       const tasks = await db.tasks
@@ -512,8 +515,10 @@ export default function RightRail() {
         )
         .toArray()
       setTodayTasks(scheduled)
-    }
-    load()
+  }
+
+  useEffect(() => {
+    loadEvents()
   }, [])
 
   return (
@@ -665,7 +670,7 @@ export default function RightRail() {
       </div>
 
       {/* Upcoming — grouped */}
-      {upcoming.length > 0 && (() => {
+      {(() => {
         const todayS = new Date().toISOString().split('T')[0]
         const tmrw = new Date(); tmrw.setDate(tmrw.getDate() + 1)
         const tmrwS = tmrw.toISOString().split('T')[0]
@@ -679,21 +684,74 @@ export default function RightRail() {
         ].filter(g => g.tasks.length > 0)
         return (
           <div style={{ borderTop: '1px solid var(--border)', padding: '12px 16px', flexShrink: 0 }}>
-            <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: '8px' }}>Upcoming</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>Upcoming</div>
+              <button onClick={() => setShowNewEvent(true)} style={{
+                padding: '3px 10px', borderRadius: '9999px', border: '1px solid var(--border)',
+                background: 'transparent', color: 'var(--accent)', fontSize: '10px',
+                fontWeight: 600, cursor: 'pointer',
+              }}>+ Event</button>
+            </div>
             {groups.map(g => (
               <div key={g.label} style={{ marginBottom: '8px' }}>
                 <div style={{ fontSize: '9px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>{g.label}</div>
                 {g.tasks.slice(0, 3).map(t => (
-                  <div key={t.uid} style={{ fontSize: '12px', color: 'var(--text-secondary)', padding: '3px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div key={t.uid} onClick={() => setEditingEvent(t)} style={{
+                    fontSize: '12px', color: 'var(--text-secondary)', padding: '3px 0',
+                    display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
+                    borderRadius: '4px',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
+                  onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
+                  >
                     <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.color, flexShrink: 0 }} />
-                    {t.title}
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+                    {t.reminder && <span style={{ fontSize: '10px' }} title={`Reminder: ${t.reminder}min before`}>🔔</span>}
+                    {t.recurrence && <span style={{ fontSize: '10px' }} title="Recurring">🔁</span>}
                   </div>
                 ))}
               </div>
             ))}
+            {groups.length === 0 && (
+              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', padding: '4px 0' }}>No upcoming events</div>
+            )}
           </div>
         )
       })()}
+      {/* Event Modal */}
+      {(editingEvent || showNewEvent) && (
+        <EventModal
+          initialEvent={editingEvent || undefined}
+          defaultDate={new Date().toISOString().split('T')[0]}
+          defaultStartTime={`${String(new Date().getHours()).padStart(2, '0')}:00`}
+          defaultEndTime={`${String(Math.min(23, new Date().getHours() + 1)).padStart(2, '0')}:00`}
+          onClose={() => { setEditingEvent(null); setShowNewEvent(false) }}
+          onSave={async (evt) => {
+            if (evt.uid) {
+              const existing = upcoming.find(t => t.uid === evt.uid) || todayTasks.find(t => t.uid === evt.uid)
+              if (existing?.id) await db.tasks.update(existing.id, evt)
+            } else {
+              await db.tasks.add({
+                uid: nanoid(), pageUid: '', createdAt: new Date().toISOString(),
+                title: evt.title || '', status: evt.status || 'todo',
+                priority: evt.priority || null, dueDate: evt.dueDate || null,
+                scheduledDate: evt.scheduledDate || null,
+                startTime: evt.startTime || null, endTime: evt.endTime || null,
+                color: evt.color || '#6366F1',
+                description: evt.description, location: evt.location,
+                itemType: evt.itemType, recurrence: evt.recurrence,
+                reminder: evt.reminder, url: evt.url,
+              } as Task)
+            }
+            loadEvents()
+          }}
+          onDelete={async (uid) => {
+            const task = [...upcoming, ...todayTasks].find(t => t.uid === uid)
+            if (task?.id) await db.tasks.delete(task.id)
+            loadEvents()
+          }}
+        />
+      )}
     </aside>
   )
 }
