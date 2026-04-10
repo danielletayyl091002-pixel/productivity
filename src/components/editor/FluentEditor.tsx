@@ -74,13 +74,7 @@ const DatabaseNode = TiptapNode.create({
 const CollapseComponent = ({ node, updateAttributes }: any) => {
   const collapsed = node.attrs.collapsed
   return (
-    <NodeViewWrapper
-      as="div"
-      data-collapse=""
-      data-collapsed={String(collapsed)}
-      className="collapse-wrapper"
-      style={{ margin: '8px 0' }}
-    >
+    <NodeViewWrapper as="div" data-collapse="" style={{ margin: '8px 0' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <button
           onClick={() => updateAttributes({ collapsed: !collapsed })}
@@ -88,13 +82,15 @@ const CollapseComponent = ({ node, updateAttributes }: any) => {
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
             padding: '2px 4px', color: 'var(--text-tertiary)', fontSize: '14px',
-            userSelect: 'none', transition: 'transform 0.1s', flexShrink: 0,
+            userSelect: 'none', flexShrink: 0,
           }}
           onMouseEnter={e => { (e.currentTarget).style.color = 'var(--accent)' }}
           onMouseLeave={e => { (e.currentTarget).style.color = 'var(--text-tertiary)' }}
         >{collapsed ? '\u25B6' : '\u25BC'}</button>
         <div style={{ flex: 1 }}>
-          <NodeViewContent className="collapse-content" />
+          <NodeViewContent
+            className={collapsed ? 'collapse-content-collapsed' : 'collapse-content-expanded'}
+          />
         </div>
       </div>
     </NodeViewWrapper>

@@ -138,14 +138,17 @@ input, textarea, select { border-radius: calc(var(--radius-base, 10px) * 0.8) !i
 .ProseMirror blockquote blockquote { margin: 4px 0; }
 /* Collapse block */
 /* Collapse block */
-.collapse-content > *:first-child { font-weight: 600; }
-.collapse-wrapper[data-collapsed="true"] .collapse-content > *:not(:first-child) {
-  height: 0; overflow: hidden; opacity: 0; pointer-events: none;
-  margin: 0 !important; padding: 0 !important; border: none !important;
+.collapse-content-collapsed > *:first-child,
+.collapse-content-expanded > *:first-child { font-weight: 600; }
+.collapse-content-collapsed > *:not(:first-child) {
+  height: 0 !important; min-height: 0 !important;
+  overflow: hidden !important; opacity: 0 !important;
+  pointer-events: none !important;
+  margin: 0 !important; padding: 0 !important;
+  border: none !important; line-height: 0 !important;
 }
-.collapse-wrapper[data-collapsed="false"] .collapse-content > *:not(:first-child) {
-  height: auto; opacity: 1; pointer-events: auto;
-  margin-left: 28px; padding-left: 12px;
+.collapse-content-expanded > *:not(:first-child) {
+  margin-left: 24px; padding-left: 12px;
   border-left: 2px solid var(--border);
 }
 .ProseMirror table { border-collapse: collapse !important; width: 100%; margin: 12px 0; }
