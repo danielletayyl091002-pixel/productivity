@@ -71,28 +71,30 @@ const DatabaseNode = TiptapNode.create({
   },
 })
 
-const ToggleView = ({ node, updateAttributes }: any) => {
+function ToggleView({ node, updateAttributes }: any) {
   const [open, setOpen] = useState(node.attrs.open || false)
-  const toggle = () => { const v = !open; setOpen(v); updateAttributes({ open: v }) }
+  const toggle = () => { const next = !open; setOpen(next); updateAttributes({ open: next }) }
   return (
     <NodeViewWrapper>
-      <div style={{ margin: '8px 0' }}>
+      <div style={{ margin: '4px 0' }}>
         <div contentEditable={false} onClick={toggle} style={{
-          display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
           userSelect: 'none', padding: '4px 8px', borderRadius: 'var(--radius-base, 6px)',
           color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 500,
         }}
         onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
         onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
         >
-          <span style={{ display: 'inline-block', transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s', fontSize: '12px' }}>{'\u25B6'}</span>
+          <span style={{ display: 'inline-block', transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s', fontSize: '11px' }}>{'\u25B6'}</span>
           <span>Toggle</span>
         </div>
-        {open && (
-          <div style={{ paddingLeft: '20px', borderLeft: '2px solid var(--border)', marginLeft: '8px', marginTop: '4px' }}>
-            <NodeViewContent />
-          </div>
-        )}
+        <div style={{
+          paddingLeft: '20px', borderLeft: '2px solid var(--border)',
+          marginLeft: '8px', marginTop: '4px',
+          display: open ? 'block' : 'none',
+        }}>
+          <NodeViewContent />
+        </div>
       </div>
     </NodeViewWrapper>
   )
