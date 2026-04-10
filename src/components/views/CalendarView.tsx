@@ -495,6 +495,11 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onDoubleClick={e => {
+          const pos = getColAndHour(e)
+          if (!pos) return
+          setModalDefaults({ date: pos.dateStr, start: fmtDB(pos.hour), end: fmtDB(pos.hour + 1) })
+        }}
       >
         <div style={{
           display: 'grid',
