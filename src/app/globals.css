@@ -73,6 +73,16 @@ input[type=number]::-webkit-outer-spin-button {
 }
 input[type=number] { -moz-appearance: textfield; }
 
+/* Date picker icon */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  cursor: pointer;
+  filter: var(--date-picker-filter, none);
+}
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
 /* Corner style via data-corners attribute */
 [data-corners="sharp"] { --radius-base: 2px; }
 [data-corners="subtle"] { --radius-base: 6px; }

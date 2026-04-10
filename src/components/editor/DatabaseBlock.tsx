@@ -19,11 +19,13 @@ const AGG_CYCLE: Record<string, AggType[]> = {
 }
 
 const TYPE_ICONS: Record<string, string> = {
-  text: 'Aa',
-  number: '#',
-  date: 'D',
-  checkbox: '\u2611',
-  select: '\u2630',
+  text: 'Aa', number: '#', date: 'D', checkbox: '\u2611', select: '\u2630',
+}
+
+const cellInputStyle: React.CSSProperties = {
+  border: 'none', background: 'transparent', borderRadius: 0, boxShadow: 'none',
+  padding: '6px 12px', width: '100%', outline: 'none',
+  color: 'var(--text-primary)', fontSize: '13px', boxSizing: 'border-box',
 }
 
 export default function DatabaseBlock({ databaseUid, pageUid }: DatabaseBlockProps) {
@@ -37,7 +39,6 @@ export default function DatabaseBlock({ databaseUid, pageUid }: DatabaseBlockPro
   const [aggs, setAggs] = useState<Record<string, AggType>>({})
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
-  // Load data
   useEffect(() => {
     async function load() {
       const def = await db.databases.where('uid').equals(databaseUid).first()
@@ -46,17 +47,14 @@ export default function DatabaseBlock({ databaseUid, pageUid }: DatabaseBlockPro
       setColumns(cols)
       const rws = await db.databaseRows.where('databaseUid').equals(databaseUid).sortBy('order')
       setRows(rws)
-      const rowUids = rws.map(r => r.uid)
-      if (rowUids.length > 0) {
-        const allCells = await db.databaseCells.where('rowUid').anyOf(rowUids).toArray()
+      if (rws.length > 0) {
+        const allCells = await db.databaseCells.where('rowUid').anyOf(rws.map(r => r.uid)).toArray()
         setCells(allCells)
       }
-      // Load aggregates from localStorage
       const stored: Record<string, AggType> = {}
       cols.forEach(c => {
-        const key = `db_agg_${databaseUid}_${c.uid}`
-        const val = localStorage.getItem(key)
-        if (val) stored[c.uid] = val as AggType
+        const v = localStorage.getItem(`db_agg_${databaseUid}_${c.uid}`)
+        if (v) stored[c.uid] = v as AggType
       })
       setAggs(stored)
     }
@@ -68,38 +66,28 @@ export default function DatabaseBlock({ databaseUid, pageUid }: DatabaseBlockPro
   }, [cells])
 
   const setCellValue = useCallback((rowUid: string, columnUid: string, value: string) => {
-    // Optimistic update
     setCells(prev => {
       const existing = prev.find(c => c.rowUid === rowUid && c.columnUid === columnUid)
       if (existing) return prev.map(c => c.rowUid === rowUid && c.columnUid === columnUid ? { ...c, value } : c)
-      const newCell: DatabaseCell = { uid: nanoid(), rowUid, columnUid, value }
-      return [...prev, newCell]
+      return [...prev, { uid: nanoid(), rowUid, columnUid, value }]
     })
-    // Debounced persist
     const key = `${rowUid}-${columnUid}`
     clearTimeout(saveTimers.current[key])
     saveTimers.current[key] = setTimeout(async () => {
       const existing = await db.databaseCells.where({ rowUid, columnUid }).first()
-      if (existing?.id) {
-        await db.databaseCells.update(existing.id, { value })
-      } else {
-        await db.databaseCells.add({ uid: nanoid(), rowUid, columnUid, value })
-      }
+      if (existing?.id) await db.databaseCells.update(existing.id, { value })
+      else await db.databaseCells.add({ uid: nanoid(), rowUid, columnUid, value })
     }, 300)
   }, [])
 
   const addColumn = useCallback(async () => {
-    const col: DatabaseColumn = {
-      uid: nanoid(), databaseUid, name: 'Column', type: 'text', order: columns.length, options: null,
-    }
+    const col: DatabaseColumn = { uid: nanoid(), databaseUid, name: 'Column', type: 'text', order: columns.length, options: null }
     await db.databaseColumns.add(col)
     setColumns(prev => [...prev, col])
   }, [databaseUid, columns.length])
 
   const addRow = useCallback(async () => {
-    const row: DatabaseRow = {
-      uid: nanoid(), databaseUid, order: rows.length, createdAt: new Date().toISOString(),
-    }
+    const row: DatabaseRow = { uid: nanoid(), databaseUid, order: rows.length, createdAt: new Date().toISOString() }
     await db.databaseRows.add(row)
     setRows(prev => [...prev, row])
   }, [databaseUid, rows.length])
@@ -130,13 +118,9 @@ export default function DatabaseBlock({ databaseUid, pageUid }: DatabaseBlockPro
   const changeColumnType = useCallback(async (uid: string, type: DatabaseColumn['type']) => {
     const col = columns.find(c => c.uid === uid)
     if (col?.id) await db.databaseColumns.update(col.id, { type })
-    // Clear cell values that don't match the new type
     if (type === 'checkbox') {
-      // Reset non-boolean values to 'false'
       const colCells = cells.filter(c => c.columnUid === uid && c.value !== 'true' && c.value !== 'false' && c.value !== '')
-      for (const cell of colCells) {
-        if (cell.id) await db.databaseCells.update(cell.id, { value: 'false' })
-      }
+      for (const cell of colCells) { if (cell.id) await db.databaseCells.update(cell.id, { value: 'false' }) }
       setCells(prev => prev.map(c => c.columnUid === uid && c.value !== 'true' && c.value !== 'false' && c.value !== '' ? { ...c, value: 'false' } : c))
     }
     setColumns(prev => prev.map(c => c.uid === uid ? { ...c, type } : c))
@@ -152,21 +136,20 @@ export default function DatabaseBlock({ databaseUid, pageUid }: DatabaseBlockPro
   const cycleAggregate = useCallback((colUid: string, colType: string) => {
     const cycle = AGG_CYCLE[colType] || [null]
     const current = aggs[colUid] || null
-    const idx = cycle.indexOf(current)
-    const next = cycle[(idx + 1) % cycle.length]
+    const next = cycle[(cycle.indexOf(current) + 1) % cycle.length]
     setAggs(prev => ({ ...prev, [colUid]: next }))
-    localStorage.setItem(`db_agg_${databaseUid}_${colUid}`, next || '')
-    if (!next) localStorage.removeItem(`db_agg_${databaseUid}_${colUid}`)
+    if (next) localStorage.setItem(`db_agg_${databaseUid}_${colUid}`, next)
+    else localStorage.removeItem(`db_agg_${databaseUid}_${colUid}`)
   }, [aggs, databaseUid])
 
   const computeAggregate = useCallback((colUid: string, colType: string, agg: AggType): string => {
     if (!agg) return ''
     const values = rows.map(r => getCellValue(r.uid, colUid)).filter(v => v !== '')
-    if (values.length === 0) return '—'
+    if (values.length === 0) return '\u2014'
     if (agg === 'count') return String(values.length)
     if (colType === 'number') {
       const nums = values.map(v => parseFloat(v)).filter(n => !isNaN(n))
-      if (nums.length === 0) return '—'
+      if (nums.length === 0) return '\u2014'
       switch (agg) {
         case 'sum': return String(Math.round(nums.reduce((a, b) => a + b, 0) * 100) / 100)
         case 'avg': return String(Math.round(nums.reduce((a, b) => a + b, 0) / nums.length * 100) / 100)
@@ -177,267 +160,152 @@ export default function DatabaseBlock({ databaseUid, pageUid }: DatabaseBlockPro
     }
     if (colType === 'date') {
       const dates = values.filter(v => v).sort()
-      if (agg === 'earliest') return dates[0] || '—'
-      if (agg === 'latest') return dates[dates.length - 1] || '—'
+      if (agg === 'earliest') return dates[0] || '\u2014'
+      if (agg === 'latest') return dates[dates.length - 1] || '\u2014'
     }
-    if (colType === 'checkbox' && agg === 'checked') {
-      return String(values.filter(v => v === 'true').length)
-    }
+    if (colType === 'checkbox' && agg === 'checked') return String(values.filter(v => v === 'true').length)
     return ''
   }, [rows, getCellValue])
 
-  // Filter rows by search
   const filteredRows = search
     ? rows.filter(r => columns.some(c => getCellValue(r.uid, c.uid).toLowerCase().includes(search.toLowerCase())))
     : rows
 
   return (
     <div style={{
-      border: '1px solid var(--border)', borderRadius: '10px',
+      border: '1px solid var(--border)', borderRadius: 'var(--radius-card, 10px)',
       overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-      margin: '12px 0', width: '100%',
+      background: 'var(--bg-primary)', margin: '8px 0', width: '100%',
     }}>
-      {/* Header */}
+      {/* Toolbar */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: '8px',
-        padding: '10px 14px', borderBottom: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', gap: '10px',
+        padding: '10px 16px', borderBottom: '1px solid var(--border)',
         background: 'var(--bg-secondary)',
       }}>
-        <input
-          value={dbName}
-          onChange={e => setDbName(e.target.value)}
-          onBlur={e => updateDbName(e.target.value)}
-          style={{
-            border: 'none', outline: 'none', background: 'transparent',
-            fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)',
-            flex: 1, padding: '2px 0',
-          }}
-        />
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search..."
-          style={{
-            border: '1px solid var(--border)', borderRadius: '6px',
-            padding: '4px 8px', fontSize: '11px', background: 'var(--bg-primary)',
-            color: 'var(--text-primary)', outline: 'none', width: '120px',
-          }}
-        />
-        <button onClick={addColumn} style={{
-          padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--border)',
-          background: 'var(--bg-primary)', cursor: 'pointer', fontSize: '11px',
-          fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap',
-        }}>+ Column</button>
+        <input value={dbName} onChange={e => setDbName(e.target.value)} onBlur={e => updateDbName(e.target.value)}
+          style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', flex: 1, padding: '2px 0' }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..."
+          style={{ padding: '5px 10px', borderRadius: 'var(--radius-base, 6px)', border: '1px solid var(--border)', background: 'var(--bg-primary)', fontSize: '12px', color: 'var(--text-primary)', outline: 'none', width: '160px' }} />
+        <button onClick={addColumn} style={{ padding: '5px 12px', borderRadius: 'var(--radius-base, 6px)', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>+ Column</button>
         <button onClick={() => {
           const header = columns.map(c => c.name).join(',')
-          const dataRows = rows.map(r => columns.map(c => {
-            const val = getCellValue(r.uid, c.uid)
-            return val.includes(',') ? `"${val}"` : val
-          }).join(','))
+          const dataRows = rows.map(r => columns.map(c => { const v = getCellValue(r.uid, c.uid); return v.includes(',') ? `"${v}"` : v }).join(','))
           const csv = [header, ...dataRows].join('\n')
           const blob = new Blob([csv], { type: 'text/csv' })
           const url = URL.createObjectURL(blob)
-          const a = document.createElement('a')
-          a.href = url; a.download = `${dbName}.csv`; a.click()
+          const a = document.createElement('a'); a.href = url; a.download = `${dbName}.csv`; a.click()
           URL.revokeObjectURL(url)
-        }} style={{
-          padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--border)',
-          background: 'var(--bg-primary)', cursor: 'pointer', fontSize: '11px',
-          fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap',
-        }}>Export CSV</button>
+        }} style={{ padding: '5px 12px', borderRadius: 'var(--radius-base, 6px)', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Export CSV</button>
       </div>
 
       {/* Table */}
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-          {/* Column headers */}
           <thead>
             <tr>
               {columns.map(col => (
-                <th
-                  key={col.uid}
-                  onContextMenu={e => { e.preventDefault(); setContextMenu({ uid: col.uid, x: e.clientX, y: e.clientY }) }}
+                <th key={col.uid} onContextMenu={e => { e.preventDefault(); setContextMenu({ uid: col.uid, x: e.clientX, y: e.clientY }) }}
                   style={{
                     background: 'var(--bg-secondary)', borderBottom: '2px solid var(--border)',
                     borderRight: '1px solid var(--border)', padding: '8px 12px',
-                    fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)',
-                    textAlign: 'left', minWidth: '120px', position: 'relative',
-                  }}
-                >
+                    fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)',
+                    textAlign: 'left', minWidth: '120px', textTransform: 'uppercase', letterSpacing: '0.06em',
+                  }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '10px', opacity: 0.6 }}>{TYPE_ICONS[col.type]}</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{TYPE_ICONS[col.type]}</span>
                     {editingCol === col.uid ? (
-                      <input
-                        autoFocus
-                        defaultValue={col.name}
+                      <input autoFocus defaultValue={col.name}
                         onBlur={e => { renameColumn(col.uid, e.target.value); setEditingCol(null) }}
                         onKeyDown={e => { if (e.key === 'Enter') { renameColumn(col.uid, (e.target as HTMLInputElement).value); setEditingCol(null) } }}
-                        style={{
-                          border: 'none', outline: 'none', background: 'transparent',
-                          fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)',
-                          width: '100%',
-                        }}
-                      />
+                        style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', width: '100%', textTransform: 'uppercase', letterSpacing: '0.06em' }} />
                     ) : (
-                      <span
-                        onClick={() => setEditingCol(col.uid)}
-                        style={{ cursor: 'text' }}
-                      >{col.name}</span>
+                      <span onClick={() => setEditingCol(col.uid)} style={{ cursor: 'text' }}>{col.name}</span>
                     )}
                   </div>
                 </th>
               ))}
-              <th style={{
-                background: 'var(--bg-secondary)', borderBottom: '2px solid var(--border)',
-                width: '40px', minWidth: '40px',
-              }} />
+              <th style={{ background: 'var(--bg-secondary)', borderBottom: '2px solid var(--border)', width: '32px', minWidth: '32px' }} />
             </tr>
           </thead>
-
-          {/* Data rows */}
           <tbody>
             {filteredRows.map(row => (
-              <tr
-                key={row.uid}
-                style={{ transition: 'background 0.1s' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-hover)' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-              >
+              <tr key={row.uid} className="db-row" style={{ minHeight: '36px', position: 'relative' }}
+                onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)'; const btn = e.currentTarget.querySelector('.db-row-del') as HTMLElement; if (btn) btn.style.opacity = '1' }}
+                onMouseLeave={e => { (e.currentTarget).style.background = 'transparent'; const btn = e.currentTarget.querySelector('.db-row-del') as HTMLElement; if (btn) btn.style.opacity = '0' }}>
                 {columns.map(col => (
-                  <td key={col.uid} style={{
-                    borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
-                    padding: '0', minWidth: '120px',
-                  }}>
+                  <td key={col.uid} style={{ borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: 0, minWidth: '120px' }}>
                     {col.type === 'checkbox' ? (
-                      <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 12px' }}>
-                        <input
-                          type="checkbox"
-                          checked={getCellValue(row.uid, col.uid) === 'true'}
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 12px' }}>
+                        <input type="checkbox" checked={getCellValue(row.uid, col.uid) === 'true'}
                           onChange={e => setCellValue(row.uid, col.uid, e.target.checked ? 'true' : 'false')}
-                          style={{ accentColor: 'var(--accent)', cursor: 'pointer', width: '16px', height: '16px' }}
-                        />
+                          style={{ accentColor: 'var(--accent)', cursor: 'pointer', width: '15px', height: '15px' }} />
                       </div>
                     ) : col.type === 'select' ? (
-                      <select
-                        value={getCellValue(row.uid, col.uid)}
-                        onChange={e => setCellValue(row.uid, col.uid, e.target.value)}
-                        style={{
-                          border: 'none', outline: 'none', background: 'transparent',
-                          fontSize: '13px', color: 'var(--text-primary)',
-                          padding: '8px 12px', width: '100%', cursor: 'pointer',
-                        }}
-                      >
-                        <option value="">—</option>
-                        {(col.options ? JSON.parse(col.options) : []).map((opt: string) => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
+                      <select value={getCellValue(row.uid, col.uid)} onChange={e => setCellValue(row.uid, col.uid, e.target.value)}
+                        style={{ ...cellInputStyle, cursor: 'pointer' }}>
+                        <option value="">\u2014</option>
+                        {(col.options ? JSON.parse(col.options) : []).map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
                     ) : (
-                      <input
-                        type={col.type === 'number' ? 'number' : col.type === 'date' ? 'date' : 'text'}
-                        value={getCellValue(row.uid, col.uid)}
-                        onChange={e => setCellValue(row.uid, col.uid, e.target.value)}
-                        style={{
-                          border: 'none', outline: 'none', background: 'transparent',
-                          fontSize: '13px', color: 'var(--text-primary)',
-                          padding: '8px 12px', width: '100%', boxSizing: 'border-box',
-                          textAlign: col.type === 'number' ? 'right' : 'left',
-                        }}
-                      />
+                      <input type={col.type === 'number' ? 'number' : col.type === 'date' ? 'date' : 'text'}
+                        value={getCellValue(row.uid, col.uid)} onChange={e => setCellValue(row.uid, col.uid, e.target.value)}
+                        style={{ ...cellInputStyle, textAlign: col.type === 'number' ? 'right' as const : 'left' as const }} />
                     )}
                   </td>
                 ))}
-                <td style={{ borderBottom: '1px solid var(--border)', padding: '0', textAlign: 'center' }}>
-                  <button
-                    onClick={() => deleteRow(row.uid)}
-                    style={{
-                      border: 'none', background: 'none', cursor: 'pointer',
-                      color: 'var(--text-tertiary)', fontSize: '14px', padding: '4px',
-                      opacity: 0.4,
-                    }}
-                    onMouseEnter={e => { (e.currentTarget).style.opacity = '1'; (e.currentTarget).style.color = '#EF4444' }}
-                    onMouseLeave={e => { (e.currentTarget).style.opacity = '0.4'; (e.currentTarget).style.color = 'var(--text-tertiary)' }}
-                  >&times;</button>
+                <td style={{ borderBottom: '1px solid var(--border)', padding: 0, textAlign: 'center', position: 'relative' }}>
+                  <button className="db-row-del" onClick={() => deleteRow(row.uid)}
+                    style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: '12px', padding: '4px', opacity: 0, transition: 'opacity 0.1s' }}
+                    onMouseEnter={e => { (e.currentTarget).style.color = '#EF4444' }}
+                    onMouseLeave={e => { (e.currentTarget).style.color = 'var(--text-tertiary)' }}>&times;</button>
                 </td>
               </tr>
             ))}
           </tbody>
-
-          {/* Aggregate row */}
           <tfoot>
             <tr>
               {columns.map(col => {
                 const agg = aggs[col.uid] || null
                 const val = computeAggregate(col.uid, col.type, agg)
                 return (
-                  <td
-                    key={col.uid}
-                    onClick={() => cycleAggregate(col.uid, col.type)}
+                  <td key={col.uid} onClick={() => cycleAggregate(col.uid, col.type)} title="Click to cycle aggregate"
                     style={{
-                      background: 'var(--bg-secondary)', borderRight: '1px solid var(--border)',
-                      padding: '6px 12px', fontSize: '11px', color: 'var(--text-tertiary)',
-                      fontWeight: 600, cursor: 'pointer', userSelect: 'none',
-                    }}
-                    title="Click to cycle aggregate"
-                  >
-                    {agg ? (
-                      <span><span style={{ textTransform: 'uppercase', fontSize: '9px', opacity: 0.7 }}>{agg} </span>{val}</span>
-                    ) : (
-                      <span style={{ opacity: 0.4 }}>Calculate</span>
-                    )}
+                      background: 'var(--bg-secondary)', borderRight: '1px solid var(--border)', borderTop: '2px solid var(--border)',
+                      padding: '6px 12px', fontSize: '11px', cursor: 'pointer', userSelect: 'none',
+                      color: agg ? 'var(--accent)' : 'var(--text-tertiary)', fontWeight: agg ? 600 : 400,
+                    }}>
+                    {agg ? <span><span style={{ textTransform: 'uppercase', fontSize: '9px', opacity: 0.7 }}>{agg} </span>{val}</span>
+                         : <span style={{ opacity: 0.4 }}>Calculate</span>}
                   </td>
                 )
               })}
-              <td style={{ background: 'var(--bg-secondary)' }} />
+              <td style={{ background: 'var(--bg-secondary)', borderTop: '2px solid var(--border)' }} />
             </tr>
           </tfoot>
         </table>
       </div>
 
-      {/* Add row button */}
-      <button
-        onClick={addRow}
-        style={{
-          width: '100%', padding: '8px', border: 'none',
-          background: 'transparent', cursor: 'pointer',
-          fontSize: '12px', color: 'var(--text-tertiary)',
-          fontWeight: 500, textAlign: 'left', paddingLeft: '14px',
-        }}
-        onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
-        onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
+      {/* + New row */}
+      <button onClick={addRow} style={{
+        width: '100%', padding: '8px 16px', background: 'transparent', border: 'none',
+        borderTop: '1px solid var(--border)', color: 'var(--text-tertiary)', fontSize: '12px',
+        cursor: 'pointer', textAlign: 'left',
+      }}
+      onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)'; (e.currentTarget).style.color = 'var(--accent)' }}
+      onMouseLeave={e => { (e.currentTarget).style.background = 'transparent'; (e.currentTarget).style.color = 'var(--text-tertiary)' }}
       >+ New row</button>
 
-      {/* Column context menu */}
+      {/* Context menu */}
       {contextMenu && (
         <>
-          <div
-            onClick={() => setContextMenu(null)}
-            style={{ position: 'fixed', inset: 0, zIndex: 999 }}
-          />
-          <div style={{
-            position: 'fixed', top: contextMenu.y, left: contextMenu.x, zIndex: 1000,
-            background: 'var(--bg-primary)', border: '1px solid var(--border)',
-            borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-            padding: '4px 0', minWidth: '160px',
-          }}>
-            <div
-              onClick={() => { setEditingCol(contextMenu.uid); setContextMenu(null) }}
-              style={{ padding: '6px 12px', fontSize: '13px', cursor: 'pointer', color: 'var(--text-primary)' }}
-              onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
-              onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
-            >Rename</div>
+          <div onClick={() => setContextMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: 999 }} />
+          <div style={{ position: 'fixed', top: contextMenu.y, left: contextMenu.x, zIndex: 1000, background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-base, 8px)', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', padding: '4px 0', minWidth: '160px' }}>
+            <div onClick={() => { setEditingCol(contextMenu.uid); setContextMenu(null) }} style={{ padding: '6px 12px', fontSize: '13px', cursor: 'pointer', color: 'var(--text-primary)' }} onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }} onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}>Rename</div>
             <div style={{ height: '1px', background: 'var(--border)', margin: '4px 0' }} />
-            <div style={{ padding: '4px 12px', fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>
-              Change type
-            </div>
+            <div style={{ padding: '4px 12px', fontSize: '10px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Change type</div>
             {(['text', 'number', 'date', 'checkbox', 'select'] as const).map(t => (
-              <div
-                key={t}
-                onClick={() => changeColumnType(contextMenu.uid, t)}
-                style={{ padding: '6px 12px 6px 20px', fontSize: '13px', cursor: 'pointer', color: 'var(--text-primary)', display: 'flex', gap: '8px', alignItems: 'center' }}
-                onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
-                onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
-              >
+              <div key={t} onClick={() => changeColumnType(contextMenu.uid, t)} style={{ padding: '6px 12px 6px 20px', fontSize: '13px', cursor: 'pointer', color: 'var(--text-primary)', display: 'flex', gap: '8px', alignItems: 'center' }} onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }} onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}>
                 <span style={{ fontSize: '10px', opacity: 0.6, width: '16px' }}>{TYPE_ICONS[t]}</span>
                 <span style={{ textTransform: 'capitalize' }}>{t}</span>
               </div>
@@ -445,44 +313,13 @@ export default function DatabaseBlock({ databaseUid, pageUid }: DatabaseBlockPro
             <div style={{ height: '1px', background: 'var(--border)', margin: '4px 0' }} />
             {(() => {
               const idx = columns.findIndex(c => c.uid === contextMenu.uid)
-              return (
-                <>
-                  {idx > 0 && (
-                    <div onClick={async () => {
-                      const prev = columns[idx - 1]
-                      const curr = columns[idx]
-                      if (prev.id) await db.databaseColumns.update(prev.id, { order: idx })
-                      if (curr.id) await db.databaseColumns.update(curr.id, { order: idx - 1 })
-                      setColumns(p => { const n = [...p]; [n[idx-1], n[idx]] = [n[idx], n[idx-1]]; return n })
-                      setContextMenu(null)
-                    }} style={{ padding: '6px 12px', fontSize: '13px', cursor: 'pointer', color: 'var(--text-primary)' }}
-                    onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
-                    onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
-                    >Move left</div>
-                  )}
-                  {idx < columns.length - 1 && (
-                    <div onClick={async () => {
-                      const next = columns[idx + 1]
-                      const curr = columns[idx]
-                      if (next.id) await db.databaseColumns.update(next.id, { order: idx })
-                      if (curr.id) await db.databaseColumns.update(curr.id, { order: idx + 1 })
-                      setColumns(p => { const n = [...p]; [n[idx], n[idx+1]] = [n[idx+1], n[idx]]; return n })
-                      setContextMenu(null)
-                    }} style={{ padding: '6px 12px', fontSize: '13px', cursor: 'pointer', color: 'var(--text-primary)' }}
-                    onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
-                    onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
-                    >Move right</div>
-                  )}
-                </>
-              )
+              return <>
+                {idx > 0 && <div onClick={async () => { const prev = columns[idx-1], curr = columns[idx]; if (prev.id) await db.databaseColumns.update(prev.id, { order: idx }); if (curr.id) await db.databaseColumns.update(curr.id, { order: idx-1 }); setColumns(p => { const n = [...p]; [n[idx-1], n[idx]] = [n[idx], n[idx-1]]; return n }); setContextMenu(null) }} style={{ padding: '6px 12px', fontSize: '13px', cursor: 'pointer', color: 'var(--text-primary)' }} onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }} onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}>Move left</div>}
+                {idx < columns.length-1 && <div onClick={async () => { const next = columns[idx+1], curr = columns[idx]; if (next.id) await db.databaseColumns.update(next.id, { order: idx }); if (curr.id) await db.databaseColumns.update(curr.id, { order: idx+1 }); setColumns(p => { const n = [...p]; [n[idx], n[idx+1]] = [n[idx+1], n[idx]]; return n }); setContextMenu(null) }} style={{ padding: '6px 12px', fontSize: '13px', cursor: 'pointer', color: 'var(--text-primary)' }} onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }} onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}>Move right</div>}
+              </>
             })()}
             <div style={{ height: '1px', background: 'var(--border)', margin: '4px 0' }} />
-            <div
-              onClick={() => deleteColumn(contextMenu.uid)}
-              style={{ padding: '6px 12px', fontSize: '13px', cursor: 'pointer', color: '#EF4444' }}
-              onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
-              onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
-            >Delete column</div>
+            <div onClick={() => deleteColumn(contextMenu.uid)} style={{ padding: '6px 12px', fontSize: '13px', cursor: 'pointer', color: '#EF4444' }} onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }} onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}>Delete column</div>
           </div>
         </>
       )}
