@@ -234,7 +234,7 @@ export default function TrackerGrid() {
         <SortableContext items={definitions.map(d => d.uid)} strategy={rectSortingStrategy}>
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+        gridTemplateColumns: 'repeat(3, 1fr)',
         gap: '16px',
         alignItems: 'stretch',
       }}>
