@@ -614,10 +614,11 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
         gridTemplateColumns: '1fr 80px 100px 80px 40px',
         padding: '8px 20px',
         borderBottom: '1px solid var(--border)',
-        background: 'var(--bg-hover)'
+        background: 'var(--bg-hover)',
+        gap: '8px',
       }}>
-        {['Source', 'Amount', 'Category', 'Date'].map(h => (
-          <span key={h} style={{ fontSize: '10px',
+        {['Source', 'Amount', 'Category', 'Date', ''].map(h => (
+          <span key={h || 'empty'} style={{ fontSize: '10px',
             fontWeight: 600, textTransform: 'uppercase',
             letterSpacing: '0.06em',
             color: 'var(--text-tertiary)' }}>
@@ -642,7 +643,8 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
               padding: '10px 20px',
               borderBottom: '1px solid var(--border)',
               alignItems: 'center',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              gap: '8px'
             }}
             onClick={() => {
               if (isEditing) return
