@@ -659,16 +659,16 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                   onClick={e => e.stopPropagation()}
                   onChange={e => setEditForm(p => ({ ...p, note: e.target.value }))}
                   autoFocus
-                  style={{ width: '100%', border: 'none',
+                  style={{ width: '100%', border: '1px solid var(--border)',
                     background: 'var(--bg-hover)',
-                    borderRadius: 'var(--radius-xs, 4px)', padding: '2px 6px',
-                    color: 'var(--text-primary)', fontSize: '13px' }}
+                    borderRadius: '8px', padding: '4px 8px',
+                    color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }}
                 />
               ) : (
                 <span style={{ fontSize: '13px',
                   color: 'var(--text-primary)',
-                  overflow: 'hidden', textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap' }}>
+                  whiteSpace: 'nowrap',
+                  minWidth: '80px' }}>
                   {entry.note}
                 </span>
               )}
@@ -676,11 +676,11 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                 <input type="number" value={editForm.amount}
                   onClick={e => e.stopPropagation()}
                   onChange={e => setEditForm(p => ({ ...p, amount: e.target.value }))}
-                  style={{ width: '70px', border: 'none',
+                  style={{ width: '70px', border: '1px solid var(--border)',
                     background: 'var(--bg-hover)',
-                    borderRadius: 'var(--radius-xs, 4px)', padding: '2px 6px',
+                    borderRadius: '8px', padding: '4px 8px',
                     color: type === 'income' ? '#10B981' : '#EF4444',
-                    fontSize: '13px' }}
+                    fontSize: '13px', outline: 'none' }}
                 />
               ) : (
                 <span style={{ fontSize: '13px', fontWeight: 600,
