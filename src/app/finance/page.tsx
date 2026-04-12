@@ -611,7 +611,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 80px 100px 80px 40px',
+        gridTemplateColumns: '1fr 90px 120px 80px 40px',
         padding: '8px 20px',
         borderBottom: '1px solid var(--border)',
         background: 'var(--bg-hover)',
@@ -639,7 +639,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
           return (
             <div key={entry.id} style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 80px 100px 80px 40px',
+              gridTemplateColumns: '1fr 90px 120px 80px 40px',
               padding: '10px 20px',
               borderBottom: '1px solid var(--border)',
               alignItems: 'center',
@@ -661,6 +661,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                   onClick={e => e.stopPropagation()}
                   onChange={e => setEditForm(p => ({ ...p, note: e.target.value }))}
                   autoFocus
+                  placeholder="Source name..."
                   style={{ width: '100%', border: '1px solid var(--border)',
                     background: 'var(--bg-hover)',
                     borderRadius: '8px', padding: '4px 8px',
@@ -724,7 +725,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                   background: cat.color + '25',
                   color: cat.color,
                   border: `1px solid ${cat.color}40`,
-                  maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {cat.name}
                 </span>
@@ -1122,30 +1123,27 @@ function CategoryManager({
                 )}
               </div>
 
-              <span style={{ flex: 1, fontSize: '13px',
-                color: 'var(--text-primary)' }}>
+              <span style={{ flex: 1, fontSize: '13px', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {cat.name}
               </span>
 
-              <span style={{
-                fontSize: '10px', padding: '2px 6px',
-                borderRadius: 'var(--radius-base, 8px)',
-                background: 'var(--bg-hover)',
-                color: 'var(--text-tertiary)'
-              }}>
+              <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: 'var(--radius-base, 8px)', background: 'var(--bg-hover)', color: 'var(--text-tertiary)', flexShrink: 0 }}>
                 {cat.type}
               </span>
 
-              {!cat.isDefault && (
-                <button onClick={() => cat.id && deleteCategory(cat.id)}
-                  style={{
-                    background: 'none', border: 'none',
-                    color: '#EF4444', cursor: 'pointer',
-                    fontSize: '12px', padding: '2px 6px'
-                  }}>
-                  Remove
-                </button>
-              )}
+              <button onClick={() => {
+                const newName = prompt('Rename category:', cat.name)
+                if (newName && newName.trim() && cat.id) updateCategory(cat.id, { name: newName.trim() })
+              }} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: '11px', padding: '2px 6px' }}
+              onMouseEnter={e => { (e.currentTarget).style.color = 'var(--accent)' }}
+              onMouseLeave={e => { (e.currentTarget).style.color = 'var(--text-tertiary)' }}
+              >Edit</button>
+
+              <button onClick={() => { if (cat.id && confirm(`Delete "${cat.name}"?`)) deleteCategory(cat.id) }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: '11px', padding: '2px 6px' }}
+                onMouseEnter={e => { (e.currentTarget).style.color = '#EF4444' }}
+                onMouseLeave={e => { (e.currentTarget).style.color = 'var(--text-tertiary)' }}
+              >Delete</button>
             </div>
           ))}
         </div>
