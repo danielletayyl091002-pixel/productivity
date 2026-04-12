@@ -611,7 +611,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 80px 100px 80px 32px',
+        gridTemplateColumns: '1fr 80px 100px 80px 40px',
         padding: '8px 20px',
         borderBottom: '1px solid var(--border)',
         background: 'var(--bg-hover)'
@@ -638,7 +638,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
           return (
             <div key={entry.id} style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 80px 100px 80px 32px',
+              gridTemplateColumns: '1fr 80px 100px 80px 40px',
               padding: '10px 20px',
               borderBottom: '1px solid var(--border)',
               alignItems: 'center',
@@ -715,13 +715,14 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                   </select>
                 )
               })() : cat ? (
-                <span style={{
+                <span title={cat.name} style={{
                   display: 'inline-block',
                   padding: '2px 8px', borderRadius: 'var(--radius-card, 12px)',
                   fontSize: '11px', fontWeight: 500,
                   background: cat.color + '25',
                   color: cat.color,
-                  border: `1px solid ${cat.color}40`
+                  border: `1px solid ${cat.color}40`,
+                  maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {cat.name}
                 </span>
