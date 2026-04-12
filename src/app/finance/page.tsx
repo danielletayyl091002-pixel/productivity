@@ -658,8 +658,11 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
               e.currentTarget.style.background = 'transparent'}
             >
               {isEditing ? (
-                <input value={editForm.note}
+                <input
+                  type="text"
+                  value={editForm.note}
                   onClick={e => e.stopPropagation()}
+                  onMouseDown={e => e.stopPropagation()}
                   onChange={e => setEditForm(p => ({ ...p, note: e.target.value }))}
                   autoFocus
                   placeholder="Source..."
@@ -672,8 +675,11 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                 </span>
               )}
               {isEditing ? (
-                <input type="number" value={editForm.amount}
+                <input
+                  type="number"
+                  value={editForm.amount}
                   onClick={e => e.stopPropagation()}
+                  onMouseDown={e => e.stopPropagation()}
                   onChange={e => setEditForm(p => ({ ...p, amount: e.target.value }))}
                   className="finance-edit-input"
                   style={{ color: type === 'income' ? '#10B981' : '#EF4444', fontSize: '13px' }}
@@ -690,6 +696,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                   <select
                     value={editForm.category}
                     onClick={e => e.stopPropagation()}
+                    onMouseDown={e => e.stopPropagation()}
                     onChange={e => setEditForm(p => ({ ...p, category: e.target.value }))}
                     className="finance-edit-input"
                     style={{
@@ -729,9 +736,9 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                 </span>
               )}
               {isEditing ? (
-                <div style={{ display: 'flex', gap: '4px' }}
+                <div style={{ display: 'flex', flexDirection: 'row', gap: '8px', alignItems: 'center', flexShrink: 0 }}
                   onClick={e => e.stopPropagation()}>
-                  <button onClick={async () => {
+                  <button data-no-sculpt onClick={async () => {
                     if (!entry.id) return
                     const newAmount = parseFloat(editForm.amount)
                     await db.financeEntries.update(entry.id, {
@@ -743,16 +750,18 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                     setEditingId(null)
                   }} style={{
                     background: '#10B981', color: 'white',
-                    border: 'none', borderRadius: 'var(--radius-xs, 4px)',
-                    fontSize: '11px', padding: '2px 8px',
-                    cursor: 'pointer', fontWeight: 600
+                    border: 'none', borderRadius: '6px',
+                    fontSize: '11px', padding: '4px 10px',
+                    cursor: 'pointer', fontWeight: 600,
+                    whiteSpace: 'nowrap',
                   }}>Save</button>
-                  <button onClick={() => setEditingId(null)} style={{
+                  <button data-no-sculpt onClick={() => setEditingId(null)} style={{
                     background: 'var(--bg-hover)',
                     color: 'var(--text-secondary)',
-                    border: 'none', borderRadius: 'var(--radius-xs, 4px)',
-                    fontSize: '11px', padding: '2px 8px',
-                    cursor: 'pointer'
+                    border: 'none', borderRadius: '6px',
+                    fontSize: '11px', padding: '4px 10px',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
                   }}>Cancel</button>
                 </div>
               ) : (

@@ -168,6 +168,7 @@ button[data-icon-only="true"], button.icon-btn {
 /* Finance edit-mode inputs — overrides global border-radius, padding, sculpt */
 input.finance-edit-input,
 input.finance-edit-input[type="number"],
+input.finance-edit-input[type="text"],
 select.finance-edit-input {
   border-radius: 8px !important;
   width: 100% !important;
@@ -179,6 +180,7 @@ select.finance-edit-input {
   box-shadow: none !important;
   box-sizing: border-box !important;
   outline: none !important;
+  pointer-events: auto !important;
 }
 /* Settings inputs */
 .settings-input {
