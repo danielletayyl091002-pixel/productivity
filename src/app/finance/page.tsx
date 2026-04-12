@@ -611,7 +611,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 80px 100px 80px',
+        gridTemplateColumns: '1fr 80px 100px 80px 32px',
         padding: '8px 20px',
         borderBottom: '1px solid var(--border)',
         background: 'var(--bg-hover)'
@@ -638,7 +638,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
           return (
             <div key={entry.id} style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 80px 100px 80px',
+              gridTemplateColumns: '1fr 80px 100px 80px 32px',
               padding: '10px 20px',
               borderBottom: '1px solid var(--border)',
               alignItems: 'center',
@@ -765,6 +765,17 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                     { month: 'short', day: 'numeric' })}
                 </span>
               )}
+              <button
+                onClick={e => { e.stopPropagation(); if (entry.id && confirm('Delete this entry?')) onDelete(entry.id) }}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--text-tertiary)', fontSize: '14px', padding: '2px',
+                  opacity: 0.4, transition: 'opacity 0.1s, color 0.1s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+                onMouseEnter={e => { (e.currentTarget).style.opacity = '1'; (e.currentTarget).style.color = '#EF4444' }}
+                onMouseLeave={e => { (e.currentTarget).style.opacity = '0.4'; (e.currentTarget).style.color = 'var(--text-tertiary)' }}
+              >&times;</button>
             </div>
           )
         })}
