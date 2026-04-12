@@ -258,7 +258,8 @@ export default function FinancePage() {
           { name: 'Retail', color: '#94A3B8', type: 'expense', isDefault: true },
         ]
         await db.financeCategories.bulkAdd(defaults)
-        setCategories(defaults)
+        const withIds = await db.financeCategories.toArray()
+        setCategories(withIds)
       } else {
         setCategories(c)
       }
@@ -661,17 +662,15 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                   onClick={e => e.stopPropagation()}
                   onChange={e => setEditForm(p => ({ ...p, note: e.target.value }))}
                   autoFocus
-                  placeholder="Source name..."
-                  style={{ width: '100%', border: '1px solid var(--border)',
-                    background: 'var(--bg-hover)',
-                    borderRadius: '8px', padding: '4px 8px',
-                    color: 'var(--text-primary)', fontSize: '13px', outline: 'none' }}
+                  placeholder="Source..."
+                  className="inline-input"
+                  style={{ width: '100%', border: 'none', borderBottom: '1px solid var(--accent)',
+                    background: 'transparent', borderRadius: 0,
+                    padding: '2px 0', color: 'var(--text-primary)', fontSize: '13px', outline: 'none',
+                    minHeight: 'unset', boxShadow: 'none' }}
                 />
               ) : (
-                <span style={{ fontSize: '13px',
-                  color: 'var(--text-primary)',
-                  whiteSpace: 'nowrap',
-                  minWidth: '80px' }}>
+                <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
                   {entry.note}
                 </span>
               )}
@@ -679,11 +678,11 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                 <input type="number" value={editForm.amount}
                   onClick={e => e.stopPropagation()}
                   onChange={e => setEditForm(p => ({ ...p, amount: e.target.value }))}
-                  style={{ width: '70px', border: '1px solid var(--border)',
-                    background: 'var(--bg-hover)',
-                    borderRadius: '8px', padding: '4px 8px',
-                    color: type === 'income' ? '#10B981' : '#EF4444',
-                    fontSize: '13px', outline: 'none' }}
+                  className="inline-input"
+                  style={{ width: '100%', border: 'none', borderBottom: '1px solid var(--accent)',
+                    background: 'transparent', borderRadius: 0,
+                    padding: '2px 0', color: type === 'income' ? '#10B981' : '#EF4444',
+                    fontSize: '13px', outline: 'none', minHeight: 'unset', boxShadow: 'none' }}
                 />
               ) : (
                 <span style={{ fontSize: '13px', fontWeight: 600,
@@ -1007,7 +1006,9 @@ function CategoryManager({
   const [newName, setNewName] = useState('')
   const [newColor, setNewColor] = useState('#3B82F6')
   const [newType, setNewType] = useState<'income' | 'expense' | 'both'>('expense')
-  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editingColorId, setEditingColorId] = useState<number | null>(null)
+  const [editingNameId, setEditingNameId] = useState<number | null>(null)
+  const [editNameValue, setEditNameValue] = useState('')
 
   const PRESET_COLORS = [
     '#EF4444', '#F97316', '#EAB308', '#22C55E',
@@ -1079,7 +1080,7 @@ function CategoryManager({
         {/* Existing categories */}
         <div style={{ marginBottom: '24px' }}>
           {cats.map(cat => (
-            <div key={cat.id} style={{
+            <div key={cat.id ?? cat.name} style={{
               display: 'flex', alignItems: 'center',
               gap: '10px', padding: '8px 0',
               borderBottom: '1px solid var(--border)'
@@ -1091,10 +1092,10 @@ function CategoryManager({
                   background: cat.color,
                   cursor: 'pointer',
                   flexShrink: 0
-                }} onClick={() => setEditingId(
-                  editingId === cat.id ? null : cat.id ?? null
+                }} onClick={() => setEditingColorId(
+                  editingColorId === cat.id ? null : cat.id ?? null
                 )} />
-                {editingId === cat.id && (
+                {editingColorId === cat.id && (
                   <div style={{
                     position: 'absolute', top: '24px', left: 0,
                     background: 'var(--bg-primary)',
@@ -1116,33 +1117,59 @@ function CategoryManager({
                           : '2px solid transparent'
                       }} onClick={() => {
                         if (cat.id) updateCategory(cat.id, { color })
-                        setEditingId(null)
+                        setEditingColorId(null)
                       }} />
                     ))}
                   </div>
                 )}
               </div>
 
-              <span style={{ flex: 1, fontSize: '13px', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {cat.name}
-              </span>
+              {editingNameId === cat.id ? (
+                <input
+                  className="inline-input"
+                  value={editNameValue}
+                  onChange={e => setEditNameValue(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && editNameValue.trim() && cat.id) {
+                      updateCategory(cat.id, { name: editNameValue.trim() })
+                      setEditingNameId(null)
+                    }
+                    if (e.key === 'Escape') setEditingNameId(null)
+                  }}
+                  onBlur={() => {
+                    if (editNameValue.trim() && cat.id) {
+                      updateCategory(cat.id, { name: editNameValue.trim() })
+                    }
+                    setEditingNameId(null)
+                  }}
+                  autoFocus
+                  style={{
+                    flex: 1, fontSize: '13px', color: 'var(--text-primary)',
+                    border: 'none', borderBottom: '1px solid var(--accent)',
+                    background: 'transparent', outline: 'none', padding: '2px 0',
+                    borderRadius: 0, minHeight: 'unset',
+                  }}
+                />
+              ) : (
+                <span style={{ flex: 1, fontSize: '13px', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {cat.name}
+                </span>
+              )}
 
               <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: 'var(--radius-base, 8px)', background: 'var(--bg-hover)', color: 'var(--text-tertiary)', flexShrink: 0 }}>
                 {cat.type}
               </span>
 
               <button onClick={() => {
-                const newName = prompt('Rename category:', cat.name)
-                if (newName && newName.trim() && cat.id) updateCategory(cat.id, { name: newName.trim() })
-              }} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: '11px', padding: '2px 6px' }}
-              onMouseEnter={e => { (e.currentTarget).style.color = 'var(--accent)' }}
-              onMouseLeave={e => { (e.currentTarget).style.color = 'var(--text-tertiary)' }}
+                if (cat.id) {
+                  setEditingNameId(cat.id)
+                  setEditNameValue(cat.name)
+                }
+              }} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '11px', padding: '2px 8px', fontWeight: 500 }}
               >Edit</button>
 
               <button onClick={() => { if (cat.id && confirm(`Delete "${cat.name}"?`)) deleteCategory(cat.id) }}
-                style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: '11px', padding: '2px 6px' }}
-                onMouseEnter={e => { (e.currentTarget).style.color = '#EF4444' }}
-                onMouseLeave={e => { (e.currentTarget).style.color = 'var(--text-tertiary)' }}
+                style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '11px', padding: '2px 8px', fontWeight: 500 }}
               >Delete</button>
             </div>
           ))}

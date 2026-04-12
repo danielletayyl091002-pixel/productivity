@@ -117,9 +117,10 @@ input[type="search"], textarea, select {
   box-sizing: border-box !important;
 }
 /* Inline transparent inputs (editor, toggle title, db cells) */
-input[data-inline="true"], .inline-input {
+input[data-inline="true"], input.inline-input, select.inline-input {
   padding: 2px 0 !important;
   min-height: unset !important;
+  box-shadow: none !important;
 }
 .toggle-title-input {
   padding: 10px 16px 10px 20px !important;
