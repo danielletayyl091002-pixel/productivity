@@ -612,7 +612,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 100px 160px 120px 40px',
+        gridTemplateColumns: '2fr 1fr 1.5fr 1fr 30px',
         padding: '8px 20px',
         borderBottom: '1px solid var(--border)',
         background: 'var(--bg-hover)',
@@ -640,7 +640,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
           return (
             <div key={entry.id} style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 100px 160px 120px 40px',
+              gridTemplateColumns: '2fr 1fr 1.5fr 1fr 30px',
               padding: '10px 20px',
               borderBottom: '1px solid var(--border)',
               alignItems: 'center',
