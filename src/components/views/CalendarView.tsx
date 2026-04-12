@@ -1261,16 +1261,24 @@ export default function CalendarView({
                     const [eh, em] = (task.endTime || '1:0').split(':').map(Number)
                     const top = (sh + sm / 60) * 60
                     const height = Math.max(((eh + em / 60) - (sh + sm / 60)) * 60, 20)
-                    const color = task.color || 'var(--accent)'
+                    const color = getEventColor(task)
+                    const use24hDay = typeof localStorage !== 'undefined' && localStorage.getItem('time_format') === '24h'
+                    const fmtTime = (t: string) => {
+                      if (use24hDay) return t
+                      const [h, m] = t.split(':').map(Number)
+                      const ampm = h >= 12 ? 'PM' : 'AM'
+                      const hr = h % 12 || 12
+                      return `${hr}:${String(m).padStart(2, '0')} ${ampm}`
+                    }
                     return (
-                      <div key={task.uid} onClick={() => { /* TODO: open edit modal */ }} style={{
+                      <div key={task.uid} className="calendar-event" onClick={() => { /* TODO: open edit modal */ }} style={{
                         position: 'absolute', top: `${top}px`, left: '4px', right: '4px', height: `${height}px`,
-                        background: `${color}20`, borderLeft: `3px solid ${color}`, borderRadius: 'var(--radius-base, 4px)',
+                        ...getEventStyle(color),
                         padding: '4px 8px', overflow: 'hidden', cursor: 'pointer', zIndex: 3,
                       }}>
-                        <div style={{ fontSize: '12px', fontWeight: 600, color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.title}</div>
-                        {height > 32 && <div style={{ fontSize: '11px', opacity: 0.8, color }}>{task.startTime} - {task.endTime}</div>}
-                        {height > 50 && task.location && <div style={{ fontSize: '10px', opacity: 0.7, color }}>{task.location}</div>}
+                        <div style={{ fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.title}</div>
+                        {height > 32 && <div style={{ fontSize: '11px', opacity: 0.8 }}>{fmtTime(task.startTime!)} - {fmtTime(task.endTime!)}</div>}
+                        {height > 50 && task.location && <div style={{ fontSize: '10px', opacity: 0.7 }}>{task.location}</div>}
                       </div>
                     )
                   })
