@@ -165,6 +165,21 @@ button[data-icon-only="true"], button.icon-btn {
   padding: 8px 12px !important;
   min-height: 36px !important;
 }
+/* Finance edit-mode inputs — overrides global border-radius, padding, sculpt */
+input.finance-edit-input,
+input.finance-edit-input[type="number"],
+select.finance-edit-input {
+  border-radius: 8px !important;
+  width: 100% !important;
+  min-width: 80px !important;
+  min-height: unset !important;
+  border: 1px solid var(--border) !important;
+  padding: 6px 10px !important;
+  background: var(--bg-secondary) !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+}
 /* Settings inputs */
 .settings-input {
   padding: 10px 16px !important;
@@ -428,9 +443,9 @@ div:hover > .tracker-drag-handle { opacity: 0.6 !important; }
   box-shadow: 0 1px 0 rgba(255,255,255,0.8) inset, 0 -1px 0 rgba(0,0,0,0.08) inset, 0 8px 16px rgba(0,0,0,0.12), 0 16px 32px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.08) !important;
   transform: translateY(-2px);
 }
-[data-style="sculpt"] input:not(.inline-input):not(.toggle-title-input),
+[data-style="sculpt"] input:not(.inline-input):not(.toggle-title-input):not(.finance-edit-input),
 [data-style="sculpt"] textarea,
-[data-style="sculpt"] select:not(.inline-input) {
+[data-style="sculpt"] select:not(.inline-input):not(.finance-edit-input) {
   border-radius: var(--radius-input) !important;
   box-shadow: 0 2px 4px rgba(0,0,0,0.08) inset, 0 1px 2px rgba(0,0,0,0.06) inset, 0 -1px 0 rgba(255,255,255,0.6) inset !important;
   border: 1px solid rgba(0,0,0,0.06) !important;

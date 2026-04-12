@@ -612,7 +612,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 90px 120px 80px 40px',
+        gridTemplateColumns: '1fr 100px 160px 120px 40px',
         padding: '8px 20px',
         borderBottom: '1px solid var(--border)',
         background: 'var(--bg-hover)',
@@ -640,7 +640,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
           return (
             <div key={entry.id} style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 90px 120px 80px 40px',
+              gridTemplateColumns: '1fr 100px 160px 120px 40px',
               padding: '10px 20px',
               borderBottom: '1px solid var(--border)',
               alignItems: 'center',
@@ -663,11 +663,8 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                   onChange={e => setEditForm(p => ({ ...p, note: e.target.value }))}
                   autoFocus
                   placeholder="Source..."
-                  className="inline-input"
-                  style={{ width: '100%', border: 'none', borderBottom: '1px solid var(--accent)',
-                    background: 'transparent', borderRadius: 0,
-                    padding: '2px 0', color: 'var(--text-primary)', fontSize: '13px', outline: 'none',
-                    minHeight: 'unset', boxShadow: 'none' }}
+                  className="finance-edit-input"
+                  style={{ color: 'var(--text-primary)', fontSize: '13px' }}
                 />
               ) : (
                 <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
@@ -678,11 +675,8 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                 <input type="number" value={editForm.amount}
                   onClick={e => e.stopPropagation()}
                   onChange={e => setEditForm(p => ({ ...p, amount: e.target.value }))}
-                  className="inline-input"
-                  style={{ width: '100%', border: 'none', borderBottom: '1px solid var(--accent)',
-                    background: 'transparent', borderRadius: 0,
-                    padding: '2px 0', color: type === 'income' ? '#10B981' : '#EF4444',
-                    fontSize: '13px', outline: 'none', minHeight: 'unset', boxShadow: 'none' }}
+                  className="finance-edit-input"
+                  style={{ color: type === 'income' ? '#10B981' : '#EF4444', fontSize: '13px' }}
                 />
               ) : (
                 <span style={{ fontSize: '13px', fontWeight: 600,
@@ -697,15 +691,15 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                     value={editForm.category}
                     onClick={e => e.stopPropagation()}
                     onChange={e => setEditForm(p => ({ ...p, category: e.target.value }))}
+                    className="finance-edit-input"
                     style={{
-                      padding: '3px 8px',
-                      borderRadius: 'var(--radius-card, 12px)',
-                      border: `1px solid ${editCat?.color || 'var(--border)'}`,
-                      background: editCat ? editCat.color + '25' : 'var(--bg-hover)',
+                      width: '100%',
+                      borderColor: editCat?.color || 'var(--border)',
+                      background: editCat ? editCat.color + '15' : 'var(--bg-secondary)',
                       color: editCat?.color || 'var(--text-secondary)',
                       fontSize: '12px',
                       fontWeight: 500,
-                      cursor: 'pointer'
+                      cursor: 'pointer',
                     }}
                   >
                     <option value="">No category</option>
@@ -724,7 +718,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                   background: cat.color + '25',
                   color: cat.color,
                   border: `1px solid ${cat.color}40`,
-                  maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {cat.name}
                 </span>
