@@ -748,7 +748,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                     scheduledDate: pendingEvent.dateStr,
                     startTime: pendingEvent.startTime,
                     endTime: pendingEvent.endTime,
-                    color: '#6366F1',
+                    color: 'var(--accent)',
                     createdAt: new Date().toISOString()
                   }
                   await db.tasks.add(task)
@@ -824,7 +824,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                 dueDate: evt.dueDate || evt.scheduledDate || null,
                 scheduledDate: evt.scheduledDate || null,
                 startTime: evt.startTime || null, endTime: evt.endTime || null,
-                color: evt.color || '#6366F1',
+                color: evt.color || 'var(--accent)',
                 description: evt.description, location: evt.location,
                 itemType: evt.itemType, recurrence: evt.recurrence,
                 reminder: evt.reminder, url: evt.url,

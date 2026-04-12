@@ -623,7 +623,7 @@ export default function RightRail() {
                   scheduledDate: todayStr,
                   startTime: newEvent.startTime,
                   endTime: newEvent.endTime,
-                  color: '#6366F1',
+                  color: 'var(--accent)',
                   createdAt: new Date().toISOString()
                 })
                 setNewEvent(null)
@@ -749,7 +749,7 @@ export default function RightRail() {
                 priority: evt.priority || null, dueDate: evt.dueDate || null,
                 scheduledDate: evt.scheduledDate || null,
                 startTime: evt.startTime || null, endTime: evt.endTime || null,
-                color: evt.color || '#6366F1',
+                color: evt.color || 'var(--accent)',
                 description: evt.description, location: evt.location,
                 itemType: evt.itemType, recurrence: evt.recurrence,
                 reminder: evt.reminder, url: evt.url,
