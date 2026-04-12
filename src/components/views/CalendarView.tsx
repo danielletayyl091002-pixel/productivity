@@ -854,6 +854,7 @@ export default function CalendarView({
   const [showAddTask, setShowAddTask] = useState(false)
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [hoveredDate, setHoveredDate] = useState<string | null>(null)
+  const [dayEditingEvent, setDayEditingEvent] = useState<Partial<Task> | null>(null)
 
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
@@ -1271,7 +1272,7 @@ export default function CalendarView({
                       return `${hr}:${String(m).padStart(2, '0')} ${ampm}`
                     }
                     return (
-                      <div key={task.uid} className="calendar-event" onClick={() => { /* TODO: open edit modal */ }} style={{
+                      <div key={task.uid} className="calendar-event" onClick={() => setDayEditingEvent(task)} style={{
                         position: 'absolute', top: `${top}px`, left: '4px', right: '4px', height: `${height}px`,
                         ...getEventStyle(color),
                         padding: '4px 8px', overflow: 'hidden', cursor: 'pointer', zIndex: 3,
@@ -1371,6 +1372,32 @@ export default function CalendarView({
             </div>
           )}
         </div>
+      )}
+
+      {/* Day view edit modal */}
+      {dayEditingEvent && (
+        <EventModal
+          initialEvent={dayEditingEvent}
+          onClose={() => setDayEditingEvent(null)}
+          onSave={async (evt) => {
+            if (evt.uid) {
+              const existing = tasks.find(t => t.uid === evt.uid)
+              if (existing?.id) {
+                await db.tasks.update(existing.id, evt)
+                setTasks(prev => prev.map(t => t.uid === evt.uid ? { ...t, ...evt } : t))
+              }
+            }
+            setDayEditingEvent(null)
+          }}
+          onDelete={async (uid) => {
+            const task = tasks.find(t => t.uid === uid)
+            if (task?.id) {
+              await db.tasks.delete(task.id)
+              setTasks(prev => prev.filter(t => t.uid !== uid))
+            }
+            setDayEditingEvent(null)
+          }}
+        />
       )}
     </div>
   )

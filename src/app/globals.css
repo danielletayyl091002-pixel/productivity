@@ -108,19 +108,23 @@ h2 { font-size: var(--font-xl); font-weight: 700; line-height: var(--leading-tig
 h3 { font-size: var(--font-lg); font-weight: 600; line-height: var(--leading-tight); }
 
 /* ── Global input breathing room ── */
-input[type="text"], input[type="number"], input[type="date"],
-input[type="time"], input[type="email"], input[type="password"],
-input[type="search"], textarea, select {
+input[type="text"]:not(.inline-input), input[type="number"]:not(.inline-input), input[type="date"]:not(.inline-input),
+input[type="time"]:not(.inline-input), input[type="email"], input[type="password"],
+input[type="search"], textarea, select:not(.inline-input) {
   padding: 8px 14px !important;
   line-height: 1.5 !important;
   min-height: 36px !important;
   box-sizing: border-box !important;
 }
-/* Inline transparent inputs (editor, toggle title, db cells) */
-input[data-inline="true"], input.inline-input, select.inline-input {
+/* Inline transparent inputs (editor, toggle title, db cells, finance edit) */
+input.inline-input, select.inline-input, input[data-inline="true"] {
   padding: 2px 0 !important;
   min-height: unset !important;
   box-shadow: none !important;
+  border-radius: 0 !important;
+  border: none !important;
+  border-bottom: 1px solid var(--accent) !important;
+  background: transparent !important;
 }
 .toggle-title-input {
   padding: 10px 16px 10px 20px !important;
@@ -424,9 +428,9 @@ div:hover > .tracker-drag-handle { opacity: 0.6 !important; }
   box-shadow: 0 1px 0 rgba(255,255,255,0.8) inset, 0 -1px 0 rgba(0,0,0,0.08) inset, 0 8px 16px rgba(0,0,0,0.12), 0 16px 32px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.08) !important;
   transform: translateY(-2px);
 }
-[data-style="sculpt"] input,
+[data-style="sculpt"] input:not(.inline-input):not(.toggle-title-input),
 [data-style="sculpt"] textarea,
-[data-style="sculpt"] select {
+[data-style="sculpt"] select:not(.inline-input) {
   border-radius: var(--radius-input) !important;
   box-shadow: 0 2px 4px rgba(0,0,0,0.08) inset, 0 1px 2px rgba(0,0,0,0.06) inset, 0 -1px 0 rgba(255,255,255,0.6) inset !important;
   border: 1px solid rgba(0,0,0,0.06) !important;

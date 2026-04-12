@@ -107,11 +107,12 @@ function WeekStrip({ today, onDayClick, selectedDay }: {
   )
 }
 
-function Timeline({ now, tasks, onAddEvent, onUpdateTask }: {
+function Timeline({ now, tasks, onAddEvent, onUpdateTask, onEventClick }: {
   now: number
   tasks: Task[]
   onAddEvent?: (startTime: string, endTime: string) => void
   onUpdateTask?: (uid: string, changes: Partial<Task>) => void
+  onEventClick?: (task: Task) => void
 }) {
   const HOUR_H = 52
   const START = 6
@@ -170,6 +171,9 @@ function Timeline({ now, tasks, onAddEvent, onUpdateTask }: {
           startTime: fmt(newStart),
           endTime: fmt(Math.min(22, newEnd)),
         })
+      } else if (movingTask && moveHour === null && onEventClick) {
+        // Click without move — open edit modal
+        onEventClick(movingTask)
       }
       if (resizingTask && resizeEndHour !== null && onUpdateTask) {
         onUpdateTask(resizingTask.uid, { endTime: fmt(resizeEndHour) })
@@ -186,7 +190,7 @@ function Timeline({ now, tasks, onAddEvent, onUpdateTask }: {
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
-  }, [movingTask, resizingTask, moveHour, resizeEndHour, onUpdateTask])
+  }, [movingTask, resizingTask, moveHour, resizeEndHour, onUpdateTask, onEventClick])
 
   function fmt(h: number) {
     const hrs = Math.floor(h)
@@ -337,7 +341,7 @@ function Timeline({ now, tasks, onAddEvent, onUpdateTask }: {
             }}>{task.itemType === 'task' ? '\u2610 ' : ''}{task.title}</div>
             {heightPx > 40 && (
               <div style={{
-                fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '2px',
+                fontSize: '10px', color: getEventStyle(color).color || color, opacity: 0.8, marginTop: '2px',
               }}>{task.startTime} – {task.endTime}</div>
             )}
             <div
@@ -575,6 +579,7 @@ export default function RightRail() {
             await db.tasks.where('uid').equals(uid).modify(changes)
             setTodayTasks(prev => prev.map(t => t.uid === uid ? { ...t, ...changes } : t))
           }}
+          onEventClick={(task) => setEditingEvent(task)}
         />
       </div>
 
@@ -709,15 +714,20 @@ export default function RightRail() {
                 <div style={{ fontSize: '9px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>{g.label}</div>
                 {g.tasks.slice(0, 3).map(t => (
                   <div key={t.uid} onClick={() => setEditingEvent(t)} style={{
-                    fontSize: '12px', color: 'var(--text-secondary)', padding: '3px 0',
+                    fontSize: '12px', color: 'var(--text-secondary)', padding: '4px 6px',
                     display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
-                    borderRadius: '4px',
+                    borderRadius: '6px',
                   }}
                   onMouseEnter={e => { (e.currentTarget).style.background = 'var(--bg-hover)' }}
                   onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
                   >
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.color, flexShrink: 0 }} />
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.color || 'var(--accent)', flexShrink: 0 }} />
                     <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+                    {t.startTime && t.endTime && (
+                      <span style={{ fontSize: '10px', color: 'var(--text-primary)', flexShrink: 0, fontWeight: 500 }}>
+                        {t.startTime}–{t.endTime}
+                      </span>
+                    )}
                     {t.reminder && <span style={{ fontSize: '10px' }} title={`Reminder: ${t.reminder}min before`}>🔔</span>}
                     {t.recurrence && <span style={{ fontSize: '10px' }} title="Recurring">🔁</span>}
                   </div>
