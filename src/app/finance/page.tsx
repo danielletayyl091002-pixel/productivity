@@ -617,6 +617,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
         borderBottom: '1px solid var(--border)',
         background: 'var(--bg-hover)',
         gap: '8px',
+        alignItems: 'center',
       }}>
         {['Source', 'Amount', 'Category', 'Date', ''].map(h => (
           <span key={h || 'empty'} style={{ fontSize: '10px',
