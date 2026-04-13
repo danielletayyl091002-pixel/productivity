@@ -325,7 +325,10 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
     if (eventEl) {
       e.preventDefault()
       const uid = eventEl.getAttribute('data-event-uid')
-      const task = tasks.find(t => t.uid === uid)
+      // Look up in expandedTasks so virtual recurring occurrences
+      // (uid like "masterUid_YYYY-MM-DD") are resolvable — the raw
+      // `tasks` array only contains the master records.
+      const task = expandedTasks.find(t => t.uid === uid)
       if (!task) return
       const startMin = toMinutes(task.startTime!)
       const endMin = toMinutes(task.endTime!)
@@ -912,7 +915,11 @@ export default function CalendarView({
     if (eventEl) {
       e.preventDefault()
       const uid = eventEl.getAttribute('data-day-event-uid')
-      const task = tasksRef.current.find(t => t.uid === uid)
+      // Look up in expandedMonthTasks so virtual recurring occurrences
+      // (uid like "masterUid_YYYY-MM-DD") are resolvable — tasksRef only
+      // mirrors the raw master records.
+      const task = expandedMonthTasks.find(t => t.uid === uid)
+        ?? tasksRef.current.find(t => t.uid === uid)
       if (!task || !task.startTime || !task.endTime) return
       const dur = (dayToMins(task.endTime) - dayToMins(task.startTime)) / 60
       dayMoveDuration.current = dur
