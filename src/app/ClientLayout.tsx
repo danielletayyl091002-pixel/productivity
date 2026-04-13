@@ -1,7 +1,7 @@
 'use client'
 import { useEffect } from 'react'
 import { db } from '@/db/schema'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import LeftSidebar from '@/components/layout/LeftSidebar'
 import RightRail from '@/components/layout/RightRail'
 import CmdK from '@/components/CmdK'
@@ -182,35 +182,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       background: 'var(--bg-secondary)',
     }}>
       <CmdK />
-      {leftVisible && <LeftSidebar toggleLeft={toggleLeft} />}
-      <main style={{ flex: 1, overflow: 'auto', minWidth: 0 }}>
+      <LeftSidebar collapsed={!leftVisible} toggleLeft={toggleLeft} />
+      <main style={{ flex: 1, overflow: 'auto', minWidth: 0, transition: 'all 200ms ease-in-out' }}>
         {children}
       </main>
       {rightVisible && <RightRail toggleRight={toggleRight} />}
-
-      {!leftVisible && (
-        <button
-          onClick={toggleLeft}
-          aria-label="Show left sidebar"
-          style={{
-            position: 'fixed',
-            left: '8px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            zIndex: 100,
-            background: 'var(--bg-primary)',
-            border: '1px solid var(--border)',
-            borderRadius: '6px',
-            padding: '6px',
-            cursor: 'pointer',
-            color: 'var(--text-tertiary)',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <ChevronRight size={16} />
-        </button>
-      )}
 
       {!rightVisible && (
         <button

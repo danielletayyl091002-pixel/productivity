@@ -1,15 +1,16 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { db, Page, seedIfEmpty } from '@/db/schema'
 import { nanoid } from 'nanoid'
 
 interface LeftSidebarProps {
+  collapsed?: boolean
   toggleLeft?: () => void
 }
 
-export default function LeftSidebar({ toggleLeft }: LeftSidebarProps = {}) {
+export default function LeftSidebar({ collapsed = false, toggleLeft }: LeftSidebarProps = {}) {
   const router = useRouter()
   const pathname = usePathname()
   const [pages, setPages] = useState<Page[]>([])
@@ -17,6 +18,7 @@ export default function LeftSidebar({ toggleLeft }: LeftSidebarProps = {}) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null)
 
   useEffect(() => {
     async function init() {
@@ -123,28 +125,41 @@ export default function LeftSidebar({ toggleLeft }: LeftSidebarProps = {}) {
 
   return (
     <aside style={{
-      width: '240px', minWidth: '240px',
+      width: collapsed ? '64px' : '240px',
+      minWidth: collapsed ? '64px' : '240px',
       height: '100vh',
       borderRight: '1px solid var(--border)',
       background: 'var(--bg-sidebar)',
       display: 'flex', flexDirection: 'column',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      transition: 'width 200ms ease-in-out, min-width 200ms ease-in-out',
     }}>
       <div style={{
         height: '48px',
         display: 'flex', alignItems: 'center',
-        padding: '0 16px',
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        padding: collapsed ? '0' : '0 16px',
         borderBottom: '1px solid var(--border)',
         fontWeight: 700, fontSize: '15px',
-        color: 'var(--text-primary)'
+        color: 'var(--text-primary)',
+        overflow: 'hidden',
       }}>
-        Fluent
+        <span style={{
+          opacity: collapsed ? 0 : 1,
+          width: collapsed ? 0 : 'auto',
+          overflow: 'hidden',
+          pointerEvents: collapsed ? 'none' : 'auto',
+          whiteSpace: 'nowrap',
+          transition: 'opacity 150ms ease-in-out, width 200ms ease-in-out',
+        }}>
+          Fluent
+        </span>
         {toggleLeft && (
           <button
             onClick={toggleLeft}
-            aria-label="Hide left sidebar"
+            aria-label={collapsed ? 'Expand left sidebar' : 'Hide left sidebar'}
             style={{
-              marginLeft: 'auto',
+              marginLeft: collapsed ? 0 : 'auto',
               background: 'none',
               border: 'none',
               cursor: 'pointer',
@@ -155,12 +170,21 @@ export default function LeftSidebar({ toggleLeft }: LeftSidebarProps = {}) {
               borderRadius: '4px',
             }}
           >
-            <ChevronLeft size={16} />
+            {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </button>
         )}
       </div>
 
-      <div style={{ padding: '8px' }}>
+      <div style={{
+        padding: '8px',
+        opacity: collapsed ? 0 : 1,
+        maxHeight: collapsed ? 0 : '200px',
+        overflow: 'hidden',
+        pointerEvents: collapsed ? 'none' : 'auto',
+        transition: 'opacity 150ms ease-in-out, max-height 200ms ease-in-out, padding 200ms ease-in-out',
+        paddingTop: collapsed ? 0 : '8px',
+        paddingBottom: collapsed ? 0 : '8px',
+      }}>
         <input
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
@@ -182,7 +206,8 @@ export default function LeftSidebar({ toggleLeft }: LeftSidebarProps = {}) {
             color: 'var(--text-tertiary)',
             fontSize: '13px', cursor: 'pointer',
             textAlign: 'left',
-            display: 'flex', alignItems: 'center', gap: '6px'
+            display: 'flex', alignItems: 'center', gap: '6px',
+            whiteSpace: 'nowrap',
           }}
           onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -191,7 +216,14 @@ export default function LeftSidebar({ toggleLeft }: LeftSidebarProps = {}) {
         </button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px' }}>
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        padding: '0 8px',
+        opacity: collapsed ? 0 : 1,
+        pointerEvents: collapsed ? 'none' : 'auto',
+        transition: 'opacity 150ms ease-in-out',
+      }}>
         {!loading && favorites.length > 0 && (
           <>
             <SectionLabel onClick={() => setCollapsedSections(prev => { const n = new Set(prev); n.has('fav') ? n.delete('fav') : n.add('fav'); return n })} collapsed={collapsedSections.has('fav')}>Favorites</SectionLabel>
@@ -207,11 +239,11 @@ export default function LeftSidebar({ toggleLeft }: LeftSidebarProps = {}) {
       </div>
 
       <div style={{ borderTop: '1px solid var(--border)', padding: '8px' }}>
-        <NavLink onClick={() => router.push('/trackers')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}>Trackers</NavLink>
-        <NavLink onClick={() => router.push('/finance')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>}>Finance</NavLink>
-        <NavLink onClick={() => router.push('/board')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>}>Kanban</NavLink>
-        <NavLink onClick={() => router.push('/settings')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>}>Settings</NavLink>
-        <ThemeToggle />
+        <NavLink itemId="trackers" collapsed={collapsed} hoveredItem={hoveredItem} setHoveredItem={setHoveredItem} onClick={() => router.push('/trackers')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}>Trackers</NavLink>
+        <NavLink itemId="finance" collapsed={collapsed} hoveredItem={hoveredItem} setHoveredItem={setHoveredItem} onClick={() => router.push('/finance')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>}>Finance</NavLink>
+        <NavLink itemId="kanban" collapsed={collapsed} hoveredItem={hoveredItem} setHoveredItem={setHoveredItem} onClick={() => router.push('/board')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>}>Kanban</NavLink>
+        <NavLink itemId="settings" collapsed={collapsed} hoveredItem={hoveredItem} setHoveredItem={setHoveredItem} onClick={() => router.push('/settings')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>}>Settings</NavLink>
+        <ThemeToggle collapsed={collapsed} hoveredItem={hoveredItem} setHoveredItem={setHoveredItem} />
       </div>
       <style>{`
         .page-item-actions { display: none; }
@@ -345,32 +377,81 @@ function PageItem({ page, active, depth, hasChildren, isExpanded, onToggle, onCl
   )
 }
 
-function NavLink({ children, onClick, icon }: {
+function NavLink({ children, onClick, icon, itemId, collapsed, hoveredItem, setHoveredItem }: {
   children: React.ReactNode
   onClick: () => void
   icon: React.ReactNode
+  itemId: string
+  collapsed: boolean
+  hoveredItem: string | null
+  setHoveredItem: (id: string | null) => void
 }) {
+  const showTooltip = collapsed && hoveredItem === itemId
   return (
     <div
       onClick={onClick}
-      style={{
-        display: 'flex', alignItems: 'center', gap: '10px',
-        padding: '10px 16px', borderRadius: 'var(--radius-sm, 6px)',
-        cursor: 'pointer', fontSize: '13px',
-        color: 'var(--text-secondary)', marginBottom: '1px'
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-hover)'
+        setHoveredItem(itemId)
       }}
-      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLDivElement).style.background = 'transparent'
+        setHoveredItem(null)
+      }}
+      style={{
+        position: 'relative',
+        display: 'flex', alignItems: 'center',
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        gap: collapsed ? 0 : '10px',
+        padding: collapsed ? '10px 0' : '10px 16px',
+        borderRadius: 'var(--radius-sm, 6px)',
+        cursor: 'pointer', fontSize: '13px',
+        color: 'var(--text-secondary)', marginBottom: '1px',
+        transition: 'padding 200ms ease-in-out, gap 200ms ease-in-out',
+      }}
     >
       <span style={{ color: 'var(--text-tertiary)', flexShrink: 0, display: 'flex' }}>
         {icon}
       </span>
-      {children}
+      <span style={{
+        opacity: collapsed ? 0 : 1,
+        width: collapsed ? 0 : 'auto',
+        overflow: 'hidden',
+        pointerEvents: collapsed ? 'none' : 'auto',
+        whiteSpace: 'nowrap',
+        transition: 'opacity 150ms ease-in-out, width 200ms ease-in-out',
+      }}>
+        {children}
+      </span>
+      <span style={{
+        position: 'absolute',
+        left: '72px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        background: 'var(--bg-primary)',
+        border: '1px solid var(--border)',
+        borderRadius: '6px',
+        padding: '4px 10px',
+        fontSize: '12px',
+        color: 'var(--text-primary)',
+        whiteSpace: 'nowrap',
+        zIndex: 1000,
+        opacity: showTooltip ? 1 : 0,
+        pointerEvents: 'none',
+        transition: 'opacity 0.15s',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+      }}>
+        {children}
+      </span>
     </div>
   )
 }
 
-function ThemeToggle() {
+function ThemeToggle({ collapsed = false, hoveredItem, setHoveredItem }: {
+  collapsed?: boolean
+  hoveredItem?: string | null
+  setHoveredItem?: (id: string | null) => void
+}) {
   const [theme, setTheme] = useState<'light'|'dark'>('light')
 
   useEffect(() => {
@@ -406,19 +487,67 @@ function ThemeToggle() {
     }
   }
 
+  const label = theme === 'light' ? 'Dark mode' : 'Light mode'
+  const icon = theme === 'light'
+    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+  const showTooltip = collapsed && hoveredItem === 'theme'
   return (
     <div
       onClick={toggle}
-      style={{
-        display: 'flex', alignItems: 'center', gap: '6px',
-        padding: '5px 8px', borderRadius: 'var(--radius-sm, 6px)',
-        cursor: 'pointer', fontSize: '13px',
-        color: 'var(--text-secondary)', marginTop: '4px'
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-hover)'
+        setHoveredItem?.('theme')
       }}
-      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLDivElement).style.background = 'transparent'
+        setHoveredItem?.(null)
+      }}
+      style={{
+        position: 'relative',
+        display: 'flex', alignItems: 'center',
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        gap: collapsed ? 0 : '10px',
+        padding: collapsed ? '10px 0' : '10px 16px',
+        borderRadius: 'var(--radius-sm, 6px)',
+        cursor: 'pointer', fontSize: '13px',
+        color: 'var(--text-secondary)', marginTop: '4px',
+        transition: 'padding 200ms ease-in-out, gap 200ms ease-in-out',
+      }}
     >
-      {theme === 'light' ? 'Dark mode' : 'Light mode'}
+      <span style={{ color: 'var(--text-tertiary)', flexShrink: 0, display: 'flex' }}>
+        {icon}
+      </span>
+      <span style={{
+        opacity: collapsed ? 0 : 1,
+        width: collapsed ? 0 : 'auto',
+        overflow: 'hidden',
+        pointerEvents: collapsed ? 'none' : 'auto',
+        whiteSpace: 'nowrap',
+        transition: 'opacity 150ms ease-in-out, width 200ms ease-in-out',
+      }}>
+        {label}
+      </span>
+      <span style={{
+        position: 'absolute',
+        left: '72px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        background: 'var(--bg-primary)',
+        border: '1px solid var(--border)',
+        borderRadius: '6px',
+        padding: '4px 10px',
+        fontSize: '12px',
+        color: 'var(--text-primary)',
+        whiteSpace: 'nowrap',
+        zIndex: 1000,
+        opacity: showTooltip ? 1 : 0,
+        pointerEvents: 'none',
+        transition: 'opacity 0.15s',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+      }}>
+        {label}
+      </span>
     </div>
   )
 }
