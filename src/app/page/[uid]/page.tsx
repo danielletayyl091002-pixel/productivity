@@ -5,6 +5,7 @@ import { db, Page, Block } from '@/db/schema'
 import { nanoid } from 'nanoid'
 import BoardView from '@/components/views/BoardView'
 import CalendarView from '@/components/views/CalendarView'
+import CanvasView from '@/components/views/CanvasView'
 import FluentEditor from '@/components/editor/FluentEditor'
 
 function legacyToTipTap(blocks: Block[]): Record<string, unknown> {
@@ -38,7 +39,7 @@ export default function PageCanvas() {
   const [page, setPage] = useState<Page | null>(null)
   const [showIconPicker, setShowIconPicker] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<'page' | 'board' | 'calendar'>('page')
+  const [view, setView] = useState<'page' | 'board' | 'calendar' | 'canvas'>('page')
   const [editorContent, setEditorContent] = useState<Record<string, unknown> | null>(null)
   const loadedRef = useRef<string | null>(null)
 
@@ -174,7 +175,7 @@ export default function PageCanvas() {
           )}
         </div>
         <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
-          {(['page', 'board', 'calendar'] as const).map(v => (
+          {(['page', 'board', 'calendar', 'canvas'] as const).map(v => (
             <button key={v} onClick={() => setView(v)}
               style={{
                 padding: '5px 14px', borderRadius: '9999px',
@@ -187,7 +188,7 @@ export default function PageCanvas() {
               onMouseEnter={e => { if (view !== v) (e.currentTarget).style.background = 'var(--bg-hover)' }}
               onMouseLeave={e => { if (view !== v) (e.currentTarget).style.background = 'transparent' }}
             >
-              {v === 'page' ? 'Page' : v === 'board' ? 'Kanban' : 'Calendar'}
+              {v === 'page' ? 'Page' : v === 'board' ? 'Kanban' : v === 'calendar' ? 'Calendar' : 'Canvas'}
             </button>
           ))}
         </div>
@@ -196,6 +197,8 @@ export default function PageCanvas() {
         <BoardView pageUid={uid} />
       ) : view === 'calendar' ? (
         <CalendarView pageUid={uid} />
+      ) : view === 'canvas' ? (
+        <CanvasView pageUid={uid} />
       ) : (
         <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 80px 120px' }}>
           {editorContent && (

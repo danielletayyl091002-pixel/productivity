@@ -132,6 +132,20 @@ export interface DatabaseCell {
   value: string
 }
 
+export interface CanvasItem {
+  id?: number
+  uid: string
+  pageUid: string
+  type: 'text'
+  x: number
+  y: number
+  width: number
+  height: number
+  content: string
+  createdAt: string
+  updatedAt: string
+}
+
 class FluentDB extends Dexie {
   pages!: Table<Page>
   blocks!: Table<Block>
@@ -145,6 +159,7 @@ class FluentDB extends Dexie {
   databaseColumns!: Table<DatabaseColumn>
   databaseRows!: Table<DatabaseRow>
   databaseCells!: Table<DatabaseCell>
+  canvasItems!: Table<CanvasItem>
 
   constructor() {
     super('fluentv2')
@@ -223,6 +238,21 @@ class FluentDB extends Dexie {
       databaseColumns: '++id, uid, databaseUid, order',
       databaseRows: '++id, uid, databaseUid, order',
       databaseCells: '++id, uid, rowUid, columnUid'
+    })
+    this.version(8).stores({
+      pages: '++id, uid, parentUid, isFavorite',
+      blocks: '++id, uid, pageUid, type, order',
+      tasks: '++id, uid, pageUid, status, dueDate, scheduledDate',
+      settings: '++id, key',
+      financeEntries: '++id, type, category, date',
+      financeCategories: '++id, type',
+      trackerDefinitions: '++id, uid, type, order',
+      trackerLogs: '++id, trackerUid, date',
+      databases: '++id, uid, pageUid',
+      databaseColumns: '++id, uid, databaseUid, order',
+      databaseRows: '++id, uid, databaseUid, order',
+      databaseCells: '++id, uid, rowUid, columnUid',
+      canvasItems: '++id, uid, pageUid'
     })
   }
 }
