@@ -856,29 +856,29 @@ export default function CalendarView({
   const [hoveredDate, setHoveredDate] = useState<string | null>(null)
   const [dayEditingEvent, setDayEditingEvent] = useState<Partial<Task> | null>(null)
 
-  // Day view drag-to-create
+  // Day view drag state — kept in refs to avoid stale closures
   const [dayDragState, setDayDragState] = useState<{ startHour: number; endHour: number } | null>(null)
-  const [dayIsDragging, setDayIsDragging] = useState(false)
-  const [dayModalDefaults, setDayModalDefaults] = useState<{ date: string; start: string; end: string } | null>(null)
-
-  // Day view drag-to-move existing
   const [dayMovingTask, setDayMovingTask] = useState<Task | null>(null)
   const [dayMoveGhost, setDayMoveGhost] = useState<{ startHour: number; endHour: number } | null>(null)
-  const dayMoveDuration = useRef(0)
-  const dayMoveStartPos = useRef<{ x: number; y: number } | null>(null)
-
-  // Day view drag-to-resize
   const [dayResizingTask, setDayResizingTask] = useState<Task | null>(null)
   const [dayResizeEndHour, setDayResizeEndHour] = useState<number | null>(null)
+  const [dayModalDefaults, setDayModalDefaults] = useState<{ date: string; start: string; end: string } | null>(null)
 
+  const dayDragRef = useRef<{ startHour: number; endHour: number } | null>(null)
+  const dayMovingRef = useRef<Task | null>(null)
+  const dayResizingRef = useRef<Task | null>(null)
+  const dayMoveDuration = useRef(0)
+  const dayMoveStartPos = useRef<{ x: number; y: number } | null>(null)
   const dayGridRef = useRef<HTMLDivElement>(null)
+  const tasksRef = useRef<Task[]>([])
+  useEffect(() => { tasksRef.current = tasks }, [tasks])
 
   // Day view helpers
-  function dayYToHour(e: React.MouseEvent | MouseEvent): number | null {
+  function dayYToHour(clientY: number): number | null {
     if (!dayGridRef.current) return null
     const rect = dayGridRef.current.getBoundingClientRect()
     const scrollTop = dayGridRef.current.scrollTop
-    const relY = e.clientY - rect.top + scrollTop
+    const relY = clientY - rect.top + scrollTop
     return Math.max(0, Math.min(23.75, Math.round((relY / 60) * 4) / 4))
   }
   function dayFmtHour(h: number): string {
@@ -897,80 +897,136 @@ export default function CalendarView({
     if (eventEl) {
       e.preventDefault()
       const uid = eventEl.getAttribute('data-day-event-uid')
-      const task = tasks.find(t => t.uid === uid)
+      const task = tasksRef.current.find(t => t.uid === uid)
       if (!task || !task.startTime || !task.endTime) return
       const dur = (dayToMins(task.endTime) - dayToMins(task.startTime)) / 60
       dayMoveDuration.current = dur
       dayMoveStartPos.current = { x: e.clientX, y: e.clientY }
+      dayMovingRef.current = task
       setDayMovingTask(task)
       return
     }
+    // Empty space — start create drag
     e.preventDefault()
-    const h = dayYToHour(e)
+    const h = dayYToHour(e.clientY)
     if (h === null) return
-    setDayDragState({ startHour: h, endHour: h })
-    setDayIsDragging(true)
+    const initial = { startHour: h, endHour: h }
+    dayDragRef.current = initial
+    setDayDragState(initial)
   }
 
-  function handleDayMouseMove(e: React.MouseEvent) {
-    if (dayMovingTask) {
-      if (dayMoveStartPos.current) {
-        const dx = Math.abs(e.clientX - dayMoveStartPos.current.x)
-        const dy = Math.abs(e.clientY - dayMoveStartPos.current.y)
-        if (dx < 3 && dy < 3) return
-        dayMoveStartPos.current = null
+  // Window-level mouse listeners — no closure staleness because we read refs
+  useEffect(() => {
+    const isDragActive = dayDragState !== null || dayMovingTask !== null || dayResizingTask !== null
+    if (!isDragActive) return
+
+    const onMove = (e: MouseEvent) => {
+      // Moving an event
+      if (dayMovingRef.current) {
+        if (dayMoveStartPos.current) {
+          const dx = Math.abs(e.clientX - dayMoveStartPos.current.x)
+          const dy = Math.abs(e.clientY - dayMoveStartPos.current.y)
+          if (dx < 3 && dy < 3) return
+          dayMoveStartPos.current = null
+        }
+        const h = dayYToHour(e.clientY); if (h === null) return
+        setDayMoveGhost({ startHour: h, endHour: h + dayMoveDuration.current })
+        return
       }
-      const h = dayYToHour(e); if (h === null) return
-      setDayMoveGhost({ startHour: h, endHour: h + dayMoveDuration.current })
-      return
+      // Resizing an event
+      if (dayResizingRef.current) {
+        const h = dayYToHour(e.clientY); if (h === null) return
+        const startH = dayToMins(dayResizingRef.current.startTime!) / 60
+        setDayResizeEndHour(Math.max(startH + 0.25, h))
+        return
+      }
+      // Creating new
+      if (dayDragRef.current) {
+        const h = dayYToHour(e.clientY); if (h === null) return
+        const updated = { startHour: dayDragRef.current.startHour, endHour: h }
+        dayDragRef.current = updated
+        setDayDragState(updated)
+      }
     }
-    if (dayResizingTask) {
-      const h = dayYToHour(e); if (h === null) return
-      const startH = dayToMins(dayResizingTask.startTime!) / 60
-      setDayResizeEndHour(Math.max(startH + 0.25, h))
-      return
-    }
-    if (!dayIsDragging || !dayDragState) return
-    const h = dayYToHour(e); if (h === null) return
-    setDayDragState(p => p ? { ...p, endHour: h } : null)
-  }
 
-  async function handleDayMouseUp() {
-    const dateStr = currentDate.toISOString().split('T')[0]
-    if (dayMovingTask && dayMoveGhost) {
-      const newStart = dayMoveGhost.startHour
-      const newEnd = newStart + dayMoveDuration.current
-      const task = dayMovingTask
-      await db.tasks.where('uid').equals(task.uid).modify({
-        scheduledDate: dateStr, dueDate: dateStr,
-        startTime: dayFmtHour(newStart), endTime: dayFmtHour(newEnd),
-      })
-      setTasks(prev => prev.map(t => t.uid === task.uid
-        ? { ...t, scheduledDate: dateStr, dueDate: dateStr, startTime: dayFmtHour(newStart), endTime: dayFmtHour(newEnd) }
-        : t))
-      setDayMovingTask(null); setDayMoveGhost(null); dayMoveStartPos.current = null
-      return
+    const onUp = async (e: MouseEvent) => {
+      const dateStr = currentDate.toISOString().split('T')[0]
+
+      // Finish moving an event
+      if (dayMovingRef.current) {
+        const task = dayMovingRef.current
+        const wasDragged = dayMoveStartPos.current === null
+        if (wasDragged) {
+          const h = dayYToHour(e.clientY)
+          if (h !== null) {
+            const newStart = h
+            const newEnd = newStart + dayMoveDuration.current
+            await db.tasks.where('uid').equals(task.uid).modify({
+              scheduledDate: dateStr, dueDate: dateStr,
+              startTime: dayFmtHour(newStart), endTime: dayFmtHour(newEnd),
+            })
+            setTasks(prev => prev.map(t => t.uid === task.uid
+              ? { ...t, scheduledDate: dateStr, dueDate: dateStr, startTime: dayFmtHour(newStart), endTime: dayFmtHour(newEnd) }
+              : t))
+          }
+        } else {
+          // Click without move → open edit modal
+          setDayEditingEvent(task)
+        }
+        dayMovingRef.current = null
+        dayMoveStartPos.current = null
+        setDayMovingTask(null)
+        setDayMoveGhost(null)
+        return
+      }
+
+      // Finish resizing
+      if (dayResizingRef.current) {
+        const task = dayResizingRef.current
+        const h = dayYToHour(e.clientY)
+        if (h !== null) {
+          const startH = dayToMins(task.startTime!) / 60
+          const newEnd = Math.max(startH + 0.25, h)
+          await db.tasks.where('uid').equals(task.uid).modify({ endTime: dayFmtHour(newEnd) })
+          setTasks(prev => prev.map(t => t.uid === task.uid ? { ...t, endTime: dayFmtHour(newEnd) } : t))
+        }
+        dayResizingRef.current = null
+        setDayResizingTask(null)
+        setDayResizeEndHour(null)
+        return
+      }
+
+      // Finish creating new event
+      if (dayDragRef.current) {
+        const drag = dayDragRef.current
+        const start = Math.min(drag.startHour, drag.endHour)
+        const end = Math.max(drag.startHour, drag.endHour)
+        // Even a tiny click (< 15 min) creates a default 1-hour event
+        if (end - start >= 0.25) {
+          setDayModalDefaults({ date: dateStr, start: dayFmtHour(start), end: dayFmtHour(end) })
+        } else {
+          const defaultEnd = Math.min(23.75, start + 1)
+          setDayModalDefaults({ date: dateStr, start: dayFmtHour(start), end: dayFmtHour(defaultEnd) })
+        }
+        dayDragRef.current = null
+        setDayDragState(null)
+      }
     }
-    if (dayMovingTask) {
-      setDayEditingEvent(dayMovingTask)
-      setDayMovingTask(null); setDayMoveGhost(null); dayMoveStartPos.current = null
-      return
+
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
     }
-    if (dayResizingTask && dayResizeEndHour !== null) {
-      const task = dayResizingTask
-      await db.tasks.where('uid').equals(task.uid).modify({ endTime: dayFmtHour(dayResizeEndHour) })
-      setTasks(prev => prev.map(t => t.uid === task.uid ? { ...t, endTime: dayFmtHour(dayResizeEndHour) } : t))
-      setDayResizingTask(null); setDayResizeEndHour(null)
-      return
-    }
-    if (!dayIsDragging || !dayDragState) return
-    setDayIsDragging(false)
-    const start = Math.min(dayDragState.startHour, dayDragState.endHour)
-    const end = Math.max(dayDragState.startHour, dayDragState.endHour)
-    if (end - start >= 0.25) {
-      setDayModalDefaults({ date: dateStr, start: dayFmtHour(start), end: dayFmtHour(end) })
-    }
-    setDayDragState(null)
+  }, [dayDragState, dayMovingTask, dayResizingTask, currentDate])
+
+  function startDayResize(e: React.MouseEvent, task: Task) {
+    e.preventDefault()
+    e.stopPropagation()
+    dayResizingRef.current = task
+    setDayResizingTask(task)
+    setDayResizeEndHour(dayToMins(task.endTime!) / 60)
   }
 
   const year = currentDate.getFullYear()
@@ -1353,13 +1409,10 @@ export default function CalendarView({
           <div
             ref={dayGridRef}
             onMouseDown={handleDayMouseDown}
-            onMouseMove={handleDayMouseMove}
-            onMouseUp={handleDayMouseUp}
-            onMouseLeave={handleDayMouseUp}
             style={{
               flex: 1, overflowY: 'auto', position: 'relative',
               userSelect: 'none',
-              cursor: dayMovingTask ? 'grabbing' : dayResizingTask ? 'ns-resize' : dayIsDragging ? 'crosshair' : 'default',
+              cursor: dayMovingTask ? 'grabbing' : dayResizingTask ? 'ns-resize' : dayDragState ? 'crosshair' : 'default',
             }}
           >
             <div style={{ display: 'grid', gridTemplateColumns: '48px 1fr', height: `${24 * 60}px`, position: 'relative' }}>
@@ -1421,12 +1474,7 @@ export default function CalendarView({
                         {height > 50 && task.location && <div style={{ fontSize: '10px', opacity: 0.7 }}>{task.location}</div>}
                         <div
                           data-day-resize="true"
-                          onMouseDown={e => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            setDayResizingTask(task)
-                            setDayResizeEndHour(dayToMins(task.endTime!) / 60)
-                          }}
+                          onMouseDown={e => startDayResize(e, task)}
                           style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '6px', cursor: 'ns-resize' }}
                         />
                       </div>
@@ -1434,20 +1482,26 @@ export default function CalendarView({
                   })
                 })()}
                 {/* Create-new drag preview */}
-                {dayIsDragging && dayDragState && (() => {
+                {dayDragState && (() => {
                   const s = Math.min(dayDragState.startHour, dayDragState.endHour)
                   const e = Math.max(dayDragState.startHour, dayDragState.endHour)
+                  const h = Math.max((e - s) * 60, 24)
                   return (
                     <div style={{
                       position: 'absolute', top: `${s * 60}px`, left: '4px', right: '4px',
-                      height: `${Math.max((e - s) * 60, 4)}px`,
-                      background: 'var(--accent-light, rgba(99,102,241,0.15))',
-                      border: '2px dashed var(--accent)',
+                      height: `${h}px`,
+                      background: 'var(--accent)',
+                      opacity: 0.85,
+                      border: '2px solid var(--accent)',
                       borderRadius: '6px', zIndex: 8, pointerEvents: 'none',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '11px', fontWeight: 600, color: 'var(--accent)',
+                      padding: '4px 8px', overflow: 'hidden',
+                      color: 'white',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                     }}>
-                      {dayFmtHour(s)} – {dayFmtHour(e)}
+                      <div style={{ fontSize: '12px', fontWeight: 700 }}>(New event)</div>
+                      <div style={{ fontSize: '11px', opacity: 0.9 }}>
+                        {dayFmtHour(s)} – {dayFmtHour(e)}
+                      </div>
                     </div>
                   )
                 })()}
