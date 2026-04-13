@@ -4,6 +4,7 @@ import { ChevronRight } from 'lucide-react'
 import { db, Task } from '@/db/schema'
 import EventModal from '@/components/calendar/EventModal'
 import { nanoid } from 'nanoid'
+import { expandRecurring } from '@/lib/expandRecurring'
 
 const getEventColor = (task: Task) => task.color || 'var(--accent)'
 
@@ -513,29 +514,49 @@ export default function RightRail({ toggleRight }: RightRailProps = {}) {
   }, [])
 
   const loadEvents = async () => {
-      const todayStr = new Date().toISOString().split('T')[0]
-      const nowMins = new Date().getHours() * 60 + new Date().getMinutes()
-      const tasks = await db.tasks
-        .filter(t => t.status !== 'done' &&
-                     t.dueDate !== null &&
-                     (t.dueDate ?? '') >= todayStr)
-        .sortBy('dueDate')
+      const now = new Date()
+      const todayStr = now.toISOString().split('T')[0]
+      const nowMins = now.getHours() * 60 + now.getMinutes()
+
+      // Fetch all non-done tasks, then expand recurring events across the
+      // next 30 days so virtual occurrences show up in the upcoming list.
+      const allTasks = await db.tasks
+        .filter(t => t.status !== 'done')
+        .toArray()
+      const rangeEnd = new Date()
+      rangeEnd.setDate(rangeEnd.getDate() + 30)
+      const expanded = expandRecurring(allTasks, now, rangeEnd)
+
+      // Upcoming: anything dated today or later, sorted ascending.
+      // Use the same date-lookup pattern (dueDate ?? scheduledDate) that
+      // the rest of RightRail already uses.
+      const upcomingRaw = expanded
+        .filter(t => {
+          const d = t.dueDate ?? t.scheduledDate ?? ''
+          return d !== '' && d >= todayStr
+        })
+        .sort((a, b) => {
+          const da = a.dueDate ?? a.scheduledDate ?? ''
+          const dbKey = b.dueDate ?? b.scheduledDate ?? ''
+          return da.localeCompare(dbKey)
+        })
+
       // Exclude events that already ended today
-      const filtered = tasks.filter(t => {
+      const filtered = upcomingRaw.filter(t => {
         if ((t.dueDate ?? t.scheduledDate) === todayStr && t.endTime) {
           const [h, m] = t.endTime.split(':').map(Number)
           if (h * 60 + (m || 0) <= nowMins) return false
         }
         return true
       })
-      setUpcoming(filtered.slice(0, 5))
+      setUpcoming(filtered.slice(0, 10))
 
-      const scheduled = await db.tasks
-        .filter(t =>
-          (t.scheduledDate === todayStr || t.dueDate === todayStr) &&
-          t.startTime !== null
-        )
-        .toArray()
+      // Today timeline: events scheduled for today (including virtual
+      // recurring occurrences that land on today) that have a startTime.
+      const scheduled = expanded.filter(t =>
+        (t.scheduledDate === todayStr || t.dueDate === todayStr) &&
+        t.startTime !== null
+      )
       setTodayTasks(scheduled)
   }
 
