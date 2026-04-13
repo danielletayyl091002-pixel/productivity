@@ -4,9 +4,12 @@ import { useRouter } from 'next/navigation'
 import { db } from '@/db/schema'
 import { nanoid } from 'nanoid'
 
-interface Props { onClose: () => void }
+interface Props {
+  onClose: () => void
+  onCreated?: () => void
+}
 
-export default function QuickCapture({ onClose }: Props) {
+export default function QuickCapture({ onClose, onCreated }: Props) {
   const [title, setTitle] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
@@ -35,8 +38,7 @@ export default function QuickCapture({ onClose }: Props) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
-    // Let LeftSidebar (and anything else listening) refresh its page list
-    window.dispatchEvent(new CustomEvent('page-created'))
+    onCreated?.()
     onClose()
     router.push(`/page/${uid}`)
   }

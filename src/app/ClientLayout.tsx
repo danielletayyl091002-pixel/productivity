@@ -13,6 +13,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const { leftVisible, rightVisible, toggleLeft, toggleRight } = useSidebarVisibility()
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [showQuickCapture, setShowQuickCapture] = useState(false)
+  const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0)
 
   // Global keydown — Cmd+? toggles shortcuts, Cmd+Shift+N opens quick capture
   useEffect(() => {
@@ -202,7 +203,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       background: 'var(--bg-secondary)',
     }}>
       <CmdK />
-      <LeftSidebar collapsed={!leftVisible} toggleLeft={toggleLeft} />
+      <LeftSidebar collapsed={!leftVisible} toggleLeft={toggleLeft} refreshKey={sidebarRefreshKey} />
       <main style={{ flex: 1, overflow: 'auto', minWidth: 0, transition: 'all 200ms ease-in-out' }}>
         {children}
       </main>
@@ -237,7 +238,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       )}
 
       {showQuickCapture && (
-        <QuickCapture onClose={() => setShowQuickCapture(false)} />
+        <QuickCapture
+          onClose={() => setShowQuickCapture(false)}
+          onCreated={() => setSidebarRefreshKey(k => k + 1)}
+        />
       )}
     </div>
   )

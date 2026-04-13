@@ -8,9 +8,10 @@ import { nanoid } from 'nanoid'
 interface LeftSidebarProps {
   collapsed: boolean
   toggleLeft: () => void
+  refreshKey?: number
 }
 
-export default function LeftSidebar({ collapsed, toggleLeft }: LeftSidebarProps) {
+export default function LeftSidebar({ collapsed, toggleLeft, refreshKey = 0 }: LeftSidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [pages, setPages] = useState<Page[]>([])
@@ -33,6 +34,17 @@ export default function LeftSidebar({ collapsed, toggleLeft }: LeftSidebarProps)
     }
     init()
   }, [pathname])
+
+  // Prop-driven refresh: when the parent bumps refreshKey (e.g. after
+  // QuickCapture creates a page) re-read the page list from Dexie.
+  useEffect(() => {
+    if (refreshKey === 0) return
+    async function reload() {
+      const all = await db.pages.filter(p => !p.inTrash).sortBy('order')
+      setPages(all)
+    }
+    reload()
+  }, [refreshKey])
 
   useEffect(() => {
     async function refresh() {
