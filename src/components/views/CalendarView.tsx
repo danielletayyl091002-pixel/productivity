@@ -856,6 +856,123 @@ export default function CalendarView({
   const [hoveredDate, setHoveredDate] = useState<string | null>(null)
   const [dayEditingEvent, setDayEditingEvent] = useState<Partial<Task> | null>(null)
 
+  // Day view drag-to-create
+  const [dayDragState, setDayDragState] = useState<{ startHour: number; endHour: number } | null>(null)
+  const [dayIsDragging, setDayIsDragging] = useState(false)
+  const [dayModalDefaults, setDayModalDefaults] = useState<{ date: string; start: string; end: string } | null>(null)
+
+  // Day view drag-to-move existing
+  const [dayMovingTask, setDayMovingTask] = useState<Task | null>(null)
+  const [dayMoveGhost, setDayMoveGhost] = useState<{ startHour: number; endHour: number } | null>(null)
+  const dayMoveDuration = useRef(0)
+  const dayMoveStartPos = useRef<{ x: number; y: number } | null>(null)
+
+  // Day view drag-to-resize
+  const [dayResizingTask, setDayResizingTask] = useState<Task | null>(null)
+  const [dayResizeEndHour, setDayResizeEndHour] = useState<number | null>(null)
+
+  const dayGridRef = useRef<HTMLDivElement>(null)
+
+  // Day view helpers
+  function dayYToHour(e: React.MouseEvent | MouseEvent): number | null {
+    if (!dayGridRef.current) return null
+    const rect = dayGridRef.current.getBoundingClientRect()
+    const scrollTop = dayGridRef.current.scrollTop
+    const relY = e.clientY - rect.top + scrollTop
+    return Math.max(0, Math.min(23.75, Math.round((relY / 60) * 4) / 4))
+  }
+  function dayFmtHour(h: number): string {
+    const hrs = Math.floor(h)
+    const mins = Math.round((h - hrs) * 60)
+    return String(hrs).padStart(2, '0') + ':' + String(mins).padStart(2, '0')
+  }
+  function dayToMins(time: string): number {
+    const [h, m] = time.split(':').map(Number)
+    return h * 60 + (m || 0)
+  }
+
+  function handleDayMouseDown(e: React.MouseEvent) {
+    if ((e.target as HTMLElement).closest('[data-day-resize]')) return
+    const eventEl = (e.target as HTMLElement).closest('[data-day-event-uid]') as HTMLElement | null
+    if (eventEl) {
+      e.preventDefault()
+      const uid = eventEl.getAttribute('data-day-event-uid')
+      const task = tasks.find(t => t.uid === uid)
+      if (!task || !task.startTime || !task.endTime) return
+      const dur = (dayToMins(task.endTime) - dayToMins(task.startTime)) / 60
+      dayMoveDuration.current = dur
+      dayMoveStartPos.current = { x: e.clientX, y: e.clientY }
+      setDayMovingTask(task)
+      return
+    }
+    e.preventDefault()
+    const h = dayYToHour(e)
+    if (h === null) return
+    setDayDragState({ startHour: h, endHour: h })
+    setDayIsDragging(true)
+  }
+
+  function handleDayMouseMove(e: React.MouseEvent) {
+    if (dayMovingTask) {
+      if (dayMoveStartPos.current) {
+        const dx = Math.abs(e.clientX - dayMoveStartPos.current.x)
+        const dy = Math.abs(e.clientY - dayMoveStartPos.current.y)
+        if (dx < 3 && dy < 3) return
+        dayMoveStartPos.current = null
+      }
+      const h = dayYToHour(e); if (h === null) return
+      setDayMoveGhost({ startHour: h, endHour: h + dayMoveDuration.current })
+      return
+    }
+    if (dayResizingTask) {
+      const h = dayYToHour(e); if (h === null) return
+      const startH = dayToMins(dayResizingTask.startTime!) / 60
+      setDayResizeEndHour(Math.max(startH + 0.25, h))
+      return
+    }
+    if (!dayIsDragging || !dayDragState) return
+    const h = dayYToHour(e); if (h === null) return
+    setDayDragState(p => p ? { ...p, endHour: h } : null)
+  }
+
+  async function handleDayMouseUp() {
+    const dateStr = currentDate.toISOString().split('T')[0]
+    if (dayMovingTask && dayMoveGhost) {
+      const newStart = dayMoveGhost.startHour
+      const newEnd = newStart + dayMoveDuration.current
+      const task = dayMovingTask
+      await db.tasks.where('uid').equals(task.uid).modify({
+        scheduledDate: dateStr, dueDate: dateStr,
+        startTime: dayFmtHour(newStart), endTime: dayFmtHour(newEnd),
+      })
+      setTasks(prev => prev.map(t => t.uid === task.uid
+        ? { ...t, scheduledDate: dateStr, dueDate: dateStr, startTime: dayFmtHour(newStart), endTime: dayFmtHour(newEnd) }
+        : t))
+      setDayMovingTask(null); setDayMoveGhost(null); dayMoveStartPos.current = null
+      return
+    }
+    if (dayMovingTask) {
+      setDayEditingEvent(dayMovingTask)
+      setDayMovingTask(null); setDayMoveGhost(null); dayMoveStartPos.current = null
+      return
+    }
+    if (dayResizingTask && dayResizeEndHour !== null) {
+      const task = dayResizingTask
+      await db.tasks.where('uid').equals(task.uid).modify({ endTime: dayFmtHour(dayResizeEndHour) })
+      setTasks(prev => prev.map(t => t.uid === task.uid ? { ...t, endTime: dayFmtHour(dayResizeEndHour) } : t))
+      setDayResizingTask(null); setDayResizeEndHour(null)
+      return
+    }
+    if (!dayIsDragging || !dayDragState) return
+    setDayIsDragging(false)
+    const start = Math.min(dayDragState.startHour, dayDragState.endHour)
+    const end = Math.max(dayDragState.startHour, dayDragState.endHour)
+    if (end - start >= 0.25) {
+      setDayModalDefaults({ date: dateStr, start: dayFmtHour(start), end: dayFmtHour(end) })
+    }
+    setDayDragState(null)
+  }
+
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
 
@@ -1233,7 +1350,18 @@ export default function CalendarView({
       ) : (
         /* Day view — single day column */
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
-          <div style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
+          <div
+            ref={dayGridRef}
+            onMouseDown={handleDayMouseDown}
+            onMouseMove={handleDayMouseMove}
+            onMouseUp={handleDayMouseUp}
+            onMouseLeave={handleDayMouseUp}
+            style={{
+              flex: 1, overflowY: 'auto', position: 'relative',
+              userSelect: 'none',
+              cursor: dayMovingTask ? 'grabbing' : dayResizingTask ? 'ns-resize' : dayIsDragging ? 'crosshair' : 'default',
+            }}
+          >
             <div style={{ display: 'grid', gridTemplateColumns: '48px 1fr', height: `${24 * 60}px`, position: 'relative' }}>
               {/* Time labels */}
               <div style={{ position: 'relative' }}>
@@ -1260,9 +1388,13 @@ export default function CalendarView({
                   return dayTasks.map(task => {
                     const [sh, sm] = (task.startTime || '0:0').split(':').map(Number)
                     const [eh, em] = (task.endTime || '1:0').split(':').map(Number)
-                    const top = (sh + sm / 60) * 60
-                    const height = Math.max(((eh + em / 60) - (sh + sm / 60)) * 60, 20)
+                    const startH = sh + sm / 60
+                    const isResizingThis = dayResizingTask?.uid === task.uid && dayResizeEndHour !== null
+                    const endH = isResizingThis ? dayResizeEndHour! : (eh + em / 60)
+                    const top = startH * 60
+                    const height = Math.max((endH - startH) * 60, 20)
                     const color = getEventColor(task)
+                    const isMovingThis = dayMovingTask?.uid === task.uid
                     const use24hDay = typeof localStorage !== 'undefined' && localStorage.getItem('time_format') === '24h'
                     const fmtTime = (t: string) => {
                       if (use24hDay) return t
@@ -1272,17 +1404,72 @@ export default function CalendarView({
                       return `${hr}:${String(m).padStart(2, '0')} ${ampm}`
                     }
                     return (
-                      <div key={task.uid} className="calendar-event" onClick={() => setDayEditingEvent(task)} style={{
-                        position: 'absolute', top: `${top}px`, left: '4px', right: '4px', height: `${height}px`,
-                        ...getEventStyle(color),
-                        padding: '4px 8px', overflow: 'hidden', cursor: 'pointer', zIndex: 3,
-                      }}>
+                      <div
+                        key={task.uid}
+                        data-day-event-uid={task.uid}
+                        className="calendar-event"
+                        style={{
+                          position: 'absolute', top: `${top}px`, left: '4px', right: '4px', height: `${height}px`,
+                          ...getEventStyle(color),
+                          padding: '4px 8px', overflow: 'hidden',
+                          cursor: 'grab', zIndex: isMovingThis || isResizingThis ? 10 : 3,
+                          opacity: isMovingThis ? 0.3 : 1,
+                        }}
+                      >
                         <div style={{ fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.title}</div>
-                        {height > 32 && <div style={{ fontSize: '11px', opacity: 0.8 }}>{fmtTime(task.startTime!)} - {fmtTime(task.endTime!)}</div>}
+                        {height > 32 && <div style={{ fontSize: '11px', opacity: 0.8 }}>{fmtTime(task.startTime!)} - {isResizingThis ? dayFmtHour(endH) : fmtTime(task.endTime!)}</div>}
                         {height > 50 && task.location && <div style={{ fontSize: '10px', opacity: 0.7 }}>{task.location}</div>}
+                        <div
+                          data-day-resize="true"
+                          onMouseDown={e => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setDayResizingTask(task)
+                            setDayResizeEndHour(dayToMins(task.endTime!) / 60)
+                          }}
+                          style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '6px', cursor: 'ns-resize' }}
+                        />
                       </div>
                     )
                   })
+                })()}
+                {/* Create-new drag preview */}
+                {dayIsDragging && dayDragState && (() => {
+                  const s = Math.min(dayDragState.startHour, dayDragState.endHour)
+                  const e = Math.max(dayDragState.startHour, dayDragState.endHour)
+                  return (
+                    <div style={{
+                      position: 'absolute', top: `${s * 60}px`, left: '4px', right: '4px',
+                      height: `${Math.max((e - s) * 60, 4)}px`,
+                      background: 'var(--accent-light, rgba(99,102,241,0.15))',
+                      border: '2px dashed var(--accent)',
+                      borderRadius: '6px', zIndex: 8, pointerEvents: 'none',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '11px', fontWeight: 600, color: 'var(--accent)',
+                    }}>
+                      {dayFmtHour(s)} – {dayFmtHour(e)}
+                    </div>
+                  )
+                })()}
+                {/* Move ghost */}
+                {dayMovingTask && dayMoveGhost && (() => {
+                  const color = getEventColor(dayMovingTask)
+                  return (
+                    <div style={{
+                      position: 'absolute', top: `${dayMoveGhost.startHour * 60}px`, left: '4px', right: '4px',
+                      height: `${dayMoveDuration.current * 60}px`,
+                      ...getEventStyle(color),
+                      border: '2px dashed var(--accent)',
+                      opacity: 0.7, zIndex: 9, pointerEvents: 'none',
+                      padding: '4px 8px', overflow: 'hidden',
+                      borderRadius: '6px',
+                    }}>
+                      <div style={{ fontSize: '12px', fontWeight: 600 }}>{dayMovingTask.title}</div>
+                      <div style={{ fontSize: '10px', opacity: 0.8 }}>
+                        {dayFmtHour(dayMoveGhost.startHour)} – {dayFmtHour(dayMoveGhost.startHour + dayMoveDuration.current)}
+                      </div>
+                    </div>
+                  )
                 })()}
               </div>
             </div>
@@ -1396,6 +1583,40 @@ export default function CalendarView({
               setTasks(prev => prev.filter(t => t.uid !== uid))
             }
             setDayEditingEvent(null)
+          }}
+        />
+      )}
+
+      {/* Day view create modal */}
+      {dayModalDefaults && (
+        <EventModal
+          defaultDate={dayModalDefaults.date}
+          defaultStartTime={dayModalDefaults.start}
+          defaultEndTime={dayModalDefaults.end}
+          onClose={() => setDayModalDefaults(null)}
+          onSave={async (evt) => {
+            const newTask = {
+              uid: nanoid(),
+              pageUid: '',
+              createdAt: new Date().toISOString(),
+              title: evt.title || 'New event',
+              status: evt.status || 'todo',
+              priority: evt.priority || null,
+              dueDate: evt.dueDate || dayModalDefaults.date,
+              scheduledDate: evt.scheduledDate || dayModalDefaults.date,
+              startTime: evt.startTime || dayModalDefaults.start,
+              endTime: evt.endTime || dayModalDefaults.end,
+              color: evt.color || 'var(--accent)',
+              itemType: evt.itemType || 'event',
+              description: evt.description ?? null,
+              location: evt.location ?? null,
+              recurrence: evt.recurrence ?? null,
+              reminder: evt.reminder ?? null,
+              url: evt.url ?? null,
+            } as Task
+            const id = await db.tasks.add(newTask)
+            setTasks(prev => [...prev, { ...newTask, id: id as number }])
+            setDayModalDefaults(null)
           }}
         />
       )}
