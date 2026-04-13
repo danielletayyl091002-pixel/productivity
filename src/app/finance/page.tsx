@@ -612,7 +612,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '2fr 1fr 1.5fr 1fr 30px',
+        gridTemplateColumns: 'minmax(80px, 2fr) 1fr 1.5fr 1fr 30px',
         padding: '8px 20px',
         borderBottom: '1px solid var(--border)',
         background: 'var(--bg-hover)',
@@ -641,22 +641,30 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
           return (
             <div key={entry.id} style={{
               display: 'grid',
-              gridTemplateColumns: '2fr 1fr 1.5fr 1fr 30px',
+              gridTemplateColumns: 'minmax(80px, 2fr) 1fr 1.5fr 1fr 30px',
               padding: '10px 20px',
               borderBottom: '1px solid var(--border)',
               alignItems: 'center',
-              cursor: 'pointer',
-              gap: '8px'
+              cursor: isEditing ? 'default' : 'pointer',
+              gap: '8px',
+              // Force transparent while editing — overrides any background
+              // set by the onMouseEnter DOM mutation before edit kicked in,
+              // which otherwise left a stuck dark bar on the edit row.
+              background: isEditing ? 'transparent' : undefined,
             }}
             onClick={() => {
               if (isEditing) return
               setEditingId(entry.id ?? null)
               setEditForm({ note: entry.note, amount: entry.amount.toString(), category: entry.category || '' })
             }}
-            onMouseEnter={e =>
-              e.currentTarget.style.background = 'var(--bg-hover)'}
-            onMouseLeave={e =>
-              e.currentTarget.style.background = 'transparent'}
+            onMouseEnter={e => {
+              if (isEditing) return
+              (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-hover)'
+            }}
+            onMouseLeave={e => {
+              if (isEditing) return
+              (e.currentTarget as HTMLDivElement).style.background = 'transparent'
+            }}
             >
               {isEditing ? (
                 <input
