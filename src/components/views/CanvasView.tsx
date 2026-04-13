@@ -71,6 +71,9 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
   const canvasScrollRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const rafRef = useRef<number | null>(null)
+  // Mirror of urlMap for the unmount cleanup effect (avoids stale closure)
+  const urlMapRef = useRef<Map<string, string>>(new Map())
+  useEffect(() => { urlMapRef.current = urlMap }, [urlMap])
 
   // Load items for this page
   useEffect(() => {
@@ -104,12 +107,11 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
     })
   }, [items])
 
-  // Revoke all URLs on unmount
+  // Revoke all URLs on unmount (reads from ref to get the latest map)
   useEffect(() => {
     return () => {
-      urlMap.forEach(url => URL.revokeObjectURL(url))
+      urlMapRef.current.forEach(url => URL.revokeObjectURL(url))
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function addTextBox() {
@@ -143,12 +145,20 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
     const scroll = canvasScrollRef.current
     const baseX = position?.x ?? (scroll?.scrollLeft ?? 0) + 80
     const baseY = position?.y ?? (scroll?.scrollTop ?? 0) + 80
-    const imageFiles = files.filter(f => ACCEPTED_IMAGE_TYPES.includes(f.type))
+    // Lenient filter: accept anything with an image/* mime type OR an image extension
+    const imageFiles = files.filter(f =>
+      (f.type && f.type.startsWith('image/')) ||
+      /\.(png|jpe?g|webp|gif|bmp|avif)$/i.test(f.name)
+    )
+    if (imageFiles.length === 0) {
+      console.warn('[Canvas] No image files detected in drop/paste/picker', files.map(f => ({ name: f.name, type: f.type })))
+      return
+    }
 
     for (let i = 0; i < imageFiles.length; i++) {
       const file = imageFiles[i]
       if (file.size > MAX_IMAGE_BYTES) {
-        console.warn(`Skipping ${file.name}: exceeds 10 MB limit`)
+        console.warn(`[Canvas] Skipping ${file.name}: ${(file.size / 1024 / 1024).toFixed(1)} MB exceeds 10 MB limit`)
         continue
       }
       try {
@@ -159,8 +169,17 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
         // Add 24px for the drag handle bar above the image
         const displayHeight = Math.round(natH * scale) + 24
         const now = new Date().toISOString()
+        const uid = nanoid()
+        // Pre-register the object URL synchronously so the image shows
+        // on the very first render (no "Loading..." flash).
+        const objectUrl = URL.createObjectURL(file)
+        setUrlMap(prev => {
+          const next = new Map(prev)
+          next.set(uid, objectUrl)
+          return next
+        })
         const newItem: CanvasItem = {
-          uid: nanoid(),
+          uid,
           pageUid,
           type: 'image',
           x: baseX + i * 30,
@@ -169,7 +188,7 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
           height: displayHeight,
           content: file.name,
           imageBlob: file,
-          mimeType: file.type,
+          mimeType: file.type || 'image/png',
           naturalWidth: natW,
           naturalHeight: natH,
           createdAt: now,
@@ -177,8 +196,9 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
         }
         const id = await db.canvasItems.add(newItem)
         setItems(prev => [...prev, { ...newItem, id: id as number }])
+        console.log('[Canvas] Added image', file.name, `${natW}x${natH}`)
       } catch (err) {
-        console.error('Failed to add image', file.name, err)
+        console.error('[Canvas] Failed to add image', file.name, err)
       }
     }
   }
