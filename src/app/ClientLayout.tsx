@@ -1,14 +1,28 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { db } from '@/db/schema'
 import { ChevronLeft } from 'lucide-react'
 import LeftSidebar from '@/components/layout/LeftSidebar'
 import RightRail from '@/components/layout/RightRail'
 import CmdK from '@/components/CmdK'
+import ShortcutsModal from '@/components/ui/ShortcutsModal'
 import { useSidebarVisibility } from '@/hooks/useSidebarVisibility'
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const { leftVisible, rightVisible, toggleLeft, toggleRight } = useSidebarVisibility()
+  const [showShortcuts, setShowShortcuts] = useState(false)
+
+  // Global keydown — Cmd+? (Meta+Shift+/) toggles the shortcuts modal
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === '?') {
+        e.preventDefault()
+        setShowShortcuts(prev => !prev)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
   useEffect(() => {
     async function loadSettings() {
       const font = await db.settings.where('key').equals('font').first()
@@ -210,6 +224,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         >
           <ChevronLeft size={16} />
         </button>
+      )}
+
+      {showShortcuts && (
+        <ShortcutsModal onClose={() => setShowShortcuts(false)} />
       )}
     </div>
   )
