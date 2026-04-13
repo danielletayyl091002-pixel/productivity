@@ -1,10 +1,15 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import { ChevronLeft } from 'lucide-react'
 import { db, Page, seedIfEmpty } from '@/db/schema'
 import { nanoid } from 'nanoid'
 
-export default function LeftSidebar() {
+interface LeftSidebarProps {
+  toggleLeft?: () => void
+}
+
+export default function LeftSidebar({ toggleLeft }: LeftSidebarProps = {}) {
   const router = useRouter()
   const pathname = usePathname()
   const [pages, setPages] = useState<Page[]>([])
@@ -134,6 +139,25 @@ export default function LeftSidebar() {
         color: 'var(--text-primary)'
       }}>
         Fluent
+        {toggleLeft && (
+          <button
+            onClick={toggleLeft}
+            aria-label="Hide left sidebar"
+            style={{
+              marginLeft: 'auto',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--text-tertiary)',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '4px',
+              borderRadius: '4px',
+            }}
+          >
+            <ChevronLeft size={16} />
+          </button>
+        )}
       </div>
 
       <div style={{ padding: '8px' }}>

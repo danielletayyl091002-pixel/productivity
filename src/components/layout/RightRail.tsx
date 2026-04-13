@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
+import { ChevronRight } from 'lucide-react'
 import { db, Task } from '@/db/schema'
 import EventModal from '@/components/calendar/EventModal'
 import { nanoid } from 'nanoid'
@@ -451,7 +452,11 @@ function Ring({ value, max, color, label }: {
   )
 }
 
-export default function RightRail() {
+interface RightRailProps {
+  toggleRight?: () => void
+}
+
+export default function RightRail({ toggleRight }: RightRailProps = {}) {
   const { definitions: trackerDefs, loaded: trackersLoaded, load: loadTrackers, getTodayValue } = useTrackerStore()
   const [upcoming, setUpcoming] = useState<Task[]>([])
   const [todayTasks, setTodayTasks] = useState<Task[]>([])
@@ -552,15 +557,35 @@ export default function RightRail() {
         height: '48px', flexShrink: 0,
         display: 'flex', alignItems: 'center',
         justifyContent: 'space-between',
+        gap: '8px',
         padding: '0 16px',
         borderBottom: '1px solid var(--border)'
       }}>
+        {toggleRight && (
+          <button
+            onClick={toggleRight}
+            aria-label="Hide right sidebar"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--text-tertiary)',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '4px',
+              borderRadius: '4px',
+            }}
+          >
+            <ChevronRight size={16} />
+          </button>
+        )}
         <span style={{
           fontSize: '13px', fontWeight: 600,
           color: 'var(--text-primary)'
         }}>Today</span>
         <span style={{
-          fontSize: '11px', color: 'var(--text-tertiary)'
+          fontSize: '11px', color: 'var(--text-tertiary)',
+          marginLeft: 'auto',
         }}>
           {dateStr}
         </span>
