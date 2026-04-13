@@ -5,7 +5,11 @@ import { db, Page, Block } from '@/db/schema'
 import { nanoid } from 'nanoid'
 import { TEMPLATES } from '@/lib/templates'
 
-export default function CmdK() {
+interface CmdKProps {
+  onPageCreated?: () => void
+}
+
+export default function CmdK({ onPageCreated }: CmdKProps = {}) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -44,7 +48,7 @@ export default function CmdK() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       })
-      window.dispatchEvent(new CustomEvent('page-created'))
+      onPageCreated?.()
       router.push(`/page/${uid}`)
       creatingRef.current = false
     } else if (action === 'toggle-theme') {
@@ -74,10 +78,10 @@ export default function CmdK() {
         createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
       }))
       await db.blocks.bulkAdd(blocksToAdd)
-      window.dispatchEvent(new CustomEvent('page-created'))
+      onPageCreated?.()
       router.push(`/page/${uid}`)
     }
-  }, [theme, router])
+  }, [theme, router, onPageCreated])
 
   // Mount: read theme, register keydown
   useEffect(() => {
@@ -92,6 +96,7 @@ export default function CmdK() {
     }
     window.addEventListener('keydown', onKeyDown)
 
+    // Cross-tab theme sync via native StorageEvent.
     function onStorage(e: StorageEvent) {
       if (e.key === 'theme' && e.newValue) {
         setTheme(e.newValue as 'light' | 'dark')
@@ -99,16 +104,9 @@ export default function CmdK() {
     }
     window.addEventListener('storage', onStorage)
 
-    const handleThemeChange = (e: Event) => {
-      const theme = (e as CustomEvent).detail.theme
-      setTheme(theme)
-    }
-    window.addEventListener('fluent-theme-changed', handleThemeChange)
-
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('storage', onStorage)
-      window.removeEventListener('fluent-theme-changed', handleThemeChange)
     }
   }, [])
 
@@ -146,9 +144,12 @@ export default function CmdK() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [open, totalItems, selectedIndex, query, quickActions, results, handleQuickAction, router])
 
-  // Focus input when opened
+  // Focus input when opened, and re-sync theme label from localStorage
+  // (theme may have been toggled by the sidebar since last read).
   useEffect(() => {
     if (open) {
+      const saved = localStorage.getItem('theme') || 'light'
+      setTheme(saved as 'light' | 'dark')
       const t = setTimeout(() => inputRef.current?.focus(), 50)
       return () => clearTimeout(t)
     }

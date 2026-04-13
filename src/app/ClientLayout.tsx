@@ -202,7 +202,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       overflow: 'hidden',
       background: 'var(--bg-secondary)',
     }}>
-      <CmdK />
+      <CmdK onPageCreated={() => setSidebarRefreshKey(k => k + 1)} />
       <LeftSidebar collapsed={!leftVisible} toggleLeft={toggleLeft} refreshKey={sidebarRefreshKey} />
       <main style={{ flex: 1, overflow: 'auto', minWidth: 0, transition: 'all 200ms ease-in-out' }}>
         {children}
