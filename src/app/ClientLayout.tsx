@@ -6,18 +6,24 @@ import LeftSidebar from '@/components/layout/LeftSidebar'
 import RightRail from '@/components/layout/RightRail'
 import CmdK from '@/components/CmdK'
 import ShortcutsModal from '@/components/ui/ShortcutsModal'
+import QuickCapture from '@/components/ui/QuickCapture'
 import { useSidebarVisibility } from '@/hooks/useSidebarVisibility'
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const { leftVisible, rightVisible, toggleLeft, toggleRight } = useSidebarVisibility()
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const [showQuickCapture, setShowQuickCapture] = useState(false)
 
-  // Global keydown — Cmd+? (Meta+Shift+/) toggles the shortcuts modal
+  // Global keydown — Cmd+? toggles shortcuts, Cmd+Shift+N opens quick capture
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === '?') {
         e.preventDefault()
         setShowShortcuts(prev => !prev)
+      }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'N') {
+        e.preventDefault()
+        setShowQuickCapture(true)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -228,6 +234,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
       {showShortcuts && (
         <ShortcutsModal onClose={() => setShowShortcuts(false)} />
+      )}
+
+      {showQuickCapture && (
+        <QuickCapture onClose={() => setShowQuickCapture(false)} />
       )}
     </div>
   )
