@@ -2,6 +2,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { db, CanvasItem } from '@/db/schema'
 import { nanoid } from 'nanoid'
+import { useEditor, EditorContent } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import Placeholder from '@tiptap/extension-placeholder'
+import TaskList from '@tiptap/extension-task-list'
+import TaskItem from '@tiptap/extension-task-item'
+import HorizontalRule from '@tiptap/extension-horizontal-rule'
+import { Extension } from '@tiptap/core'
+import Suggestion from '@tiptap/suggestion'
+import { canvasSuggestion } from './canvas-slash-menu'
 
 type BgPattern = 'grid' | 'dots'
 
@@ -9,40 +18,107 @@ const MAX_IMAGE_BYTES = 10 * 1024 * 1024 // 10 MB
 const MAX_INITIAL_IMAGE_WIDTH = 400
 const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
 
-// Subcomponent: contentEditable with one-time initial text.
-// Using a ref + empty-deps useEffect avoids React re-rendering wiping
-// the user's typed content during drag/resize re-renders.
-function TextBoxContent({
+// Slash command extension scoped to the canvas text box (reduced command set).
+const CanvasSlashCommand = Extension.create({
+  name: 'canvasSlashCommand',
+  addOptions() {
+    return { suggestion: canvasSuggestion }
+  },
+  addProseMirrorPlugins() {
+    return [
+      Suggestion({
+        editor: this.editor,
+        ...this.options.suggestion,
+      }),
+    ]
+  },
+})
+
+// Parse an item.content string to a TipTap document.
+// Legacy plain-text content gets wrapped in a single paragraph.
+// New content is stored as stringified TipTap JSON.
+function parseContent(raw: string): Record<string, unknown> {
+  if (!raw) return { type: 'doc', content: [{ type: 'paragraph' }] }
+  try {
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed === 'object' && parsed.type === 'doc') {
+      return parsed
+    }
+  } catch {
+    // not JSON — treat as plain text
+  }
+  return {
+    type: 'doc',
+    content: raw.split('\n').map(line => ({
+      type: 'paragraph',
+      content: line ? [{ type: 'text', text: line }] : [],
+    })),
+  }
+}
+
+// Rich text box with slash commands. Uses TipTap with a minimal extension
+// set (StarterKit + lists + slash menu). Content persists as stringified
+// TipTap JSON. Saves on blur via onSave.
+function CanvasRichTextBox({
   initialContent,
   onSave,
 }: {
   initialContent: string
   onSave: (content: string) => void
 }) {
-  const ref = useRef<HTMLDivElement>(null)
+  const savedRef = useRef<string>(initialContent)
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+        horizontalRule: false,
+        dropcursor: false,
+      }),
+      HorizontalRule,
+      TaskList,
+      TaskItem.configure({ nested: false }),
+      Placeholder.configure({ placeholder: "Type '/' for commands..." }),
+      CanvasSlashCommand,
+    ],
+    content: parseContent(initialContent),
+    onBlur: ({ editor: ed }) => {
+      const json = JSON.stringify(ed.getJSON())
+      if (json !== savedRef.current) {
+        savedRef.current = json
+        onSave(json)
+      }
+    },
+    editorProps: {
+      attributes: {
+        class: 'canvas-textbox-content',
+      },
+    },
+  })
+
+  // Clean up the editor on unmount
   useEffect(() => {
-    if (ref.current) ref.current.innerText = initialContent
+    return () => {
+      editor?.destroy()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
   return (
     <div
-      ref={ref}
-      contentEditable
-      suppressContentEditableWarning
       onMouseDown={e => e.stopPropagation()}
-      onBlur={e => onSave((e.currentTarget as HTMLDivElement).innerText)}
       style={{
         flex: 1,
-        padding: '10px 12px',
+        padding: '8px 12px',
         fontSize: '13px',
         color: 'var(--text-primary)',
-        outline: 'none',
         overflow: 'auto',
-        whiteSpace: 'pre-wrap',
-        wordBreak: 'break-word',
         cursor: 'text',
       }}
-    />
+    >
+      <EditorContent editor={editor} />
+    </div>
   )
 }
 
@@ -590,7 +666,7 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
                   }}>Loading…</div>
                 )
               ) : (
-                <TextBoxContent
+                <CanvasRichTextBox
                   initialContent={item.content}
                   onSave={content => saveContent(item, content)}
                 />
