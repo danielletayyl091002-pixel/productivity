@@ -169,12 +169,19 @@ export default function EventModal({
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleClose()
+      if (e.key === 'Escape') {
+        // If the recurrence options dialog is open, close it first
+        if (showRecurrenceOptions) {
+          setShowRecurrenceOptions(false)
+          return
+        }
+        handleClose()
+      }
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') handleSave()
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [handleClose, handleSave])
+  }, [handleClose, handleSave, showRecurrenceOptions])
 
   const isEditing = !!initialEvent?.uid
 
@@ -344,7 +351,7 @@ export default function EventModal({
 
       {showRecurrenceOptions && (
         <div
-          onClick={() => setShowRecurrenceOptions(false)}
+          onClick={(e) => { e.stopPropagation(); setShowRecurrenceOptions(false) }}
           style={{
             position: 'fixed', inset: 0, zIndex: 3000,
             background: 'rgba(0,0,0,0.4)',
