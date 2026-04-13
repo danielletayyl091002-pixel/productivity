@@ -1236,7 +1236,7 @@ export default function CalendarView({
         </div>
 
         <div style={{ display: 'flex', gap: '4px' }}>
-          {(['month', 'week', 'day'] as const).map(v => (
+          {(['day', 'week', 'month'] as const).map(v => (
             <button key={v} onClick={() => setViewMode(v)}
               style={{
                 padding: '4px 12px', borderRadius: '6px',
