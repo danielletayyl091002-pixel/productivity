@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { db } from '@/db/schema'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Menu } from 'lucide-react'
 import LeftSidebar from '@/components/layout/LeftSidebar'
 import RightRail from '@/components/layout/RightRail'
 import CmdK from '@/components/CmdK'
@@ -9,6 +9,7 @@ import ShortcutsModal from '@/components/ui/ShortcutsModal'
 import QuickCapture from '@/components/ui/QuickCapture'
 import OnboardingModal from '@/components/ui/OnboardingModal'
 import { useSidebarVisibility } from '@/hooks/useSidebarVisibility'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const { leftVisible, rightVisible, toggleLeft, toggleRight } = useSidebarVisibility()
@@ -16,6 +17,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const [showQuickCapture, setShowQuickCapture] = useState(false)
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const isMobile = useIsMobile()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // First-run onboarding check. Fires only when the user has no pages
   // AND has never completed onboarding. Existing users (page count > 0)
@@ -221,16 +224,96 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       display: 'flex',
       height: '100vh',
       overflow: 'hidden',
+      position: 'relative',
       background: 'var(--bg-secondary)',
     }}>
       <CmdK onPageCreated={() => setSidebarRefreshKey(k => k + 1)} />
-      <LeftSidebar collapsed={!leftVisible} toggleLeft={toggleLeft} refreshKey={sidebarRefreshKey} />
-      <main style={{ flex: 1, overflow: 'auto', minWidth: 0, transition: 'all 200ms ease-in-out' }}>
+
+      {/* Left sidebar — inline on desktop, overlay on mobile */}
+      {isMobile ? (
+        mobileMenuOpen && (
+          <>
+            <div
+              onClick={() => setMobileMenuOpen(false)}
+              style={{
+                position: 'fixed', inset: 0,
+                background: 'rgba(0,0,0,0.4)',
+                zIndex: 200,
+              }}
+            />
+            <div style={{
+              position: 'fixed',
+              top: 0, left: 0, bottom: 0,
+              zIndex: 201,
+              width: '220px',
+            }}>
+              <LeftSidebar
+                collapsed={false}
+                toggleLeft={() => setMobileMenuOpen(false)}
+                refreshKey={sidebarRefreshKey}
+                onNavigate={() => setMobileMenuOpen(false)}
+              />
+            </div>
+          </>
+        )
+      ) : (
+        <LeftSidebar
+          collapsed={!leftVisible}
+          toggleLeft={toggleLeft}
+          refreshKey={sidebarRefreshKey}
+        />
+      )}
+
+      <main style={{
+        flex: 1,
+        overflow: 'auto',
+        minWidth: 0,
+        width: isMobile ? '100%' : undefined,
+        transition: 'all 200ms ease-in-out',
+      }}>
+        {isMobile && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '12px 16px',
+            borderBottom: '0.5px solid var(--border)',
+            background: 'var(--bg-primary)',
+            position: 'sticky',
+            top: 0,
+            zIndex: 100,
+          }}>
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Open menu"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '4px',
+              }}
+            >
+              <Menu size={20} />
+            </button>
+            <span style={{
+              fontSize: '14px',
+              fontWeight: 600,
+              color: 'var(--text-primary)',
+            }}>
+              Fluent
+            </span>
+          </div>
+        )}
         {children}
       </main>
-      {rightVisible && <RightRail toggleRight={toggleRight} />}
 
-      {!rightVisible && (
+      {/* Right rail — hidden entirely on mobile */}
+      {!isMobile && rightVisible && <RightRail toggleRight={toggleRight} />}
+
+      {!isMobile && !rightVisible && (
         <button
           onClick={toggleRight}
           aria-label="Show right sidebar"

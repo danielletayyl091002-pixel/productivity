@@ -9,11 +9,19 @@ interface LeftSidebarProps {
   collapsed: boolean
   toggleLeft: () => void
   refreshKey?: number
+  onNavigate?: () => void
 }
 
-export default function LeftSidebar({ collapsed, toggleLeft, refreshKey = 0 }: LeftSidebarProps) {
+export default function LeftSidebar({ collapsed, toggleLeft, refreshKey = 0, onNavigate }: LeftSidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
+  // User-triggered navigation — also closes the mobile overlay if the
+  // parent passed onNavigate. The init-time home redirect uses
+  // router.replace directly and is intentionally excluded.
+  const navigateTo = (path: string) => {
+    router.push(path)
+    onNavigate?.()
+  }
   const [pages, setPages] = useState<Page[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -81,7 +89,7 @@ export default function LeftSidebar({ collapsed, toggleLeft, refreshKey = 0 }: L
     if (parentUid) {
       setExpanded(prev => new Set([...prev, parentUid]))
     }
-    router.push(`/page/${uid}`)
+    navigateTo(`/page/${uid}`)
     creating = false
   }
 
@@ -118,7 +126,7 @@ export default function LeftSidebar({ collapsed, toggleLeft, refreshKey = 0 }: L
           hasChildren={hasChildren}
           isExpanded={isExpanded}
           onToggle={() => toggleExpanded(page.uid)}
-          onClick={() => router.push(`/page/${page.uid}`)}
+          onClick={() => navigateTo(`/page/${page.uid}`)}
           onAddChild={() => createPage(page.uid)}
           onDelete={async () => {
             if (!page.id) return
@@ -251,10 +259,10 @@ export default function LeftSidebar({ collapsed, toggleLeft, refreshKey = 0 }: L
       </div>
 
       <div style={{ borderTop: '1px solid var(--border)', padding: '8px' }}>
-        <NavLink itemId="trackers" collapsed={collapsed} hoveredItem={hoveredItem} setHoveredItem={setHoveredItem} onClick={() => router.push('/trackers')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}>Trackers</NavLink>
-        <NavLink itemId="finance" collapsed={collapsed} hoveredItem={hoveredItem} setHoveredItem={setHoveredItem} onClick={() => router.push('/finance')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>}>Finance</NavLink>
-        <NavLink itemId="kanban" collapsed={collapsed} hoveredItem={hoveredItem} setHoveredItem={setHoveredItem} onClick={() => router.push('/board')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>}>Kanban</NavLink>
-        <NavLink itemId="settings" collapsed={collapsed} hoveredItem={hoveredItem} setHoveredItem={setHoveredItem} onClick={() => router.push('/settings')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>}>Settings</NavLink>
+        <NavLink itemId="trackers" collapsed={collapsed} hoveredItem={hoveredItem} setHoveredItem={setHoveredItem} onClick={() => navigateTo('/trackers')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}>Trackers</NavLink>
+        <NavLink itemId="finance" collapsed={collapsed} hoveredItem={hoveredItem} setHoveredItem={setHoveredItem} onClick={() => navigateTo('/finance')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>}>Finance</NavLink>
+        <NavLink itemId="kanban" collapsed={collapsed} hoveredItem={hoveredItem} setHoveredItem={setHoveredItem} onClick={() => navigateTo('/board')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>}>Kanban</NavLink>
+        <NavLink itemId="settings" collapsed={collapsed} hoveredItem={hoveredItem} setHoveredItem={setHoveredItem} onClick={() => navigateTo('/settings')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>}>Settings</NavLink>
         <ThemeToggle collapsed={collapsed} hoveredItem={hoveredItem} setHoveredItem={setHoveredItem} />
       </div>
       <style>{`
