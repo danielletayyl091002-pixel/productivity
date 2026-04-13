@@ -7,6 +7,7 @@ import RightRail from '@/components/layout/RightRail'
 import CmdK from '@/components/CmdK'
 import ShortcutsModal from '@/components/ui/ShortcutsModal'
 import QuickCapture from '@/components/ui/QuickCapture'
+import OnboardingModal from '@/components/ui/OnboardingModal'
 import { useSidebarVisibility } from '@/hooks/useSidebarVisibility'
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
@@ -14,6 +15,26 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [showQuickCapture, setShowQuickCapture] = useState(false)
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0)
+  const [showOnboarding, setShowOnboarding] = useState(false)
+
+  // First-run onboarding check. Fires only when the user has no pages
+  // AND has never completed onboarding. Existing users (page count > 0)
+  // get the flag backfilled so they never see the modal.
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      const done = await db.settings
+        .where('key').equals('onboarding_complete').first()
+      if (done) return
+
+      const pageCount = await db.pages.count()
+      if (pageCount === 0) {
+        setShowOnboarding(true)
+      } else {
+        await db.settings.add({ key: 'onboarding_complete', value: 'true' })
+      }
+    }
+    checkOnboarding()
+  }, [])
 
   // Global keydown — Cmd+? toggles shortcuts, Cmd+Shift+N opens quick capture
   useEffect(() => {
@@ -241,6 +262,17 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         <QuickCapture
           onClose={() => setShowQuickCapture(false)}
           onCreated={() => setSidebarRefreshKey(k => k + 1)}
+        />
+      )}
+
+      {showOnboarding && (
+        <OnboardingModal
+          onComplete={() => {
+            setShowOnboarding(false)
+            // Bump sidebar so the new Getting Started page shows up
+            // without needing a reload.
+            setSidebarRefreshKey(k => k + 1)
+          }}
         />
       )}
     </div>

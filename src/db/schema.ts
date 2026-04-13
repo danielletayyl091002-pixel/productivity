@@ -319,37 +319,10 @@ export async function seedIfEmpty() {
   const existing = await db.settings.where('key').equals('seeded').first()
   if (existing) return
 
-  const homeUid = nanoid()
-
-  await db.pages.add({
-    uid: homeUid,
-    title: 'Home',
-    icon: null,
-    parentUid: null,
-    isFavorite: true,
-    inTrash: false,
-    order: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  })
-
-  await db.blocks.bulkAdd([
-    {
-      uid: nanoid(), pageUid: homeUid,
-      type: 'heading1', content: 'Welcome to Fluent',
-      checked: false, order: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      uid: nanoid(), pageUid: homeUid,
-      type: 'text',
-      content: "Type / to add blocks. Click + in the sidebar to create a new page.",
-      checked: false, order: 1,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  ])
+  // Note: the Home page + welcome blocks + homePageUid that used to be
+  // seeded here are now created by the first-run OnboardingModal. This
+  // function seeds only the side data (trackers, finance, non-page
+  // settings) so new users see a blank slate until onboarding runs.
 
   await db.trackerDefinitions.bulkAdd([
     { uid: nanoid(), name: 'Water', icon: '💧', unit: 'cups', target: 8, color: '#3B82F6', type: 'counter', options: null, notes: null, order: 0, createdAt: new Date().toISOString() },
@@ -378,5 +351,6 @@ export async function seedIfEmpty() {
 
   await db.settings.add({ key: 'seeded', value: 'true' })
   await db.settings.add({ key: 'theme', value: 'light' })
-  await db.settings.add({ key: 'homePageUid', value: homeUid })
+  // homePageUid is now set by OnboardingModal after it creates the
+  // Getting Started page on first run.
 }
