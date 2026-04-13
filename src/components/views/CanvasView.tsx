@@ -110,11 +110,13 @@ function CanvasRichTextBox({
       onMouseDown={e => e.stopPropagation()}
       style={{
         flex: 1,
-        padding: '8px 12px',
+        padding: '8px',
         fontSize: '13px',
         color: 'var(--text-primary)',
         overflow: 'auto',
         cursor: 'text',
+        boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.06)',
+        borderRadius: '6px',
       }}
     >
       <EditorContent editor={editor} />
@@ -142,6 +144,7 @@ function readImageDimensions(blob: Blob): Promise<{ width: number; height: numbe
 export default function CanvasView({ pageUid }: { pageUid: string }) {
   const [items, setItems] = useState<CanvasItem[]>([])
   const [bgPattern, setBgPattern] = useState<BgPattern>('grid')
+  const [hoveredUid, setHoveredUid] = useState<string | null>(null)
   // Map from item.uid → object URL (regenerated on each mount, not persisted)
   const [urlMap, setUrlMap] = useState<Map<string, string>>(new Map())
   const canvasScrollRef = useRef<HTMLDivElement>(null)
@@ -579,9 +582,12 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
         {items.map(item => {
           const isImage = item.type === 'image'
           const imgUrl = isImage ? urlMap.get(item.uid) : undefined
+          const isHovered = hoveredUid === item.uid
           return (
             <div
               key={item.uid}
+              onMouseEnter={() => setHoveredUid(item.uid)}
+              onMouseLeave={() => setHoveredUid(null)}
               style={{
                 position: 'absolute',
                 left: `${item.x}px`,
@@ -597,40 +603,49 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
                 overflow: 'hidden',
               }}
             >
-              {/* Drag handle (top 24px) */}
+              {/* Drag handle (slim, centered grabber) */}
               <div
                 onMouseDown={e => startDrag(e, item)}
                 style={{
-                  height: '24px',
+                  height: '14px',
                   flexShrink: 0,
                   cursor: 'grab',
                   background: 'transparent',
                   borderBottom: '1px solid var(--border)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0 6px',
+                  justifyContent: 'center',
+                  position: 'relative',
                   userSelect: 'none',
                 }}
                 onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-secondary)' }}
                 onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
               >
-                <div style={{ display: 'flex', gap: '2px' }}>
-                  <div style={{ width: '3px', height: '3px', borderRadius: '50%', background: 'var(--text-tertiary)' }} />
-                  <div style={{ width: '3px', height: '3px', borderRadius: '50%', background: 'var(--text-tertiary)' }} />
-                  <div style={{ width: '3px', height: '3px', borderRadius: '50%', background: 'var(--text-tertiary)' }} />
-                </div>
+                <div style={{
+                  width: '24px',
+                  height: '3px',
+                  borderRadius: '2px',
+                  background: 'var(--border)',
+                  margin: '0 auto',
+                  pointerEvents: 'none',
+                }} />
                 <button
                   onMouseDown={e => e.stopPropagation()}
                   onClick={() => deleteItem(item)}
                   style={{
+                    position: 'absolute',
+                    right: '4px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
                     color: 'var(--text-tertiary)',
-                    fontSize: '16px',
+                    fontSize: '14px',
                     lineHeight: 1,
-                    padding: '0 4px',
+                    padding: '0 2px',
+                    opacity: isHovered ? 1 : 0,
+                    transition: 'opacity 0.15s',
                   }}
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#EF4444' }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-tertiary)' }}
@@ -672,17 +687,15 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
                 />
               )}
 
-              {/* Resize handle (bottom-right) */}
+              {/* Resize handle (bottom-right, invisible zone) */}
               <div
                 onMouseDown={e => startResize(e, item)}
                 style={{
                   position: 'absolute',
                   bottom: '2px',
                   right: '2px',
-                  width: '6px',
-                  height: '6px',
-                  backgroundColor: 'var(--accent)',
-                  borderRadius: '1px',
+                  width: '12px',
+                  height: '12px',
                   cursor: 'nwse-resize',
                 }}
               />
