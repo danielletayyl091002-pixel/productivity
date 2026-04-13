@@ -47,6 +47,7 @@ export interface Task {
   recurrenceException?: string | null
   reminder?: number | null
   url?: string | null
+  linkedPageUid?: string | null
 }
 
 export interface Setting {
@@ -278,6 +279,23 @@ class FluentDB extends Dexie {
     // non-indexed string fields so no schema string change is required, but
     // the version bump ensures Dexie re-opens the DB and applies the TS type.
     this.version(10).stores({
+      pages: '++id, uid, parentUid, isFavorite',
+      blocks: '++id, uid, pageUid, type, order',
+      tasks: '++id, uid, pageUid, status, dueDate, scheduledDate',
+      settings: '++id, key',
+      financeEntries: '++id, type, category, date',
+      financeCategories: '++id, type',
+      trackerDefinitions: '++id, uid, type, order',
+      trackerLogs: '++id, trackerUid, date',
+      databases: '++id, uid, pageUid',
+      databaseColumns: '++id, uid, databaseUid, order',
+      databaseRows: '++id, uid, databaseUid, order',
+      databaseCells: '++id, uid, rowUid, columnUid',
+      canvasItems: '++id, uid, pageUid, type'
+    })
+    // v11 adds Task.linkedPageUid — non-indexed string, no schema
+    // string change needed, bump is just for clean upgrade semantics.
+    this.version(11).stores({
       pages: '++id, uid, parentUid, isFavorite',
       blocks: '++id, uid, pageUid, type, order',
       tasks: '++id, uid, pageUid, status, dueDate, scheduledDate',
