@@ -6,11 +6,11 @@ import { db, Page, seedIfEmpty } from '@/db/schema'
 import { nanoid } from 'nanoid'
 
 interface LeftSidebarProps {
-  collapsed?: boolean
-  toggleLeft?: () => void
+  collapsed: boolean
+  toggleLeft: () => void
 }
 
-export default function LeftSidebar({ collapsed = false, toggleLeft }: LeftSidebarProps = {}) {
+export default function LeftSidebar({ collapsed, toggleLeft }: LeftSidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [pages, setPages] = useState<Page[]>([])
@@ -125,8 +125,8 @@ export default function LeftSidebar({ collapsed = false, toggleLeft }: LeftSideb
 
   return (
     <aside style={{
-      width: collapsed ? '64px' : '240px',
-      minWidth: collapsed ? '64px' : '240px',
+      width: collapsed ? '64px' : '220px',
+      minWidth: collapsed ? '64px' : '220px',
       height: '100vh',
       borderRight: '1px solid var(--border)',
       background: 'var(--bg-sidebar)',
