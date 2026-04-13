@@ -822,6 +822,131 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
   )
 }
 
+function AgendaView({ tasks }: { tasks: Task[] }) {
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+
+  const rangeEnd = new Date()
+  rangeEnd.setDate(rangeEnd.getDate() + 60)
+
+  const expanded = expandRecurring(tasks, now, rangeEnd)
+
+  const upcoming = expanded
+    .filter(t => {
+      const d = new Date(t.scheduledDate ?? '')
+      return !isNaN(d.getTime()) && d >= now
+    })
+    .sort((a, b) => {
+      const da = new Date(a.scheduledDate ?? '')
+      const db = new Date(b.scheduledDate ?? '')
+      return da.getTime() - db.getTime()
+    })
+
+  const groups: Record<string, Task[]> = {}
+  for (const t of upcoming) {
+    const key = (t.scheduledDate ?? '').slice(0, 10)
+    if (!key) continue
+    if (!groups[key]) groups[key] = []
+    groups[key].push(t)
+  }
+
+  const dateKeys = Object.keys(groups).sort()
+  const todayKey = new Date().toISOString().slice(0, 10)
+
+  if (dateKeys.length === 0) {
+    return (
+      <div style={{
+        padding: '48px',
+        textAlign: 'center',
+        color: 'var(--text-tertiary)',
+        fontSize: '14px',
+      }}>
+        No upcoming events
+      </div>
+    )
+  }
+
+  return (
+    <div style={{
+      padding: '16px 24px',
+      overflowY: 'auto',
+      height: '100%',
+      flex: 1,
+    }}>
+      {dateKeys.map(key => {
+        const date = new Date(key + 'T00:00:00')
+        const isToday = key === todayKey
+        return (
+          <div key={key} style={{ marginBottom: '24px' }}>
+            <div style={{
+              fontSize: '12px',
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              color: isToday ? 'var(--accent)' : 'var(--text-tertiary)',
+              marginBottom: '8px',
+              paddingBottom: '6px',
+              borderBottom: '0.5px solid var(--border)',
+            }}>
+              {isToday ? 'Today \u2014 ' : ''}
+              {date.toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </div>
+            {groups[key].map((t, i) => (
+              <div
+                key={t.uid ?? i}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  marginBottom: '4px',
+                  cursor: 'pointer',
+                  background: 'var(--bg-secondary)',
+                  borderLeft: `3px solid ${t.color || 'var(--accent)'}`,
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: 'var(--text-primary)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {t.title || 'Untitled'}
+                  </div>
+                  {(t.startTime || t.endTime) && (
+                    <div style={{
+                      fontSize: '12px',
+                      color: 'var(--text-tertiary)',
+                      marginTop: '2px',
+                    }}>
+                      {t.startTime}{t.endTime ? ` \u2014 ${t.endTime}` : ''}
+                    </div>
+                  )}
+                </div>
+                {t.recurrence && (
+                  <span style={{
+                    fontSize: '11px',
+                    color: 'var(--text-tertiary)',
+                    flexShrink: 0,
+                  }}>{'\u21bb'}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function CalendarView({
   pageUid
 }: {
@@ -830,7 +955,7 @@ export default function CalendarView({
   const router = useRouter()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [tasks, setTasks] = useState<Task[]>([])
-  const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month')
+  const [viewMode, setViewMode] = useState<'month' | 'week' | 'day' | 'agenda'>('month')
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [showAddTask, setShowAddTask] = useState(false)
   const [newTaskTitle, setNewTaskTitle] = useState('')
@@ -1199,7 +1324,7 @@ export default function CalendarView({
         </div>
 
         <div style={{ display: 'flex', gap: '4px' }}>
-          {(['day', 'week', 'month'] as const).map(v => (
+          {(['day', 'week', 'month', 'agenda'] as const).map(v => (
             <button key={v} onClick={() => setViewMode(v)}
               style={{
                 padding: '4px 12px', borderRadius: '6px',
@@ -1234,7 +1359,9 @@ export default function CalendarView({
         </div>
       )}
 
-      {viewMode === 'month' ? (
+      {viewMode === 'agenda' ? (
+        <AgendaView tasks={tasks} />
+      ) : viewMode === 'month' ? (
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(7, 1fr)',
