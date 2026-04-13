@@ -7,6 +7,7 @@ import BoardView from '@/components/views/BoardView'
 import CalendarView from '@/components/views/CalendarView'
 import CanvasView from '@/components/views/CanvasView'
 import FluentEditor from '@/components/editor/FluentEditor'
+import { exportPageToMarkdown } from '@/lib/exportMarkdown'
 
 function legacyToTipTap(blocks: Block[]): Record<string, unknown> {
   return {
@@ -174,7 +175,7 @@ export default function PageCanvas() {
             </>
           )}
         </div>
-        <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', alignItems: 'center' }}>
           {(['page', 'board', 'calendar', 'canvas'] as const).map(v => (
             <button key={v} onClick={() => setView(v)}
               style={{
@@ -191,6 +192,21 @@ export default function PageCanvas() {
               {v === 'page' ? 'Page' : v === 'board' ? 'Kanban' : v === 'calendar' ? 'Calendar' : 'Canvas'}
             </button>
           ))}
+          <button
+            onClick={() => exportPageToMarkdown(uid, page?.title ?? '')}
+            style={{
+              fontSize: '12px',
+              color: 'var(--text-tertiary)',
+              background: 'none',
+              border: '1px solid var(--border)',
+              borderRadius: '6px',
+              padding: '4px 10px',
+              cursor: 'pointer',
+              marginLeft: 'auto',
+            }}
+          >
+            Export .md
+          </button>
         </div>
       </div>
       {view === 'board' ? (
