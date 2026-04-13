@@ -10,6 +10,10 @@ import { RRule } from 'rrule'
 function expandRecurring(tasks: Task[], startDate: Date, endDate: Date): Task[] {
   const result: Task[] = []
   for (const task of tasks) {
+    // Parse deleted-occurrence exceptions for this recurring task
+    const exceptions: string[] = task.recurrenceException
+      ? (() => { try { return JSON.parse(task.recurrenceException!) } catch { return [] } })()
+      : []
     if (task.recurrence && task.scheduledDate) {
       try {
         const masterDate = new Date(task.scheduledDate + 'T00:00:00')
@@ -19,6 +23,8 @@ function expandRecurring(tasks: Task[], startDate: Date, endDate: Date): Task[] 
           const occDateStr = occ.toISOString().split('T')[0]
           // Skip the master date — it's already in the list as a regular task
           if (occDateStr === task.scheduledDate) continue
+          // Skip any dates the user has deleted as "this occurrence only"
+          if (exceptions.includes(occDateStr)) continue
           result.push({
             ...task,
             id: undefined, // mark as virtual
@@ -29,7 +35,10 @@ function expandRecurring(tasks: Task[], startDate: Date, endDate: Date): Task[] 
         }
       } catch { /* invalid rrule, skip */ }
     }
-    result.push(task)
+    // Push the master task itself, unless its own date was deleted as an exception
+    if (!task.scheduledDate || !exceptions.includes(task.scheduledDate)) {
+      result.push(task)
+    }
   }
   return result
 }
@@ -835,6 +844,12 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
             }
           }}
           onDelete={async (uid) => { onDeleteTask(uid) }}
+          onDeleted={async () => {
+            const all = await db.tasks.toArray()
+            setTasks(all.filter(t => t.dueDate || t.scheduledDate))
+            setEditingEvent(null)
+            setModalDefaults(null)
+          }}
         />
       )}
     </div>
@@ -1636,6 +1651,11 @@ export default function CalendarView({
               await db.tasks.delete(task.id)
               setTasks(prev => prev.filter(t => t.uid !== uid))
             }
+            setDayEditingEvent(null)
+          }}
+          onDeleted={async () => {
+            const all = await db.tasks.toArray()
+            setTasks(all.filter(t => t.dueDate || t.scheduledDate))
             setDayEditingEvent(null)
           }}
         />

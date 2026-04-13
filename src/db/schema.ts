@@ -44,6 +44,7 @@ export interface Task {
   location?: string | null
   itemType?: 'task' | 'event'
   recurrence?: string | null
+  recurrenceException?: string | null
   reminder?: number | null
   url?: string | null
 }
@@ -259,6 +260,24 @@ class FluentDB extends Dexie {
       canvasItems: '++id, uid, pageUid'
     })
     this.version(9).stores({
+      pages: '++id, uid, parentUid, isFavorite',
+      blocks: '++id, uid, pageUid, type, order',
+      tasks: '++id, uid, pageUid, status, dueDate, scheduledDate',
+      settings: '++id, key',
+      financeEntries: '++id, type, category, date',
+      financeCategories: '++id, type',
+      trackerDefinitions: '++id, uid, type, order',
+      trackerLogs: '++id, trackerUid, date',
+      databases: '++id, uid, pageUid',
+      databaseColumns: '++id, uid, databaseUid, order',
+      databaseRows: '++id, uid, databaseUid, order',
+      databaseCells: '++id, uid, rowUid, columnUid',
+      canvasItems: '++id, uid, pageUid, type'
+    })
+    // v10 adds recurrence/recurrenceException fields on Task. These are
+    // non-indexed string fields so no schema string change is required, but
+    // the version bump ensures Dexie re-opens the DB and applies the TS type.
+    this.version(10).stores({
       pages: '++id, uid, parentUid, isFavorite',
       blocks: '++id, uid, pageUid, type, order',
       tasks: '++id, uid, pageUid, status, dueDate, scheduledDate',

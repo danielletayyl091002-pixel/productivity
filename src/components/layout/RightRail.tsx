@@ -797,6 +797,11 @@ export default function RightRail({ toggleRight }: RightRailProps = {}) {
             if (task?.id) await db.tasks.delete(task.id)
             loadEvents()
           }}
+          onDeleted={() => {
+            setEditingEvent(null)
+            setShowNewEvent(false)
+            loadEvents()
+          }}
         />
       )}
     </aside>

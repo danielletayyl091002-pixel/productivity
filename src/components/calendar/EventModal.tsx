@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Task } from '@/db/schema'
+import { db, Task } from '@/db/schema'
 
 const COLORS = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1', '#14B8A6']
 const REMINDERS = [
@@ -27,11 +27,12 @@ interface EventModalProps {
   onClose: () => void
   onSave: (event: Partial<Task>) => Promise<void>
   onDelete?: (uid: string) => Promise<void>
+  onDeleted?: () => void
 }
 
 export default function EventModal({
   initialEvent, defaultDate, defaultStartTime, defaultEndTime,
-  onClose, onSave, onDelete,
+  onClose, onSave, onDelete, onDeleted,
 }: EventModalProps) {
   const [title, setTitle] = useState(initialEvent?.title || '')
   const [date, setDate] = useState(initialEvent?.scheduledDate || initialEvent?.dueDate || defaultDate || new Date().toISOString().split('T')[0])
@@ -50,8 +51,87 @@ export default function EventModal({
   const [saving, setSaving] = useState(false)
   const [titleError, setTitleError] = useState(false)
   const [dirty, setDirty] = useState(false)
+  const [showRecurrenceOptions, setShowRecurrenceOptions] = useState(false)
   const titleRef = useRef<HTMLInputElement>(null)
   const modalRef = useRef<HTMLDivElement>(null)
+
+  // Resolve the real master task for this event. For virtual recurring
+  // occurrences from CalendarView, initialEvent.id is undefined and the
+  // uid looks like "<masterUid>_YYYY-MM-DD". Strip the date suffix and
+  // look up the master by uid from Dexie.
+  async function resolveMasterTask(): Promise<Task | null> {
+    if (!initialEvent?.uid) return null
+    if (initialEvent.id != null) {
+      const real = await db.tasks.get(initialEvent.id)
+      if (real) return real
+    }
+    const match = initialEvent.uid.match(/^(.+)_\d{4}-\d{2}-\d{2}$/)
+    const masterUid = match ? match[1] : initialEvent.uid
+    const master = await db.tasks.where('uid').equals(masterUid).first()
+    return master ?? null
+  }
+
+  async function handleDelete() {
+    if (!initialEvent?.uid) return
+    if (initialEvent.recurrence) {
+      setShowRecurrenceOptions(true)
+      return
+    }
+    if (!confirm('Delete this event?')) return
+    const master = await resolveMasterTask()
+    if (master?.id != null) {
+      await db.tasks.delete(master.id)
+    }
+    // Keep backward compat with parents that rely on onDelete for state sync.
+    if (onDelete) {
+      try { await onDelete(initialEvent.uid) } catch { /* ignore */ }
+    }
+    onClose()
+    onDeleted?.()
+  }
+
+  async function confirmDelete(mode: 'single' | 'future' | 'all') {
+    if (!initialEvent?.uid) return
+    const master = await resolveMasterTask()
+    if (!master?.id) {
+      setShowRecurrenceOptions(false)
+      onClose()
+      return
+    }
+    // The occurrence date the user clicked — for virtual occurrences this
+    // is the individual date, for the master it's the series start.
+    const occurrenceDate = initialEvent.scheduledDate || initialEvent.dueDate || null
+
+    if (mode === 'single') {
+      const exceptions: string[] = master.recurrenceException
+        ? JSON.parse(master.recurrenceException) : []
+      if (occurrenceDate && !exceptions.includes(occurrenceDate)) {
+        exceptions.push(occurrenceDate)
+      }
+      await db.tasks.update(master.id, {
+        recurrenceException: JSON.stringify(exceptions)
+      })
+    } else if (mode === 'future') {
+      if (occurrenceDate) {
+        const untilDate = new Date(occurrenceDate + 'T00:00:00')
+        untilDate.setDate(untilDate.getDate() - 1)
+        const untilStr = untilDate.toISOString().split('T')[0].replace(/-/g, '')
+        let newRrule = master.recurrence || ''
+        newRrule = newRrule.replace(/;UNTIL=\d+/, '')
+        newRrule += `;UNTIL=${untilStr}`
+        await db.tasks.update(master.id, { recurrence: newRrule })
+      }
+    } else if (mode === 'all') {
+      await db.tasks.delete(master.id)
+      if (onDelete) {
+        try { await onDelete(master.uid) } catch { /* ignore */ }
+      }
+    }
+
+    setShowRecurrenceOptions(false)
+    onClose()
+    onDeleted?.()
+  }
 
   useEffect(() => { titleRef.current?.focus() }, [])
 
@@ -237,8 +317,8 @@ export default function EventModal({
         {/* Footer */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
           <div>
-            {isEditing && onDelete && (
-              <button onClick={async () => { if (confirm('Delete this event?')) { await onDelete(initialEvent!.uid!); onClose() } }}
+            {isEditing && (onDelete || onDeleted) && (
+              <button onClick={handleDelete}
                 style={{ padding: '6px 14px', borderRadius: '9999px', border: 'none', background: '#FEE2E2', color: '#EF4444', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
                 Delete
               </button>
@@ -261,6 +341,83 @@ export default function EventModal({
           {navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'}+Enter to save
         </div>
       </div>
+
+      {showRecurrenceOptions && (
+        <div
+          onClick={() => setShowRecurrenceOptions(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 3000,
+            background: 'rgba(0,0,0,0.4)',
+            display: 'flex', alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'var(--bg-primary)',
+              borderRadius: '12px',
+              padding: '24px',
+              width: '320px',
+              border: '1px solid var(--border)',
+              boxShadow: '0 16px 48px rgba(0,0,0,0.2)'
+            }}
+          >
+            <p style={{
+              margin: '0 0 16px',
+              fontSize: '15px',
+              fontWeight: 600,
+              color: 'var(--text-primary)'
+            }}>
+              Delete recurring event
+            </p>
+            <div style={{
+              display: 'flex', flexDirection: 'column', gap: '8px'
+            }}>
+              {[
+                { mode: 'single', label: 'Delete this occurrence only' },
+                { mode: 'future', label: 'Delete all future events' },
+                { mode: 'all',    label: 'Delete all events in series' },
+              ].map(({ mode, label }) => (
+                <button
+                  key={mode}
+                  onClick={() => confirmDelete(
+                    mode as 'single' | 'future' | 'all'
+                  )}
+                  style={{
+                    padding: '10px 14px',
+                    textAlign: 'left',
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowRecurrenceOptions(false)}
+              style={{
+                marginTop: '16px',
+                width: '100%',
+                padding: '10px',
+                background: 'none',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
