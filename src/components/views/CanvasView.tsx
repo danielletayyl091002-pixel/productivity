@@ -145,6 +145,7 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
   const [items, setItems] = useState<CanvasItem[]>([])
   const [bgPattern, setBgPattern] = useState<BgPattern>('grid')
   const [hoveredUid, setHoveredUid] = useState<string | null>(null)
+  const [selectedUid, setSelectedUid] = useState<string | null>(null)
   // Map from item.uid → object URL (regenerated on each mount, not persisted)
   const [urlMap, setUrlMap] = useState<Map<string, string>>(new Map())
   const canvasScrollRef = useRef<HTMLDivElement>(null)
@@ -572,6 +573,7 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
       <div
         onDragOver={onCanvasDragOver}
         onDrop={onCanvasDrop}
+        onClick={() => setSelectedUid(null)}
         style={{
           position: 'relative',
           minHeight: '200vh',
@@ -583,11 +585,13 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
           const isImage = item.type === 'image'
           const imgUrl = isImage ? urlMap.get(item.uid) : undefined
           const isHovered = hoveredUid === item.uid
+          const isSelected = selectedUid === item.uid
           return (
             <div
               key={item.uid}
               onMouseEnter={() => setHoveredUid(item.uid)}
               onMouseLeave={() => setHoveredUid(null)}
+              onClick={(e) => { e.stopPropagation(); setSelectedUid(item.uid) }}
               style={{
                 position: 'absolute',
                 left: `${item.x}px`,
@@ -595,9 +599,14 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
                 width: `${item.width}px`,
                 height: `${item.height}px`,
                 background: 'var(--bg-primary)',
-                border: '1px solid var(--border)',
+                border: isSelected
+                  ? '1px solid var(--accent)'
+                  : '1px solid var(--border)',
                 borderRadius: '8px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                boxShadow: isSelected
+                  ? '0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.12)'
+                  : '0 2px 8px rgba(0,0,0,0.08)',
+                transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
                 display: 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden',
