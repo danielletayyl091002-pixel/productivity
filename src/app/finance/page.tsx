@@ -585,6 +585,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
 }) {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editForm, setEditForm] = useState({ note: '', amount: '', category: '' })
+  const [focusedField, setFocusedField] = useState<'source' | 'amount' | 'category' | null>(null)
 
   const getCat = (catName: string) =>
     categories.find(c => c.name === catName)
@@ -673,10 +674,18 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                   onClick={e => e.stopPropagation()}
                   onMouseDown={e => e.stopPropagation()}
                   onChange={e => setEditForm(p => ({ ...p, note: e.target.value }))}
+                  onFocus={() => setFocusedField('source')}
+                  onBlur={() => setFocusedField(null)}
                   autoFocus
                   placeholder="Source..."
                   className="finance-edit-input"
-                  style={{ color: 'var(--text-primary)', fontSize: '13px' }}
+                  style={{
+                    color: 'var(--text-primary)',
+                    fontSize: '13px',
+                    boxShadow: focusedField === 'source'
+                      ? 'inset 0 0 0 2px var(--accent)'
+                      : 'none',
+                  }}
                 />
               ) : (
                 <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
@@ -690,8 +699,16 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                   onClick={e => e.stopPropagation()}
                   onMouseDown={e => e.stopPropagation()}
                   onChange={e => setEditForm(p => ({ ...p, amount: e.target.value }))}
+                  onFocus={() => setFocusedField('amount')}
+                  onBlur={() => setFocusedField(null)}
                   className="finance-edit-input"
-                  style={{ color: type === 'income' ? '#10B981' : '#EF4444', fontSize: '13px' }}
+                  style={{
+                    color: type === 'income' ? '#10B981' : '#EF4444',
+                    fontSize: '13px',
+                    boxShadow: focusedField === 'amount'
+                      ? 'inset 0 0 0 2px var(--accent)'
+                      : 'none',
+                  }}
                 />
               ) : (
                 <span style={{ fontSize: '13px', fontWeight: 600,
@@ -707,6 +724,8 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                     onClick={e => e.stopPropagation()}
                     onMouseDown={e => e.stopPropagation()}
                     onChange={e => setEditForm(p => ({ ...p, category: e.target.value }))}
+                    onFocus={() => setFocusedField('category')}
+                    onBlur={() => setFocusedField(null)}
                     className="finance-edit-input"
                     style={{
                       width: '100%',
@@ -716,6 +735,9 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                       fontSize: '12px',
                       fontWeight: 500,
                       cursor: 'pointer',
+                      boxShadow: focusedField === 'category'
+                        ? 'inset 0 0 0 2px var(--accent)'
+                        : 'none',
                     }}
                   >
                     <option value="">No category</option>
@@ -734,7 +756,7 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                   background: cat.color + '25',
                   color: cat.color,
                   border: `1px solid ${cat.color}40`,
-                  maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {cat.name}
                 </span>
@@ -781,7 +803,15 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                 </span>
               )}
               <button
-                onClick={e => { e.stopPropagation(); if (entry.id && confirm('Delete this entry?')) onDelete(entry.id) }}
+                onClick={e => {
+                  e.stopPropagation()
+                  if (entry.id && confirm('Delete this entry?')) {
+                    // If the deleted row is currently being edited,
+                    // clear local editingId so no stale edit UI lingers.
+                    if (editingId === entry.id) setEditingId(null)
+                    onDelete(entry.id)
+                  }
+                }}
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   color: 'var(--text-tertiary)', fontSize: '14px', padding: '2px',

@@ -177,7 +177,9 @@ select.finance-edit-input {
   border: 1px solid var(--border) !important;
   padding: 6px 10px !important;
   background: var(--bg-secondary) !important;
-  box-shadow: none !important;
+  /* box-shadow NOT forced here — the React component applies an
+     inset focus ring via inline style when focused. Sculpt mode is
+     already excluded via :not(.finance-edit-input) below. */
   box-sizing: border-box !important;
   outline: none !important;
   pointer-events: auto !important;
