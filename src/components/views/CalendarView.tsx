@@ -5,6 +5,7 @@ import { db, Task } from '@/db/schema'
 import EventModal from '@/components/calendar/EventModal'
 import { nanoid } from 'nanoid'
 import { expandRecurring } from '@/lib/expandRecurring'
+import { safeDbWrite } from '@/lib/dbError'
 
 function getEventStyle(color: string): React.CSSProperties {
   const calStyle = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-cal-style') || 'soft' : 'soft'
@@ -726,7 +727,10 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                     color: 'var(--accent)',
                     createdAt: new Date().toISOString()
                   }
-                  await db.tasks.add(task)
+                  await safeDbWrite(
+                    () => db.tasks.add(task),
+                    'Failed to save event. Please try again.'
+                  )
                   setTasks(prev => [...prev, task])
                   setPendingEvent(null)
                   setPendingTitle('')
@@ -790,7 +794,10 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
               // Optimistic update first
               setTasks(prev => prev.map(t => t.uid === evt.uid ? { ...t, ...evt } as Task : t))
               const existing = tasks.find(t => t.uid === evt.uid)
-              if (existing?.id) await db.tasks.update(existing.id, evt)
+              if (existing?.id) await safeDbWrite(
+                () => db.tasks.update(existing.id!, evt),
+                'Failed to update event. Please try again.'
+              )
             } else {
               const newTask: Task = {
                 uid: nanoid(), pageUid, createdAt: new Date().toISOString(),
@@ -806,7 +813,10 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
               }
               // Optimistic add first
               setTasks(prev => [...prev, newTask])
-              await db.tasks.add(newTask)
+              await safeDbWrite(
+                () => db.tasks.add(newTask),
+                'Failed to save event. Please try again.'
+              )
             }
           }}
           onDelete={async (uid) => { onDeleteTask(uid) }}
@@ -1216,7 +1226,10 @@ export default function CalendarView({
   async function deleteTask(taskUid: string) {
     const task = tasks.find(t => t.uid === taskUid)
     if (!task?.id) return
-    await db.tasks.delete(task.id)
+    await safeDbWrite(
+      () => db.tasks.delete(task.id!),
+      'Failed to delete event. Please try again.'
+    )
     setTasks(prev => prev.filter(t => t.uid !== taskUid))
   }
 
@@ -1237,7 +1250,10 @@ export default function CalendarView({
       color: 'var(--accent)',
       createdAt: new Date().toISOString()
     }
-    await db.tasks.add(task)
+    await safeDbWrite(
+      () => db.tasks.add(task),
+      'Failed to save event. Please try again.'
+    )
     setTasks(prev => [...prev, task])
     setNewTaskTitle('')
     setShowAddTask(false)
@@ -1736,7 +1752,10 @@ export default function CalendarView({
             if (evt.uid) {
               const existing = tasks.find(t => t.uid === evt.uid)
               if (existing?.id) {
-                await db.tasks.update(existing.id, evt)
+                await safeDbWrite(
+                  () => db.tasks.update(existing.id!, evt),
+                  'Failed to update event. Please try again.'
+                )
                 setTasks(prev => prev.map(t => t.uid === evt.uid ? { ...t, ...evt } : t))
               }
             }
@@ -1745,7 +1764,10 @@ export default function CalendarView({
           onDelete={async (uid) => {
             const task = tasks.find(t => t.uid === uid)
             if (task?.id) {
-              await db.tasks.delete(task.id)
+              await safeDbWrite(
+                () => db.tasks.delete(task.id!),
+                'Failed to delete event. Please try again.'
+              )
               setTasks(prev => prev.filter(t => t.uid !== uid))
             }
             setDayEditingEvent(null)
@@ -1785,7 +1807,13 @@ export default function CalendarView({
               reminder: evt.reminder ?? null,
               url: evt.url ?? null,
             } as Task
-            const id = await db.tasks.add(newTask)
+            const id = await safeDbWrite(
+              () => db.tasks.add(newTask),
+              'Failed to save event. Please try again.'
+            )
+            // If the write failed, leave the modal open so the user can retry
+            // (the toast already fired inside safeDbWrite).
+            if (id == null) return
             setTasks(prev => [...prev, { ...newTask, id: id as number }])
             setDayModalDefaults(null)
           }}
