@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { db, CanvasItem } from '@/db/schema'
 import { nanoid } from 'nanoid'
+import { safeDbWrite } from '@/lib/dbError'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -211,7 +212,11 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
       createdAt: now,
       updatedAt: now,
     }
-    const id = await db.canvasItems.add(newItem)
+    const id = await safeDbWrite(
+      () => db.canvasItems.add(newItem),
+      'Failed to save canvas item. Please try again.'
+    )
+    if (id == null) return
     setItems(prev => [...prev, { ...newItem, id: id as number }])
   }
 
@@ -274,7 +279,11 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
           createdAt: now,
           updatedAt: now,
         }
-        const id = await db.canvasItems.add(newItem)
+        const id = await safeDbWrite(
+          () => db.canvasItems.add(newItem),
+          'Failed to save canvas item. Please try again.'
+        )
+        if (id == null) continue
         setItems(prev => [...prev, { ...newItem, id: id as number }])
       } catch (err) {
         console.error('[Canvas] Failed to add image', file.name, err)
@@ -295,14 +304,20 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
 
   async function deleteItem(item: CanvasItem) {
     if (item.id == null) return
-    await db.canvasItems.delete(item.id)
+    await safeDbWrite(
+      () => db.canvasItems.delete(item.id!),
+      'Failed to delete canvas item. Please try again.'
+    )
     setItems(prev => prev.filter(i => i.uid !== item.uid))
   }
 
   async function saveContent(item: CanvasItem, content: string) {
     if (item.id == null) return
     const updatedAt = new Date().toISOString()
-    await db.canvasItems.update(item.id, { content, updatedAt })
+    await safeDbWrite(
+      () => db.canvasItems.update(item.id!, { content, updatedAt }),
+      'Failed to update canvas item. Please try again.'
+    )
     setItems(prev => prev.map(i => i.uid === item.uid ? { ...i, content, updatedAt } : i))
   }
 
@@ -337,7 +352,10 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
       window.removeEventListener('mouseup', onUp)
       if (item.id != null) {
         const updatedAt = new Date().toISOString()
-        await db.canvasItems.update(item.id, { x: latestX, y: latestY, updatedAt })
+        await safeDbWrite(
+          () => db.canvasItems.update(item.id!, { x: latestX, y: latestY, updatedAt }),
+          'Failed to update canvas item. Please try again.'
+        )
       }
     }
 
@@ -391,7 +409,10 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
       window.removeEventListener('mouseup', onUp)
       if (item.id != null) {
         const updatedAt = new Date().toISOString()
-        await db.canvasItems.update(item.id, { width: latestW, height: latestH, updatedAt })
+        await safeDbWrite(
+          () => db.canvasItems.update(item.id!, { width: latestW, height: latestH, updatedAt }),
+          'Failed to update canvas item. Please try again.'
+        )
       }
     }
 
