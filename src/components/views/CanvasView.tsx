@@ -276,7 +276,6 @@ export default function CanvasView({ pageUid }: { pageUid: string }) {
         }
         const id = await db.canvasItems.add(newItem)
         setItems(prev => [...prev, { ...newItem, id: id as number }])
-        console.log('[Canvas] Added image', file.name, `${natW}x${natH}`)
       } catch (err) {
         console.error('[Canvas] Failed to add image', file.name, err)
       }

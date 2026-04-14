@@ -92,6 +92,8 @@ export default function OnboardingModal({ onComplete }: Props) {
         borderRadius: '16px',
         padding: '40px',
         width: '440px',
+        maxWidth: 'calc(100vw - 32px)',
+        boxSizing: 'border-box',
         textAlign: 'center',
         boxShadow: '0 24px 64px rgba(0,0,0,0.3)',
       }}>
