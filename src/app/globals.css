@@ -342,11 +342,9 @@ button, a, input, select, textarea {
   transition: background 0.1s;
 }
 .slash-item:hover, .slash-item.selected {
-  background: var(--accent-light);
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
-[data-theme="dark"] .slash-item.selected, .dark .slash-item.selected { background-color: #3b82f6 !important; color: white !important; }
-[data-theme="dark"] .slash-item.selected .slash-title, .dark .slash-item.selected .slash-title { color: white !important; }
-[data-theme="dark"] .slash-item.selected .slash-icon, .dark .slash-item.selected .slash-icon { color: white !important; }
 .slash-icon {
   width: 28px;
   height: 28px;
