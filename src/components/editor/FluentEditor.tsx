@@ -88,7 +88,7 @@ function ToggleView({ node, updateAttributes }: any) {
             contentEditable={false}
             onClick={toggle}
             style={{
-              cursor: 'pointer', userSelect: 'none', fontSize: '10px',
+              cursor: 'pointer', userSelect: 'none', fontSize: '11px',
               color: 'var(--text-tertiary)', flexShrink: 0, width: '36px', height: '24px',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               marginLeft: 0, paddingLeft: 0,

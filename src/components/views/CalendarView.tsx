@@ -435,7 +435,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
               borderLeft: '1px solid var(--border)'
             }}>
               <div style={{
-                fontSize: '10px', color: isToday ? 'var(--accent)' : 'var(--text-tertiary)',
+                fontSize: '11px', color: isToday ? 'var(--accent)' : 'var(--text-tertiary)',
                 fontWeight: isToday ? 700 : 400,
                 textTransform: 'uppercase', letterSpacing: '0.05em'
               }}>
@@ -492,7 +492,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                 left: 0, right: 0,
                 height: `${HOUR_H}px`,
                 padding: '4px 8px',
-                fontSize: '10px',
+                fontSize: '11px',
                 color: 'var(--text-tertiary)',
                 pointerEvents: 'none'
               }}>
@@ -560,7 +560,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                     overflow: 'hidden'
                   }}>
                     <span style={{
-                      fontSize: '9px', fontWeight: 700,
+                      fontSize: '11px', fontWeight: 700,
                       color: 'var(--accent)'
                     }}>
                       {fmt(Math.min(dragState.startHour, dragState.endHour))}
@@ -584,7 +584,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                     pointerEvents: 'none',
                     zIndex: 8,
                     padding: '2px 4px',
-                    fontSize: '9px',
+                    fontSize: '11px',
                     fontWeight: 700,
                     color: 'var(--accent)',
                   }}>
@@ -635,12 +635,12 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
                         {task.itemType === 'task' ? '\u2610 ' : ''}{task.title}
                       </span>
                       {height > 32 && (
-                        <span style={{ fontSize: '10px', opacity: 0.85 }}>
+                        <span style={{ fontSize: '11px', opacity: 0.85 }}>
                           {task.startTime} - {isBeingResized && resizeEndHour !== null ? fmtDB(resizeEndHour) : task.endTime}
                         </span>
                       )}
                       {height > 50 && task.location && (
-                        <span style={{ fontSize: '9px', opacity: 0.7, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: '11px', opacity: 0.7, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {task.location}
                         </span>
                       )}
@@ -754,7 +754,7 @@ function WeekView({ currentDate, tasks, onDeleteTask, pageUid, setTasks }: {
               }}
             />
             <div style={{
-              fontSize: '10px',
+              fontSize: '11px',
               color: 'var(--text-tertiary)', marginTop: '6px'
             }}>
               Enter to save · Esc to cancel
@@ -1469,7 +1469,7 @@ export default function CalendarView({
                         router.push(`/page/${task.pageUid}`)
                     }}
                     style={{
-                      fontSize: '10px',
+                      fontSize: '11px',
                       padding: '2px 6px',
                       borderRadius: '4px',
                       display: 'flex',
@@ -1493,7 +1493,7 @@ export default function CalendarView({
                         color: 'inherit',
                         opacity: 0.6,
                         cursor: 'pointer',
-                        fontSize: '10px',
+                        fontSize: '11px',
                         fontWeight: 700,
                         flexShrink: 0
                       }}
@@ -1502,7 +1502,7 @@ export default function CalendarView({
                 ))}
                 {dayTasks.length > 3 && (
                   <div style={{
-                    fontSize: '10px',
+                    fontSize: '11px',
                     color: 'var(--text-tertiary)',
                     padding: '0 4px'
                   }}>
@@ -1547,7 +1547,7 @@ export default function CalendarView({
               {/* Time labels */}
               <div style={{ position: 'relative' }}>
                 {Array.from({ length: 24 }, (_, h) => (
-                  <div key={h} style={{ position: 'absolute', top: `${h * 60}px`, left: 0, right: 0, height: '60px', padding: '4px 8px', fontSize: '10px', color: 'var(--text-tertiary)', pointerEvents: 'none' }}>
+                  <div key={h} style={{ position: 'absolute', top: `${h * 60}px`, left: 0, right: 0, height: '60px', padding: '4px 8px', fontSize: '11px', color: 'var(--text-tertiary)', pointerEvents: 'none' }}>
                     {h === 0 ? '12 AM' : h === 12 ? '12 PM' : h > 12 ? `${h - 12} PM` : `${h} AM`}
                   </div>
                 ))}
@@ -1599,7 +1599,7 @@ export default function CalendarView({
                       >
                         <div style={{ fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.title}</div>
                         {height > 32 && <div style={{ fontSize: '11px', opacity: 0.8 }}>{fmtTime(task.startTime!)} - {isResizingThis ? dayFmtHour(endH) : fmtTime(task.endTime!)}</div>}
-                        {height > 50 && task.location && <div style={{ fontSize: '10px', opacity: 0.7 }}>{task.location}</div>}
+                        {height > 50 && task.location && <div style={{ fontSize: '11px', opacity: 0.7 }}>{task.location}</div>}
                         <div
                           data-day-resize="true"
                           onMouseDown={e => startDayResize(e, task)}
@@ -1647,7 +1647,7 @@ export default function CalendarView({
                       borderRadius: '6px',
                     }}>
                       <div style={{ fontSize: '12px', fontWeight: 600 }}>{dayMovingTask.title}</div>
-                      <div style={{ fontSize: '10px', opacity: 0.8 }}>
+                      <div style={{ fontSize: '11px', opacity: 0.8 }}>
                         {dayFmtHour(dayMoveGhost.startHour)} – {dayFmtHour(dayMoveGhost.startHour + dayMoveDuration.current)}
                       </div>
                     </div>

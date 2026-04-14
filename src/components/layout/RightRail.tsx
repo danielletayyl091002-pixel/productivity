@@ -74,7 +74,7 @@ function WeekStrip({ today, onDayClick, selectedDay }: {
               cursor: 'pointer'
           }}>
             <span style={{
-              fontSize: '9px', color: 'var(--text-tertiary)',
+              fontSize: '11px', color: 'var(--text-tertiary)',
               fontWeight: 500, textTransform: 'uppercase'
             }}>{labels[i]}</span>
             <div
@@ -270,7 +270,7 @@ function Timeline({ now, tasks, onAddEvent, onUpdateTask, onEventClick }: {
           }}
         >
           <span style={{
-            fontSize: '9px', color: 'var(--text-tertiary)',
+            fontSize: '11px', color: 'var(--text-tertiary)',
             width: '36px', paddingTop: '4px',
             paddingLeft: '8px', flexShrink: 0
           }}>{formatHour(h)}</span>
@@ -303,7 +303,7 @@ function Timeline({ now, tasks, onAddEvent, onUpdateTask, onEventClick }: {
             left: '44px', right: '8px', height: `${heightPx}px`,
             background: `${color}30`, borderLeft: `3px dashed ${color}`,
             borderRadius: 'var(--radius-xs, 4px)', pointerEvents: 'none', zIndex: 8,
-            padding: '3px 6px', fontSize: '10px', fontWeight: 600, color,
+            padding: '3px 6px', fontSize: '11px', fontWeight: 600, color,
           }}>{movingTask.title}</div>
         )
       })()}
@@ -344,7 +344,7 @@ function Timeline({ now, tasks, onAddEvent, onUpdateTask, onEventClick }: {
             }}>{task.itemType === 'task' ? '\u2610 ' : ''}{task.title}</div>
             {heightPx > 40 && (
               <div style={{
-                fontSize: '10px', color: getEventStyle(color).color || color, opacity: 0.8, marginTop: '2px',
+                fontSize: '11px', color: getEventStyle(color).color || color, opacity: 0.8, marginTop: '2px',
               }}>{task.startTime} – {task.endTime}</div>
             )}
             <div
@@ -383,14 +383,14 @@ function Timeline({ now, tasks, onAddEvent, onUpdateTask, onEventClick }: {
           overflow: 'hidden'
         }}>
           <span style={{
-            fontSize: '9px', fontWeight: 700,
+            fontSize: '11px', fontWeight: 700,
             color: 'var(--accent)', lineHeight: 1
           }}>
             {fmtDisplay(Math.min(dragStart, dragEnd))}
           </span>
           {Math.abs(dragEnd - dragStart) >= 0.5 && (
             <span style={{
-              fontSize: '9px', fontWeight: 700,
+              fontSize: '11px', fontWeight: 700,
               color: 'var(--accent)', lineHeight: 1,
               alignSelf: 'flex-end'
             }}>
@@ -447,7 +447,7 @@ function Ring({ value, max, color, label }: {
         </text>
       </svg>
       <span style={{
-        fontSize: '10px', color: 'var(--text-tertiary)',
+        fontSize: '11px', color: 'var(--text-tertiary)',
         fontWeight: 500
       }}>{label}</span>
     </div>
@@ -699,7 +699,7 @@ export default function RightRail({ toggleRight }: RightRailProps = {}) {
               fontSize: '13px', boxSizing: 'border-box'
             }}
           />
-          <div style={{ fontSize: '10px',
+          <div style={{ fontSize: '11px',
             color: 'var(--text-tertiary)', marginTop: '6px' }}>
             Enter to save &middot; Esc to cancel
           </div>
@@ -713,7 +713,7 @@ export default function RightRail({ toggleRight }: RightRailProps = {}) {
         marginBottom: '8px', flexShrink: 0
       }}>
         <div style={{
-          fontSize: '10px', fontWeight: 600,
+          fontSize: '11px', fontWeight: 600,
           letterSpacing: '0.06em', textTransform: 'uppercase',
           color: 'var(--text-tertiary)', marginBottom: '10px'
         }}>Daily Progress</div>
@@ -752,16 +752,16 @@ export default function RightRail({ toggleRight }: RightRailProps = {}) {
         return (
           <div style={{ borderTop: '1px solid var(--border)', padding: '12px 16px', flexShrink: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>Upcoming</div>
+              <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>Upcoming</div>
               <button onClick={() => setShowNewEvent(true)} style={{
                 padding: '3px 10px', borderRadius: '9999px', border: '1px solid var(--border)',
-                background: 'transparent', color: 'var(--accent)', fontSize: '10px',
+                background: 'transparent', color: 'var(--accent)', fontSize: '11px',
                 fontWeight: 600, cursor: 'pointer',
               }}>+ Event</button>
             </div>
             {groups.map(g => (
               <div key={g.label} style={{ marginBottom: '8px' }}>
-                <div style={{ fontSize: '9px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>{g.label}</div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>{g.label}</div>
                 {g.tasks.slice(0, 3).map(t => (
                   <div key={t.uid} onClick={() => setEditingEvent(t)} style={{
                     fontSize: '12px', color: 'var(--text-secondary)', padding: '4px 6px',
@@ -774,12 +774,12 @@ export default function RightRail({ toggleRight }: RightRailProps = {}) {
                     <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.color || 'var(--accent)', flexShrink: 0 }} />
                     <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
                     {t.startTime && t.endTime && (
-                      <span style={{ fontSize: '10px', color: 'var(--text-primary)', flexShrink: 0, fontWeight: 500 }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text-primary)', flexShrink: 0, fontWeight: 500 }}>
                         {t.startTime}–{t.endTime}
                       </span>
                     )}
-                    {t.reminder && <span style={{ fontSize: '10px' }} title={`Reminder: ${t.reminder}min before`}>🔔</span>}
-                    {t.recurrence && <span style={{ fontSize: '10px' }} title="Recurring">🔁</span>}
+                    {t.reminder && <span style={{ fontSize: '11px' }} title={`Reminder: ${t.reminder}min before`}>🔔</span>}
+                    {t.recurrence && <span style={{ fontSize: '11px' }} title="Recurring">🔁</span>}
                   </div>
                 ))}
               </div>
