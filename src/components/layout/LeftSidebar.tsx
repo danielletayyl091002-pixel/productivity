@@ -4,6 +4,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { db, Page, seedIfEmpty } from '@/db/schema'
 import { nanoid } from 'nanoid'
+import { safeDbWrite } from '@/lib/dbError'
 
 interface LeftSidebarProps {
   collapsed: boolean
@@ -73,17 +74,20 @@ export default function LeftSidebar({ collapsed, toggleLeft, refreshKey = 0, onN
     creating = true
     const uid = nanoid()
     const count = await db.pages.count()
-    await db.pages.add({
-      uid,
-      title: 'Untitled',
-      icon: null,
-      parentUid,
-      isFavorite: false,
-      inTrash: false,
-      order: count,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    })
+    await safeDbWrite(
+      () => db.pages.add({
+        uid,
+        title: 'Untitled',
+        icon: null,
+        parentUid,
+        isFavorite: false,
+        inTrash: false,
+        order: count,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }),
+      'Failed to save page. Please try again.'
+    )
     const all = await db.pages.filter(p => !p.inTrash).sortBy('order')
     setPages([...all])
     if (parentUid) {
@@ -130,7 +134,10 @@ export default function LeftSidebar({ collapsed, toggleLeft, refreshKey = 0, onN
           onAddChild={() => createPage(page.uid)}
           onDelete={async () => {
             if (!page.id) return
-            await db.pages.update(page.id, { inTrash: true })
+            await safeDbWrite(
+              () => db.pages.update(page.id!, { inTrash: true }),
+              'Failed to delete page. Please try again.'
+            )
             window.dispatchEvent(new CustomEvent('page-created'))
           }}
         />

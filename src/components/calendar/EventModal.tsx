@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { nanoid } from 'nanoid'
 import { db, Task, Page } from '@/db/schema'
+import { safeDbWrite } from '@/lib/dbError'
 
 const COLORS = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1', '#14B8A6']
 const REMINDERS = [
@@ -152,7 +153,10 @@ export default function EventModal({
     if (!confirm('Delete this event?')) return
     const master = await resolveMasterTask()
     if (master?.id != null) {
-      await db.tasks.delete(master.id)
+      await safeDbWrite(
+        () => db.tasks.delete(master.id!),
+        'Failed to delete event. Please try again.'
+      )
     }
     // Keep backward compat with parents that rely on onDelete for state sync.
     if (onDelete) {
@@ -180,9 +184,12 @@ export default function EventModal({
       if (occurrenceDate && !exceptions.includes(occurrenceDate)) {
         exceptions.push(occurrenceDate)
       }
-      await db.tasks.update(master.id, {
-        recurrenceException: JSON.stringify(exceptions)
-      })
+      await safeDbWrite(
+        () => db.tasks.update(master.id!, {
+          recurrenceException: JSON.stringify(exceptions)
+        }),
+        'Failed to update event. Please try again.'
+      )
     } else if (mode === 'future') {
       if (occurrenceDate) {
         const untilDate = new Date(occurrenceDate + 'T00:00:00')
@@ -191,10 +198,16 @@ export default function EventModal({
         let newRrule = master.recurrence || ''
         newRrule = newRrule.replace(/;UNTIL=\d+/, '')
         newRrule += `;UNTIL=${untilStr}`
-        await db.tasks.update(master.id, { recurrence: newRrule })
+        await safeDbWrite(
+          () => db.tasks.update(master.id!, { recurrence: newRrule }),
+          'Failed to update recurrence. Please try again.'
+        )
       }
     } else if (mode === 'all') {
-      await db.tasks.delete(master.id)
+      await safeDbWrite(
+        () => db.tasks.delete(master.id!),
+        'Failed to delete event. Please try again.'
+      )
       if (onDelete) {
         try { await onDelete(master.uid) } catch { /* ignore */ }
       }
@@ -620,17 +633,20 @@ export default function EventModal({
                 onClick={async () => {
                   const newUid = nanoid()
                   const count = await db.pages.count()
-                  await db.pages.add({
-                    uid: newUid,
-                    title: 'Untitled',
-                    icon: null,
-                    parentUid: null,
-                    isFavorite: false,
-                    inTrash: false,
-                    order: count,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                  })
+                  await safeDbWrite(
+                    () => db.pages.add({
+                      uid: newUid,
+                      title: 'Untitled',
+                      icon: null,
+                      parentUid: null,
+                      isFavorite: false,
+                      inTrash: false,
+                      order: count,
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString(),
+                    }),
+                    'Failed to save page. Please try again.'
+                  )
                   setLinkedPageUid(newUid)
                   setShowPagePicker(false)
                   setPageSearch('')
