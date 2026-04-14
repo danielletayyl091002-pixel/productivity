@@ -8,8 +8,10 @@ import CmdK from '@/components/CmdK'
 import ShortcutsModal from '@/components/ui/ShortcutsModal'
 import QuickCapture from '@/components/ui/QuickCapture'
 import OnboardingModal from '@/components/ui/OnboardingModal'
+import ErrorToast from '@/components/ui/ErrorToast'
 import { useSidebarVisibility } from '@/hooks/useSidebarVisibility'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { registerErrorHandler } from '@/lib/dbError'
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const { leftVisible, rightVisible, toggleLeft, toggleRight } = useSidebarVisibility()
@@ -19,6 +21,14 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const [showOnboarding, setShowOnboarding] = useState(false)
   const isMobile = useIsMobile()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [dbError, setDbError] = useState<string | null>(null)
+
+  // Wire the global Dexie-error reporter to a toast in this layout.
+  // Any call to reportDbError() / safeDbWrite() from anywhere in the
+  // app will surface here.
+  useEffect(() => {
+    registerErrorHandler((msg) => setDbError(msg))
+  }, [])
 
   // First-run onboarding check. Fires only when the user has no pages
   // AND has never completed onboarding. Existing users (page count > 0)
@@ -356,6 +366,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             // without needing a reload.
             setSidebarRefreshKey(k => k + 1)
           }}
+        />
+      )}
+
+      {dbError && (
+        <ErrorToast
+          message={dbError}
+          onDismiss={() => setDbError(null)}
         />
       )}
     </div>
