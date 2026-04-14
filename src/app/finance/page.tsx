@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState, useMemo } from 'react'
 import { db, FinanceEntry, FinanceCategory } from '@/db/schema'
+import { safeDbWrite } from '@/lib/dbError'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun',
                 'Jul','Aug','Sep','Oct','Nov','Dec']
@@ -257,7 +258,10 @@ export default function FinancePage() {
           { name: 'Entertainment', color: '#E879F9', type: 'expense', isDefault: true },
           { name: 'Retail', color: '#94A3B8', type: 'expense', isDefault: true },
         ]
-        await db.financeCategories.bulkAdd(defaults)
+        await safeDbWrite(
+          () => db.financeCategories.bulkAdd(defaults),
+          'Failed to save category. Please try again.'
+        )
         const withIds = await db.financeCategories.toArray()
         setCategories(withIds)
       } else {
@@ -385,9 +389,15 @@ export default function FinancePage() {
               const existing = await db.settings
                 .where('key').equals('currency').first()
               if (existing?.id) {
-                await db.settings.update(existing.id, { value: val })
+                await safeDbWrite(
+                  () => db.settings.update(existing.id!, { value: val }),
+                  'Failed to save setting. Please try again.'
+                )
               } else {
-                await db.settings.add({ key: 'currency', value: val })
+                await safeDbWrite(
+                  () => db.settings.add({ key: 'currency', value: val }),
+                  'Failed to save setting. Please try again.'
+                )
               }
             }}
             style={{
@@ -516,7 +526,10 @@ export default function FinancePage() {
           type="income"
           onAdd={() => { setAddType('income'); setShowAddModal(true) }}
           onDelete={async (id) => {
-            await db.financeEntries.delete(id)
+            await safeDbWrite(
+              () => db.financeEntries.delete(id),
+              'Failed to delete entry. Please try again.'
+            )
             setEntries(prev => prev.filter(e => e.id !== id))
           }}
           onEdit={(id, note, amount, category) => {
@@ -534,7 +547,10 @@ export default function FinancePage() {
           type="expense"
           onAdd={() => { setAddType('expense'); setShowAddModal(true) }}
           onDelete={async (id) => {
-            await db.financeEntries.delete(id)
+            await safeDbWrite(
+              () => db.financeEntries.delete(id),
+              'Failed to delete entry. Please try again.'
+            )
             setEntries(prev => prev.filter(e => e.id !== id))
           }}
           onEdit={(id, note, amount, category) => {
@@ -554,7 +570,12 @@ export default function FinancePage() {
           onClose={() => setShowAddModal(false)}
           onSave={async (entry) => {
             const full = { ...entry, createdAt: new Date().toISOString() }
-            const id = await db.financeEntries.add(full)
+            const id = await safeDbWrite(
+              () => db.financeEntries.add(full),
+              'Failed to save entry. Please try again.'
+            )
+            // Leave the modal open on failure so the user can retry.
+            if (id == null) return
             setEntries(prev => [...prev, { ...full, id: id as number }])
             setShowAddModal(false)
           }}
@@ -772,11 +793,14 @@ function FinanceTable({ title, entries, categories, total, currency, type, onAdd
                   <button data-no-sculpt onClick={async () => {
                     if (!entry.id) return
                     const newAmount = parseFloat(editForm.amount)
-                    await db.financeEntries.update(entry.id, {
-                      note: editForm.note,
-                      amount: newAmount,
-                      category: editForm.category
-                    })
+                    await safeDbWrite(
+                      () => db.financeEntries.update(entry.id!, {
+                        note: editForm.note,
+                        amount: newAmount,
+                        category: editForm.category
+                      }),
+                      'Failed to update entry. Please try again.'
+                    )
                     onEdit(entry.id, editForm.note, newAmount, editForm.category)
                     setEditingId(null)
                   }} style={{
@@ -1066,7 +1090,11 @@ function CategoryManager({
       type: newType,
       isDefault: false
     }
-    const id = await db.financeCategories.add(newCat)
+    const id = await safeDbWrite(
+      () => db.financeCategories.add(newCat),
+      'Failed to save category. Please try again.'
+    )
+    if (id == null) return
     const updated = [...cats, { ...newCat, id: id as number }]
     setCats(updated)
     onUpdate(updated)
@@ -1074,14 +1102,20 @@ function CategoryManager({
   }
 
   async function deleteCategory(id: number) {
-    await db.financeCategories.delete(id)
+    await safeDbWrite(
+      () => db.financeCategories.delete(id),
+      'Failed to delete category. Please try again.'
+    )
     const updated = cats.filter(c => c.id !== id)
     setCats(updated)
     onUpdate(updated)
   }
 
   async function updateCategory(id: number, changes: Partial<FinanceCategory>) {
-    await db.financeCategories.update(id, changes)
+    await safeDbWrite(
+      () => db.financeCategories.update(id, changes),
+      'Failed to update category. Please try again.'
+    )
     const updated = cats.map(c =>
       c.id === id ? { ...c, ...changes } : c
     )
