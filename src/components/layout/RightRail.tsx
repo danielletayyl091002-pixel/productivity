@@ -5,6 +5,7 @@ import { db, Task } from '@/db/schema'
 import EventModal from '@/components/calendar/EventModal'
 import { nanoid } from 'nanoid'
 import { expandRecurring } from '@/lib/expandRecurring'
+import { safeDbWrite } from '@/lib/dbError'
 
 const getEventColor = (task: Task) => task.color || 'var(--accent)'
 
@@ -664,19 +665,22 @@ export default function RightRail({ toggleRight }: RightRailProps = {}) {
               if (e.key === 'Enter' && newEvent.title.trim()) {
                 const { nanoid } = await import('nanoid')
                 const todayStr = new Date().toISOString().split('T')[0]
-                await db.tasks.add({
-                  uid: nanoid(),
-                  pageUid: 'global',
-                  title: newEvent.title.trim(),
-                  status: 'todo' as const,
-                  priority: null,
-                  dueDate: todayStr,
-                  scheduledDate: todayStr,
-                  startTime: newEvent.startTime,
-                  endTime: newEvent.endTime,
-                  color: 'var(--accent)',
-                  createdAt: new Date().toISOString()
-                })
+                await safeDbWrite(
+                  () => db.tasks.add({
+                    uid: nanoid(),
+                    pageUid: 'global',
+                    title: newEvent.title.trim(),
+                    status: 'todo' as const,
+                    priority: null,
+                    dueDate: todayStr,
+                    scheduledDate: todayStr,
+                    startTime: newEvent.startTime,
+                    endTime: newEvent.endTime,
+                    color: 'var(--accent)',
+                    createdAt: new Date().toISOString()
+                  }),
+                  'Failed to save event. Please try again.'
+                )
                 setNewEvent(null)
                 const t = await db.tasks.filter(task =>
                   (task.scheduledDate === todayStr || task.dueDate === todayStr) &&
@@ -797,25 +801,34 @@ export default function RightRail({ toggleRight }: RightRailProps = {}) {
           onSave={async (evt) => {
             if (evt.uid) {
               const existing = upcoming.find(t => t.uid === evt.uid) || todayTasks.find(t => t.uid === evt.uid)
-              if (existing?.id) await db.tasks.update(existing.id, evt)
+              if (existing?.id) await safeDbWrite(
+                () => db.tasks.update(existing.id!, evt),
+                'Failed to update event. Please try again.'
+              )
             } else {
-              await db.tasks.add({
-                uid: nanoid(), pageUid: '', createdAt: new Date().toISOString(),
-                title: evt.title || '', status: evt.status || 'todo',
-                priority: evt.priority || null, dueDate: evt.dueDate || null,
-                scheduledDate: evt.scheduledDate || null,
-                startTime: evt.startTime || null, endTime: evt.endTime || null,
-                color: evt.color || 'var(--accent)',
-                description: evt.description, location: evt.location,
-                itemType: evt.itemType, recurrence: evt.recurrence,
-                reminder: evt.reminder, url: evt.url,
-              } as Task)
+              await safeDbWrite(
+                () => db.tasks.add({
+                  uid: nanoid(), pageUid: '', createdAt: new Date().toISOString(),
+                  title: evt.title || '', status: evt.status || 'todo',
+                  priority: evt.priority || null, dueDate: evt.dueDate || null,
+                  scheduledDate: evt.scheduledDate || null,
+                  startTime: evt.startTime || null, endTime: evt.endTime || null,
+                  color: evt.color || 'var(--accent)',
+                  description: evt.description, location: evt.location,
+                  itemType: evt.itemType, recurrence: evt.recurrence,
+                  reminder: evt.reminder, url: evt.url,
+                } as Task),
+                'Failed to save event. Please try again.'
+              )
             }
             loadEvents()
           }}
           onDelete={async (uid) => {
             const task = [...upcoming, ...todayTasks].find(t => t.uid === uid)
-            if (task?.id) await db.tasks.delete(task.id)
+            if (task?.id) await safeDbWrite(
+              () => db.tasks.delete(task.id!),
+              'Failed to delete event. Please try again.'
+            )
             loadEvents()
           }}
           onDeleted={() => {
